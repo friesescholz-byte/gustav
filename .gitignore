@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+.dev.vars
+check_esbuild.js
+test_gustav_backend.js
