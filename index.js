@@ -48,7 +48,9 @@ export default {
             
             customer.isDraft = !hasProject || !hasDomain;
 
-            if (customer.isDraft) {
+            if (customer.manualOverride) {
+              // Respect manual override in GET
+            } else if (customer.isDraft) {
               const ageMs = Date.now() - new Date(customer.createdAt).getTime();
               if (ageMs > sevenDaysMs) {
                 if (customer.status !== 'red' || customer.statusReason !== 'Bitte wieder beim Kunden melden (Entwurf seit 7 Tagen)') {
@@ -83,8 +85,7 @@ export default {
               if (
                 customer.lastInteraction &&
                 customer.lastDirection === 'outgoing' &&
-                customer.status === 'green' &&
-                !customer.manualOverride
+                customer.status === 'green'
               ) {
                 const lastDate = new Date(customer.lastInteraction).getTime();
                 if (Date.now() - lastDate > sevenDaysMs) {
@@ -150,7 +151,9 @@ export default {
         const hasUnresolvedIncoming = emails.some(m => m.direction === 'incoming' && !m.isResolved);
         const hasUnresolvedTodos = (finalCustomer.todos || []).some(t => !t.done);
 
-        if (hasUnresolvedIncoming || hasUnresolvedTodos) {
+        if (finalCustomer.manualOverride) {
+          // Explicit manual override by user - preserve status & statusReason!
+        } else if (hasUnresolvedIncoming || hasUnresolvedTodos) {
           finalCustomer.status = 'red';
           if (hasUnresolvedIncoming) {
             const unresolvedMail = emails.find(m => m.direction === 'incoming' && !m.isResolved);

@@ -2169,20 +2169,28 @@ export default `<!DOCTYPE html>
             if (!activeClient) return;
             const newStatus = activeClient.status === 'green' ? 'red' : 'green';
             const reason = newStatus === 'red' ? 'Manuell auf Rot gesetzt' : 'Manuell gelöst';
+            const isOverride = newStatus === 'red';
 
             activeClient.status = newStatus;
             activeClient.statusReason = reason;
-            activeClient.manualOverride = true; // Mark as override so cron job won't reset it automatically
+            activeClient.manualOverride = isOverride;
 
             try {
                 const res = await fetch('/api/kunden', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: activeClient.id, status: newStatus, statusReason: reason, manualOverride: true })
+                    body: JSON.stringify({ 
+                        ...activeClient, 
+                        status: newStatus, 
+                        statusReason: reason, 
+                        manualOverride: isOverride 
+                    })
                 });
                 const data = await res.json();
-                selectClient(data.customer);
-                loadClients();
+                if (data.success) {
+                    selectClient(data.customer);
+                    await loadClients();
+                }
             } catch(e) {
                 alert("Status konnte nicht geändert werden.");
             }
