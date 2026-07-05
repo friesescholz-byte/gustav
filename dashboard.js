@@ -1096,24 +1096,63 @@ export default `<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- CHARTS SECTION (3 DIAGRAMS) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-chart-column" style="color: var(--color-green);"></i> Gesamtverlauf (Einnahmen vs. Ausgaben)</h3>
-                        <div style="height: 220px; position: relative;">
+                <!-- YEAR FILTER BAR -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(17, 24, 39, 0.4); border: 1px solid var(--border-color); padding: 14px 20px; border-radius: 12px; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-calendar-days" style="color: var(--color-cyan);"></i> Auswertungs-Jahr:
+                        </span>
+                        <select id="fin-year-select" onchange="changeFinanceYear(this.value)" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 14px; color: #fff; font-weight: 700; font-size: 14px; outline: none; cursor: pointer;">
+                            <!-- Year options populated dynamically -->
+                        </select>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary);" id="fin-year-summary-text">
+                        Alle Auswertungen & Diagramme gelten für das Jahr <strong id="fin-selected-year-label" style="color: var(--color-green);">2026</strong>
+                    </div>
+                </div>
+
+                <!-- TOP CHARTS ROW (2 LARGE COMPARISON CHARTS) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="card" style="padding: 22px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 16px; font-size: 14px;"><i class="fa-solid fa-chart-column" style="color: var(--color-green);"></i> Monatlicher Gesamtverlauf (Einnahmen vs. Ausgaben)</h3>
+                        <div style="height: 280px; position: relative;">
                             <canvas id="fin-chart-monthly"></canvas>
                         </div>
                     </div>
-                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-arrows-rotate" style="color: var(--color-cyan);"></i> Einnahmen (MRR vs. Einmalig)</h3>
-                        <div style="height: 220px; position: relative;">
+                    <div class="card" style="padding: 22px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 16px; font-size: 14px;"><i class="fa-solid fa-arrows-rotate" style="color: var(--color-cyan);"></i> Einnahmen-Struktur (MRR Abos vs. Einmalig Projekte)</h3>
+                        <div style="height: 280px; position: relative;">
                             <canvas id="fin-chart-incomes-split"></canvas>
                         </div>
                     </div>
-                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben nach Kategorie</h3>
-                        <div style="height: 220px; position: relative;">
+                </div>
+
+                <!-- BOTTOM ROW: EXPENSE CATEGORY ANALYSIS CARD -->
+                <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
+                    <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;"><i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben-Analyse nach Kategorie</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; align-items: center;">
+                        <!-- Left: Doughnut Chart -->
+                        <div style="height: 260px; position: relative;">
                             <canvas id="fin-chart-categories"></canvas>
+                        </div>
+
+                        <!-- Right: Big Total Expense KPI & Detailed Category Breakdown List -->
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamtausgaben im Jahr <span id="fin-cat-year-label">2026</span></div>
+                                    <div style="font-size: 32px; font-weight: 800; color: var(--color-red); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-expenses">0,00 €</div>
+                                </div>
+                                <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-expense">
+                                    Ø 0,00 € / Mon.
+                                </div>
+                            </div>
+
+                            <!-- Category breakdown list -->
+                            <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                <!-- Dynamic breakdown list -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2108,6 +2147,7 @@ export default `<!DOCTYPE html>
         // --- FINANZEN LOGIC ---
         let finTransactions = [];
         let finCurrentFilter = 'all';
+        let finSelectedYear = new Date().getFullYear();
         let finMonthlyChartInstance = null;
         let finIncomesSplitChartInstance = null;
         let finCategoryChartInstance = null;
@@ -2116,12 +2156,58 @@ export default `<!DOCTYPE html>
             try {
                 const res = await fetch('/api/finanzen');
                 finTransactions = await res.json();
+                populateYearOptions();
                 renderFinanceKPIs();
                 renderFinanceTable();
                 renderFinanceCharts();
             } catch(e) {
                 console.error("Failed to load finances", e);
             }
+        }
+
+        function populateYearOptions() {
+            const yearSelect = document.getElementById('fin-year-select');
+            if (!yearSelect) return;
+
+            const yearsSet = new Set();
+            yearsSet.add(new Date().getFullYear());
+            yearsSet.add(2025);
+            yearsSet.add(2026);
+            yearsSet.add(2027);
+
+            finTransactions.forEach(t => {
+                if (t.date) {
+                    const y = parseInt(t.date.split('-')[0]);
+                    if (!isNaN(y)) yearsSet.add(y);
+                }
+            });
+
+            const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+            yearSelect.innerHTML = '';
+            sortedYears.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.innerText = y;
+                if (y === finSelectedYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            });
+
+            const label1 = document.getElementById('fin-selected-year-label');
+            if (label1) label1.innerText = finSelectedYear;
+            const label2 = document.getElementById('fin-cat-year-label');
+            if (label2) label2.innerText = finSelectedYear;
+        }
+
+        function changeFinanceYear(year) {
+            finSelectedYear = parseInt(year);
+            const label1 = document.getElementById('fin-selected-year-label');
+            if (label1) label1.innerText = finSelectedYear;
+            const label2 = document.getElementById('fin-cat-year-label');
+            if (label2) label2.innerText = finSelectedYear;
+
+            renderFinanceKPIs();
+            renderFinanceTable();
+            renderFinanceCharts();
         }
 
         // Helper to expand monthly recurring transactions up to current month
@@ -2330,10 +2416,9 @@ export default `<!DOCTYPE html>
             if (typeof Chart === 'undefined') return;
 
             const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-            const currentYear = new Date().getFullYear();
             const expanded = getExpandedTransactions();
 
-            // Chart 1: Monthly Comparison (Einnahmen vs Ausgaben)
+            // Chart 1: Monthly Comparison for Selected Year (Einnahmen vs Ausgaben)
             const incomesData = new Array(12).fill(0);
             const expensesData = new Array(12).fill(0);
 
@@ -2342,7 +2427,7 @@ export default `<!DOCTYPE html>
                 const parts = t.date.split('-');
                 const y = parseInt(parts[0]);
                 const m = parseInt(parts[1]) - 1;
-                if (y === currentYear && !isNaN(m) && m >= 0 && m < 12) {
+                if (y === finSelectedYear && !isNaN(m) && m >= 0 && m < 12) {
                     const brutto = t.brutto || 0;
                     if (t.type === 'income') incomesData[m] += brutto;
                     else if (t.type === 'expense') expensesData[m] += brutto;
@@ -2357,23 +2442,23 @@ export default `<!DOCTYPE html>
                     data: {
                         labels: months,
                         datasets: [
-                            { label: 'Einnahmen (€)', data: incomesData, backgroundColor: 'rgba(16, 185, 129, 0.6)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
-                            { label: 'Ausgaben (€)', data: expensesData, backgroundColor: 'rgba(239, 68, 68, 0.6)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 }
+                            { label: 'Einnahmen (€)', data: incomesData, backgroundColor: 'rgba(16, 185, 129, 0.7)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
+                            { label: 'Ausgaben (€)', data: expensesData, backgroundColor: 'rgba(239, 68, 68, 0.7)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } },
+                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 11 } } } },
                         scales: {
-                            x: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                            y: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                            x: { ticks: { color: '#a1a1aa', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y: { ticks: { color: '#a1a1aa', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
                         }
                     }
                 });
             }
 
-            // Chart 2: Income Breakdown (Wiederkehrend MRR vs. Einmalig Projekte)
+            // Chart 2: Income Breakdown for Selected Year (Wiederkehrend MRR vs. Einmalig Projekte)
             const mrrIncomesData = new Array(12).fill(0);
             const onceIncomesData = new Array(12).fill(0);
 
@@ -2382,7 +2467,7 @@ export default `<!DOCTYPE html>
                 const parts = t.date.split('-');
                 const y = parseInt(parts[0]);
                 const m = parseInt(parts[1]) - 1;
-                if (y === currentYear && !isNaN(m) && m >= 0 && m < 12) {
+                if (y === finSelectedYear && !isNaN(m) && m >= 0 && m < 12) {
                     const brutto = t.brutto || 0;
                     if (t.interval === 'monthly') mrrIncomesData[m] += brutto;
                     else onceIncomesData[m] += brutto;
@@ -2397,29 +2482,73 @@ export default `<!DOCTYPE html>
                     data: {
                         labels: months,
                         datasets: [
-                            { label: 'Wiederkehrend (MRR)', data: mrrIncomesData, backgroundColor: 'rgba(6, 182, 212, 0.7)', borderColor: '#06b6d4', borderWidth: 1, borderRadius: 4 },
-                            { label: 'Einmalig (Projekte)', data: onceIncomesData, backgroundColor: 'rgba(59, 130, 246, 0.7)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 }
+                            { label: 'Wiederkehrend (MRR)', data: mrrIncomesData, backgroundColor: 'rgba(6, 182, 212, 0.75)', borderColor: '#06b6d4', borderWidth: 1, borderRadius: 4 },
+                            { label: 'Einmalig (Projekte)', data: onceIncomesData, backgroundColor: 'rgba(59, 130, 246, 0.75)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } },
+                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 11 } } } },
                         scales: {
-                            x: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                            y: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                            x: { ticks: { color: '#a1a1aa', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y: { ticks: { color: '#a1a1aa', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
                         }
                     }
                 });
             }
 
-            // Chart 3: Category Breakdown (Expenses)
+            // Chart 3: Expense Category Breakdown for Selected Year
             const catMap = {};
+            let totalYearExpenses = 0;
+
             expanded.filter(t => t.type === 'expense').forEach(t => {
-                const cat = t.category || 'Büro & Sonstiges';
-                catMap[cat] = (catMap[cat] || 0) + (t.brutto || 0);
+                if (!t.date) return;
+                const parts = t.date.split('-');
+                const y = parseInt(parts[0]);
+                if (y === finSelectedYear) {
+                    const cat = t.category || 'Büro & Sonstiges';
+                    const amt = t.brutto || 0;
+                    catMap[cat] = (catMap[cat] || 0) + amt;
+                    totalYearExpenses += amt;
+                }
             });
 
+            const formatEur = (val) => val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+            // Update Big Total Expense KPI & Avg Monthly Expense
+            const totalExpEl = document.getElementById('fin-cat-total-expenses');
+            if (totalExpEl) totalExpEl.innerText = formatEur(totalYearExpenses);
+            const avgExpEl = document.getElementById('fin-cat-avg-expense');
+            if (avgExpEl) avgExpEl.innerText = 'Ø ' + formatEur(totalYearExpenses / 12) + ' / Mon.';
+
+            // Render Category Breakdown List with Euro values and percentages
+            const breakdownContainer = document.getElementById('fin-category-breakdown-list');
+            if (breakdownContainer) {
+                breakdownContainer.innerHTML = '';
+                const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'];
+                const entries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+
+                if (entries.length === 0) {
+                    breakdownContainer.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); padding: 12px; text-align: center;">Keine Ausgaben im Jahr ' + finSelectedYear + '</div>';
+                } else {
+                    entries.forEach(([catName, amt], idx) => {
+                        const pct = totalYearExpenses > 0 ? Math.round((amt / totalYearExpenses) * 100) : 0;
+                        const col = colors[idx % colors.length];
+
+                        const item = document.createElement('div');
+                        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);';
+                        item.innerHTML = '<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #fff;">' +
+                                '<span style="width: 10px; height: 10px; border-radius: 50%; background: ' + col + '; display: inline-block;"></span> ' + catName +
+                            '</span>' +
+                            '<div style="text-align: right;"><strong style="font-size: 13px; color: #fff; font-family: var(--font-heading);">' + formatEur(amt) + '</strong> <span style="font-size: 11px; color: var(--text-secondary); margin-left: 6px;">(' + pct + '%)</span></div>';
+
+                        breakdownContainer.appendChild(item);
+                    });
+                }
+            }
+
+            // Render Doughnut Chart
             const catLabels = Object.keys(catMap);
             const catValues = Object.values(catMap);
 
@@ -2439,7 +2568,7 @@ export default `<!DOCTYPE html>
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } }
+                        plugins: { legend: { display: false } }
                     }
                 });
             }
