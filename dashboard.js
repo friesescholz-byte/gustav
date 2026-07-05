@@ -845,9 +845,226 @@ export default `<!DOCTYPE html>
                 border-color: rgba(239, 68, 68, 0.8);
             }
         }
+
+        /* --- MOBILE & RESPONSIVE DESIGN (PRO MAX) --- */
+        .mobile-header {
+            display: none;
+            height: 56px;
+            background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 16px;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 900;
+        }
+
+        .mobile-toggle-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 60px;
+            background: #0d1220;
+            border-top: 1px solid var(--border-color);
+            z-index: 900;
+            align-items: center;
+            justify-content: space-around;
+            backdrop-filter: blur(10px);
+        }
+
+        .mobile-nav-item {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: var(--transition-smooth);
+        }
+
+        .mobile-nav-item i {
+            font-size: 16px;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--color-primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .mobile-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 940;
+        }
+
+        .mobile-backdrop.active {
+            display: block;
+        }
+
+        @media (max-width: 992px) {
+            body {
+                flex-direction: column;
+                height: 100vh;
+                padding-top: 56px;
+                padding-bottom: 60px;
+                box-sizing: border-box;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .mobile-bottom-nav {
+                display: flex;
+            }
+
+            /* Sidebar Drawer */
+            .sidebar {
+                position: fixed;
+                top: 56px;
+                bottom: 60px;
+                left: -330px;
+                width: 300px;
+                z-index: 950;
+                transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(330px);
+            }
+
+            /* Main Panel */
+            .main-panel {
+                width: 100%;
+                height: calc(100vh - 116px);
+                overflow-y: auto;
+            }
+
+            /* Chat Panel Drawer */
+            .chat-panel {
+                position: fixed;
+                top: 56px;
+                bottom: 60px;
+                right: -370px;
+                width: 340px;
+                z-index: 950;
+                transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            }
+
+            .chat-panel.mobile-open {
+                transform: translateX(-370px);
+            }
+
+            /* Spacing adjustments for Mobile Screens */
+            .welcome-screen {
+                padding: 16px !important;
+            }
+
+            #finanzen-screen, #domains-screen {
+                padding: 16px !important;
+            }
+
+            .welcome-screen h1, #finanzen-screen h1, #domains-screen h1 {
+                font-size: 22px !important;
+            }
+
+            /* Grid Layout adjustments for Mobile */
+            div[style*="grid-template-columns: 1.2fr 1.8fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
+            }
+
+            div[style*="grid-template-columns: repeat(4, 1fr)"] {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+            }
+
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
+            }
+
+            div[style*="grid-template-columns: 1fr 1.5fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            /* Client Header Mobile */
+            .client-header {
+                padding: 16px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .client-content {
+                grid-template-columns: 1fr !important;
+                padding: 16px;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .modal-content {
+                width: 95% !important;
+                padding: 18px !important;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <!-- MOBILE BACKDROP & HEADER -->
+    <div class="mobile-backdrop" id="mobile-backdrop" onclick="closeMobileDrawers()"></div>
+
+    <div class="mobile-header">
+        <button class="mobile-toggle-btn" onclick="toggleMobileSidebar()" title="Kunden-Menü öffnen">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="logo" style="font-size: 18px; display: flex; align-items: center; gap: 6px;">
+            <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav Logo" style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
+            <span>Gustav</span>
+        </div>
+        <button class="mobile-toggle-btn" onclick="toggleMobileChat()" title="Gustav KI Chat öffnen">
+            <i class="fa-solid fa-robot"></i>
+        </button>
+    </div>
 
     <!-- SIDEBAR -->
     <div class="sidebar">
@@ -1096,15 +1313,23 @@ export default `<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- YEAR FILTER BAR -->
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(17, 24, 39, 0.4); border: 1px solid var(--border-color); padding: 14px 20px; border-radius: 12px; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- YEAR FILTER BAR (ENDLESS ARROW NAVIGATION) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(17, 24, 39, 0.4); border: 1px solid var(--border-color); padding: 14px 20px; border-radius: 12px; box-sizing: border-box; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                         <span style="font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid fa-calendar-days" style="color: var(--color-cyan);"></i> Auswertungs-Jahr:
                         </span>
-                        <select id="fin-year-select" onchange="changeFinanceYear(this.value)" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 14px; color: #fff; font-weight: 700; font-size: 14px; outline: none; cursor: pointer;">
-                            <!-- Year options populated dynamically -->
-                        </select>
+                        
+                        <!-- Endlose Pfeil-Steuerung -->
+                        <div style="display: flex; align-items: center; gap: 6px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 10px;">
+                            <button onclick="prevFinanceYear()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Vorheriges Jahr (Endlos)">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <span id="fin-selected-year-display" style="font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--color-green); min-width: 65px; text-align: center; display: inline-block;">2026</span>
+                            <button onclick="nextFinanceYear()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Nächstes Jahr (Endlos)">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary);" id="fin-year-summary-text">
                         Alle Auswertungen & Diagramme gelten für das Jahr <strong id="fin-selected-year-label" style="color: var(--color-green);">2026</strong>
@@ -1445,6 +1670,30 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <div class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" id="mob-nav-hub" onclick="showView('hub'); updateMobileBottomNav('hub');">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-kunden" onclick="toggleMobileSidebar();">
+            <i class="fa-solid fa-users"></i>
+            <span>Kunden</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-finanzen" onclick="showView('finanzen'); updateMobileBottomNav('finanzen');">
+            <i class="fa-solid fa-coins"></i>
+            <span>Finanzen</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-domains" onclick="showView('domains'); updateMobileBottomNav('domains');">
+            <i class="fa-solid fa-cloud"></i>
+            <span>Domains</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-chat" onclick="toggleMobileChat();">
+            <i class="fa-solid fa-robot"></i>
+            <span>Gustav</span>
+        </button>
+    </div>
+
     <!-- JS LOGIC -->
     <script>
         let clients = [];
@@ -1544,6 +1793,12 @@ export default `<!DOCTYPE html>
         // Select client
         async function selectClient(client) {
             activeClient = client;
+            closeMobileDrawers();
+
+            document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById('client-item-' + client.id);
+            if (activeEl) activeEl.classList.add('active');
+
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'flex';
             document.getElementById('domains-screen').style.display = 'none';
@@ -2116,11 +2371,58 @@ export default `<!DOCTYPE html>
             }
         }
 
-        // --- NAVIGATION VIEW TOGGLE ---
+        // --- MOBILE DRAWER & NAV HELPERS ---
+        function toggleMobileSidebar() {
+            const sb = document.querySelector('.sidebar');
+            const cp = document.querySelector('.chat-panel');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (!sb) return;
+
+            if (cp) cp.classList.remove('mobile-open');
+
+            const isOpen = sb.classList.toggle('mobile-open');
+            if (backdrop) {
+                if (isOpen) backdrop.classList.add('active');
+                else backdrop.classList.remove('active');
+            }
+        }
+
+        function toggleMobileChat() {
+            const sb = document.querySelector('.sidebar');
+            const cp = document.querySelector('.chat-panel');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (!cp) return;
+
+            if (sb) sb.classList.remove('mobile-open');
+
+            const isOpen = cp.classList.toggle('mobile-open');
+            if (backdrop) {
+                if (isOpen) backdrop.classList.add('active');
+                else backdrop.classList.remove('active');
+            }
+        }
+
+        function closeMobileDrawers() {
+            const sb = document.querySelector('.sidebar');
+            const cp = document.querySelector('.chat-panel');
+            const backdrop = document.getElementById('mobile-backdrop');
+
+            if (sb) sb.classList.remove('mobile-open');
+            if (cp) cp.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+
+        function updateMobileBottomNav(viewName) {
+            document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
+            const btn = document.getElementById('mob-nav-' + viewName);
+            if (btn) btn.classList.add('active');
+            closeMobileDrawers();
+        }
+
         function showView(viewName) {
-            activeClient = null;
-            renderClientList();
-            
+            closeMobileDrawers();
+            updateMobileBottomNav(viewName);
+
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'none';
             document.getElementById('domains-screen').style.display = 'none';
@@ -2156,50 +2458,25 @@ export default `<!DOCTYPE html>
             try {
                 const res = await fetch('/api/finanzen');
                 finTransactions = await res.json();
-                populateYearOptions();
-                renderFinanceKPIs();
-                renderFinanceTable();
-                renderFinanceCharts();
+                updateFinanceYearView();
             } catch(e) {
                 console.error("Failed to load finances", e);
             }
         }
 
-        function populateYearOptions() {
-            const yearSelect = document.getElementById('fin-year-select');
-            if (!yearSelect) return;
-
-            const yearsSet = new Set();
-            yearsSet.add(new Date().getFullYear());
-            yearsSet.add(2025);
-            yearsSet.add(2026);
-            yearsSet.add(2027);
-
-            finTransactions.forEach(t => {
-                if (t.date) {
-                    const y = parseInt(t.date.split('-')[0]);
-                    if (!isNaN(y)) yearsSet.add(y);
-                }
-            });
-
-            const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
-            yearSelect.innerHTML = '';
-            sortedYears.forEach(y => {
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.innerText = y;
-                if (y === finSelectedYear) opt.selected = true;
-                yearSelect.appendChild(opt);
-            });
-
-            const label1 = document.getElementById('fin-selected-year-label');
-            if (label1) label1.innerText = finSelectedYear;
-            const label2 = document.getElementById('fin-cat-year-label');
-            if (label2) label2.innerText = finSelectedYear;
+        function prevFinanceYear() {
+            finSelectedYear--;
+            updateFinanceYearView();
         }
 
-        function changeFinanceYear(year) {
-            finSelectedYear = parseInt(year);
+        function nextFinanceYear() {
+            finSelectedYear++;
+            updateFinanceYearView();
+        }
+
+        function updateFinanceYearView() {
+            const display = document.getElementById('fin-selected-year-display');
+            if (display) display.innerText = finSelectedYear;
             const label1 = document.getElementById('fin-selected-year-label');
             if (label1) label1.innerText = finSelectedYear;
             const label2 = document.getElementById('fin-cat-year-label');
