@@ -1151,8 +1151,8 @@ export default `<!DOCTYPE html>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="status-dot green" id="cf-api-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> Cloudflare API
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="status-dot green" id="imap-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> IMAP Mail-Sync
+                            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="openImapModal()" title="Klicke hier, um deine E-Mail-Postfächer einzurichten">
+                                <span class="status-dot green" id="imap-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> IMAP Mail-Sync <i class="fa-solid fa-gear" style="font-size: 10px; color: var(--color-primary); opacity: 0.8; margin-left: 2px;"></i>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="status-dot green" id="r2-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> R2 Cloud Storage
