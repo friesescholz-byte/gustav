@@ -967,6 +967,28 @@ export default `<!DOCTYPE html>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Finance Command Center Card -->
+                    <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 20px; cursor: pointer;" onclick="showView('finanzen')">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 class="card-title" style="margin: 0; font-size: 14px;"><i class="fa-solid fa-coins" style="color: var(--color-green);"></i> Finanzen & Cashflow</h3>
+                            <span style="font-size: 11px; color: var(--color-cyan); font-weight: 600;">Zur Übersicht <i class="fa-solid fa-chevron-right"></i></span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 10px 12px; border-radius: 8px;">
+                                <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Umsatz (Monat)</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--color-green); margin-top: 2px; font-family: var(--font-heading);" id="dash-fin-incomes">0,00 €</div>
+                            </div>
+                            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px 12px; border-radius: 8px;">
+                                <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Gewinn (Monat)</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #fff; margin-top: 2px; font-family: var(--font-heading);" id="dash-fin-profit">0,00 €</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 10px; display: flex; justify-content: space-between;">
+                            <span>MRR: <strong id="dash-fin-mrr" style="color: var(--color-cyan);">0,00 €</strong></span>
+                            <span>YTD: <strong id="dash-fin-ytd" style="color: var(--text-primary);">0,00 €</strong></span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Rechts: Activity & Alarm-Zentrale (nimmt die volle Höhe ein für bessere Symmetrie) -->
@@ -1033,9 +1055,15 @@ export default `<!DOCTYPE html>
                         Finanzübersicht & MRR
                     </h1>
                 </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <button class="btn btn-secondary" onclick="exportFinancesCSV()" style="padding: 8px 14px; font-size: 13px;">
-                        <i class="fa-solid fa-file-csv"></i> Tabelle herunterladen
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn btn-secondary" onclick="exportFinancesCSV('income')" style="padding: 8px 12px; font-size: 12px;" title="Nur Einnahmen mit MwSt für Steuerberater">
+                        <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Einnahmen (CSV)
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportFinancesCSV('expense')" style="padding: 8px 12px; font-size: 12px;" title="Nur Ausgaben mit MwSt für Steuerberater">
+                        <i class="fa-solid fa-file-excel" style="color: #ef4444;"></i> Ausgaben (CSV)
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportFinancesCSV('all')" style="padding: 8px 12px; font-size: 12px;" title="Gesamtübersicht Einnahmen & Ausgaben">
+                        <i class="fa-solid fa-download"></i> Alle (CSV)
                     </button>
                     <button class="btn btn-primary" onclick="openTransactionModal()" style="padding: 8px 14px; font-size: 13px;">
                         <i class="fa-solid fa-plus"></i> Transaktion hinzufügen
@@ -1068,17 +1096,23 @@ export default `<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- CHARTS SECTION -->
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                    <div class="card" style="padding: 20px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 15px;"><i class="fa-solid fa-chart-column"></i> Monatlicher Verlauf (Einnahmen vs. Ausgaben)</h3>
-                        <div style="height: 240px; position: relative;">
+                <!-- CHARTS SECTION (3 DIAGRAMS) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-chart-column" style="color: var(--color-green);"></i> Gesamtverlauf (Einnahmen vs. Ausgaben)</h3>
+                        <div style="height: 220px; position: relative;">
                             <canvas id="fin-chart-monthly"></canvas>
                         </div>
                     </div>
-                    <div class="card" style="padding: 20px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 15px;"><i class="fa-solid fa-chart-pie"></i> Ausgaben nach Kategorie</h3>
-                        <div style="height: 240px; position: relative;">
+                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-arrows-rotate" style="color: var(--color-cyan);"></i> Einnahmen (MRR vs. Einmalig)</h3>
+                        <div style="height: 220px; position: relative;">
+                            <canvas id="fin-chart-incomes-split"></canvas>
+                        </div>
+                    </div>
+                    <div class="card" style="padding: 18px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 12px; font-size: 12px;"><i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben nach Kategorie</h3>
+                        <div style="height: 220px; position: relative;">
                             <canvas id="fin-chart-categories"></canvas>
                         </div>
                     </div>
@@ -1096,7 +1130,7 @@ export default `<!DOCTYPE html>
                         </div>
                     </div>
                     <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 11px; text-transform: uppercase;">
                                     <th style="padding: 10px;">Typ</th>
@@ -1104,7 +1138,9 @@ export default `<!DOCTYPE html>
                                     <th style="padding: 10px;">Beschreibung</th>
                                     <th style="padding: 10px;">Kategorie</th>
                                     <th style="padding: 10px;">Intervall</th>
-                                    <th style="padding: 10px; text-align: right;">Betrag</th>
+                                    <th style="padding: 10px; text-align: right;">Netto (€)</th>
+                                    <th style="padding: 10px; text-align: right;">19% MwSt (€)</th>
+                                    <th style="padding: 10px; text-align: right;">Brutto (€)</th>
                                     <th style="padding: 10px; text-align: center;">Aktionen</th>
                                 </tr>
                             </thead>
@@ -1351,6 +1387,15 @@ export default `<!DOCTYPE html>
                             <option value="monthly">Monatlich wiederkehrend</option>
                         </select>
                     </div>
+                </div>
+
+                <div style="margin-top: 14px; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); padding: 10px 14px; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="tx-vat-included" checked style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
+                        <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">
+                            <i class="fa-solid fa-percent" style="color: var(--color-cyan); margin-right: 4px;"></i> 19% MwSt. enthalten (Standard)
+                        </span>
+                    </label>
                 </div>
 
                 <div class="modal-actions" style="margin-top: 20px;">
@@ -2064,6 +2109,7 @@ export default `<!DOCTYPE html>
         let finTransactions = [];
         let finCurrentFilter = 'all';
         let finMonthlyChartInstance = null;
+        let finIncomesSplitChartInstance = null;
         let finCategoryChartInstance = null;
 
         async function loadFinances() {
@@ -2078,7 +2124,65 @@ export default `<!DOCTYPE html>
             }
         }
 
+        // Helper to expand monthly recurring transactions up to current month
+        function getExpandedTransactions() {
+            const expanded = [];
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth(); // 0-indexed
+
+            finTransactions.forEach(t => {
+                const amt = parseFloat(t.amount) || 0;
+                const vatIncluded = t.vatIncluded !== false; // default true
+                const netto = vatIncluded ? amt / 1.19 : amt;
+                const vat = vatIncluded ? amt - netto : 0;
+                const brutto = amt;
+
+                if (t.interval === 'monthly' && t.date) {
+                    const parts = t.date.split('-');
+                    const startYear = parseInt(parts[0]);
+                    const startMonth = parseInt(parts[1]) - 1; // 0-indexed
+                    const startDay = parts[2] || '01';
+
+                    if (!isNaN(startYear) && !isNaN(startMonth)) {
+                        let y = startYear;
+                        let m = startMonth;
+
+                        while (y < currentYear || (y === currentYear && m <= currentMonth)) {
+                            const monthStr = String(m + 1).padStart(2, '0');
+                            const genDate = y + '-' + monthStr + '-' + startDay;
+
+                            expanded.push({
+                                ...t,
+                                id: t.id + '_' + y + '_' + monthStr,
+                                originalId: t.id,
+                                date: genDate,
+                                netto,
+                                vat,
+                                brutto,
+                                vatIncluded,
+                                isAutoRecurring: (y !== startYear || m !== startMonth)
+                            });
+
+                            m++;
+                            if (m > 11) {
+                                m = 0;
+                                y++;
+                            }
+                        }
+                    } else {
+                        expanded.push({ ...t, netto, vat, brutto, vatIncluded });
+                    }
+                } else {
+                    expanded.push({ ...t, netto, vat, brutto, vatIncluded });
+                }
+            });
+
+            return expanded.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        }
+
         function renderFinanceKPIs() {
+            const expanded = getExpandedTransactions();
             const now = new Date();
             const monthNum = String(now.getMonth() + 1).padStart(2, '0');
             const currentMonthStr = now.getFullYear() + '-' + monthNum;
@@ -2090,26 +2194,22 @@ export default `<!DOCTYPE html>
             let fixExpenses = 0;
             let ytdUmsatz = 0;
 
-            finTransactions.forEach(t => {
-                const amt = parseFloat(t.amount) || 0;
+            expanded.forEach(t => {
+                const brutto = t.brutto || 0;
                 const isCurrentMonth = t.date && t.date.startsWith(currentMonthStr);
                 const isCurrentYear = t.date && t.date.startsWith(currentYearStr);
 
                 if (t.type === 'income') {
-                    if (isCurrentYear) ytdUmsatz += amt;
+                    if (isCurrentYear) ytdUmsatz += brutto;
 
-                    if (t.interval === 'monthly') {
-                        mrr += amt;
-                        monthIncomes += amt;
-                    } else if (isCurrentMonth) {
-                        monthIncomes += amt;
+                    if (isCurrentMonth) {
+                        monthIncomes += brutto;
+                        if (t.interval === 'monthly') mrr += brutto;
                     }
                 } else if (t.type === 'expense') {
-                    if (t.interval === 'monthly') {
-                        fixExpenses += amt;
-                        monthExpenses += amt;
-                    } else if (isCurrentMonth) {
-                        monthExpenses += amt;
+                    if (isCurrentMonth) {
+                        monthExpenses += brutto;
+                        if (t.interval === 'monthly') fixExpenses += brutto;
                     }
                 }
             });
@@ -2119,6 +2219,7 @@ export default `<!DOCTYPE html>
 
             const formatEur = (val) => val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
+            // Finanzen Screen KPI elements
             const incEl = document.getElementById('fin-kpi-incomes');
             if (incEl) incEl.innerText = formatEur(monthIncomes);
             const mrrEl = document.getElementById('fin-kpi-mrr');
@@ -2141,7 +2242,20 @@ export default `<!DOCTYPE html>
             const ytdEl = document.getElementById('fin-kpi-ytd');
             if (ytdEl) ytdEl.innerText = formatEur(ytdUmsatz);
             const countEl = document.getElementById('fin-kpi-total-count');
-            if (countEl) countEl.innerText = finTransactions.length + ' Transaktion(en) erfasst';
+            if (countEl) countEl.innerText = expanded.length + ' Transaktion(en)';
+
+            // Dashboard / Command Center Finance Widget elements
+            const dashInc = document.getElementById('dash-fin-incomes');
+            if (dashInc) dashInc.innerText = formatEur(monthIncomes);
+            const dashProfit = document.getElementById('dash-fin-profit');
+            if (dashProfit) {
+                dashProfit.innerText = formatEur(profit);
+                dashProfit.style.color = profit >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+            }
+            const dashMrr = document.getElementById('dash-fin-mrr');
+            if (dashMrr) dashMrr.innerText = formatEur(mrr);
+            const dashYtd = document.getElementById('dash-fin-ytd');
+            if (dashYtd) dashYtd.innerText = formatEur(ytdUmsatz);
         }
 
         function filterTransactions(filter, btn) {
@@ -2156,13 +2270,14 @@ export default `<!DOCTYPE html>
             if (!tbody) return;
             tbody.innerHTML = '';
 
-            let list = finTransactions;
+            const expanded = getExpandedTransactions();
+            let list = expanded;
             if (finCurrentFilter === 'income') list = list.filter(t => t.type === 'income');
             if (finCurrentFilter === 'expense') list = list.filter(t => t.type === 'expense');
             if (finCurrentFilter === 'monthly') list = list.filter(t => t.interval === 'monthly');
 
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-secondary);">Keine Transaktionen in dieser Kategorie vorhanden.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="padding: 20px; text-align: center; color: var(--text-secondary);">Keine Transaktionen in dieser Kategorie vorhanden.</td></tr>';
                 return;
             }
 
@@ -2174,28 +2289,38 @@ export default `<!DOCTYPE html>
 
                 const isIncome = t.type === 'income';
                 const typeBadge = isIncome 
-                    ? '<span style="color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); padding:2px 8px; border-radius:4px; font-weight:600; font-size:11px;">Einnahme</span>'
-                    : '<span style="color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); padding:2px 8px; border-radius:4px; font-weight:600; font-size:11px;">Ausgabe</span>';
+                    ? '<span style="color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); padding:2px 8px; border-radius:4px; font-weight:600; font-size:10px;">Einnahme</span>'
+                    : '<span style="color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); padding:2px 8px; border-radius:4px; font-weight:600; font-size:10px;">Ausgabe</span>';
 
                 const intervalBadge = t.interval === 'monthly'
-                    ? '<span style="color:#06b6d4; background:rgba(6,182,212,0.1); padding:2px 6px; border-radius:4px; font-size:10px;">Monatlich</span>'
+                    ? '<span style="color:#06b6d4; background:rgba(6,182,212,0.1); padding:2px 6px; border-radius:4px; font-size:10px;"><i class="fa-solid fa-repeat"></i> Monatlich' + (t.isAutoRecurring ? ' (Auto)' : '') + '</span>'
                     : '<span style="color:var(--text-secondary); font-size:10px;">Einmalig</span>';
 
-                const formattedAmt = (isIncome ? '+' : '-') + (parseFloat(t.amount) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+                const fmtNum = (val) => (val || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+                const nettoFmt = (isIncome ? '+' : '-') + fmtNum(t.netto);
+                const vatFmt = fmtNum(t.vat);
+                const bruttoFmt = (isIncome ? '+' : '-') + fmtNum(t.brutto);
                 const amtColor = isIncome ? '#10b981' : '#ef4444';
 
+                const deleteId = t.originalId || t.id;
+
                 tr.innerHTML = '<td style="padding: 10px;">' + typeBadge + '</td>' +
-                    '<td style="padding: 10px; color: var(--text-secondary);">' + (t.date || '-') + '</td>' +
+                    '<td style="padding: 10px; color: var(--text-secondary); font-size: 11px;">' + (t.date || '-') + '</td>' +
                     '<td style="padding: 10px; font-weight: 600; color: #fff;">' + (t.description || '') + '</td>' +
                     '<td style="padding: 10px; color: var(--text-secondary);">' + (t.category || 'Allgemein') + '</td>' +
                     '<td style="padding: 10px;">' + intervalBadge + '</td>' +
-                    '<td style="padding: 10px; text-align: right; font-weight: 700; color: ' + amtColor + ';">' + formattedAmt + '</td>' +
+                    '<td style="padding: 10px; text-align: right; color: var(--text-secondary); font-family: var(--font-heading);">' + nettoFmt + '</td>' +
+                    '<td style="padding: 10px; text-align: right; color: #a1a1aa; font-family: var(--font-heading); font-size: 11px;">' + vatFmt + '</td>' +
+                    '<td style="padding: 10px; text-align: right; font-weight: 700; color: ' + amtColor + '; font-family: var(--font-heading);">' + bruttoFmt + '</td>' +
                     '<td style="padding: 10px; text-align: center;">' +
-                        '<button data-del-id="' + t.id + '" style="background:none; border:none; color:#ef4444; cursor:pointer; opacity:0.8;" title="Löschen"><i class="fa-solid fa-trash"></i></button>' +
+                        '<button data-del-id="' + deleteId + '" style="background:none; border:none; color:#ef4444; cursor:pointer; opacity:0.8;" title="Löschen"><i class="fa-solid fa-trash"></i></button>' +
                     '</td>';
 
                 const delBtn = tr.querySelector('[data-del-id]');
-                delBtn.addEventListener('click', () => deleteTransaction(t.id));
+                if (delBtn) {
+                    delBtn.addEventListener('click', () => deleteTransaction(deleteId));
+                }
 
                 tbody.appendChild(tr);
             });
@@ -2204,20 +2329,23 @@ export default `<!DOCTYPE html>
         function renderFinanceCharts() {
             if (typeof Chart === 'undefined') return;
 
-            // Chart 1: Monthly Comparison
             const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
             const currentYear = new Date().getFullYear();
+            const expanded = getExpandedTransactions();
+
+            // Chart 1: Monthly Comparison (Einnahmen vs Ausgaben)
             const incomesData = new Array(12).fill(0);
             const expensesData = new Array(12).fill(0);
 
-            finTransactions.forEach(t => {
+            expanded.forEach(t => {
                 if (!t.date) return;
-                const d = new Date(t.date);
-                if (d.getFullYear() === currentYear) {
-                    const m = d.getMonth();
-                    const amt = parseFloat(t.amount) || 0;
-                    if (t.type === 'income') incomesData[m] += amt;
-                    else if (t.type === 'expense') expensesData[m] += amt;
+                const parts = t.date.split('-');
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]) - 1;
+                if (y === currentYear && !isNaN(m) && m >= 0 && m < 12) {
+                    const brutto = t.brutto || 0;
+                    if (t.type === 'income') incomesData[m] += brutto;
+                    else if (t.type === 'expense') expensesData[m] += brutto;
                 }
             });
 
@@ -2236,20 +2364,60 @@ export default `<!DOCTYPE html>
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit' } } } },
+                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } },
                         scales: {
-                            x: { ticks: { color: '#a1a1aa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                            y: { ticks: { color: '#a1a1aa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                            x: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
                         }
                     }
                 });
             }
 
-            // Chart 2: Category Breakdown (Expenses)
+            // Chart 2: Income Breakdown (Wiederkehrend MRR vs. Einmalig Projekte)
+            const mrrIncomesData = new Array(12).fill(0);
+            const onceIncomesData = new Array(12).fill(0);
+
+            expanded.filter(t => t.type === 'income').forEach(t => {
+                if (!t.date) return;
+                const parts = t.date.split('-');
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]) - 1;
+                if (y === currentYear && !isNaN(m) && m >= 0 && m < 12) {
+                    const brutto = t.brutto || 0;
+                    if (t.interval === 'monthly') mrrIncomesData[m] += brutto;
+                    else onceIncomesData[m] += brutto;
+                }
+            });
+
+            const ctxSplit = document.getElementById('fin-chart-incomes-split');
+            if (ctxSplit) {
+                if (finIncomesSplitChartInstance) finIncomesSplitChartInstance.destroy();
+                finIncomesSplitChartInstance = new Chart(ctxSplit, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            { label: 'Wiederkehrend (MRR)', data: mrrIncomesData, backgroundColor: 'rgba(6, 182, 212, 0.7)', borderColor: '#06b6d4', borderWidth: 1, borderRadius: 4 },
+                            { label: 'Einmalig (Projekte)', data: onceIncomesData, backgroundColor: 'rgba(59, 130, 246, 0.7)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } },
+                        scales: {
+                            x: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y: { ticks: { color: '#a1a1aa', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                        }
+                    }
+                });
+            }
+
+            // Chart 3: Category Breakdown (Expenses)
             const catMap = {};
-            finTransactions.filter(t => t.type === 'expense').forEach(t => {
+            expanded.filter(t => t.type === 'expense').forEach(t => {
                 const cat = t.category || 'Büro & Sonstiges';
-                catMap[cat] = (catMap[cat] || 0) + (parseFloat(t.amount) || 0);
+                catMap[cat] = (catMap[cat] || 0) + (t.brutto || 0);
             });
 
             const catLabels = Object.keys(catMap);
@@ -2271,7 +2439,7 @@ export default `<!DOCTYPE html>
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 11 } } } }
+                        plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Outfit', size: 10 } } } }
                     }
                 });
             }
@@ -2281,6 +2449,8 @@ export default `<!DOCTYPE html>
             document.getElementById('tx-id').value = '';
             document.getElementById('tx-form').reset();
             document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+            const vatCheck = document.getElementById('tx-vat-included');
+            if (vatCheck) vatCheck.checked = true;
             document.getElementById('transaction-modal').style.display = 'flex';
         }
 
@@ -2290,6 +2460,7 @@ export default `<!DOCTYPE html>
 
         async function saveTransaction(event) {
             event.preventDefault();
+            const vatCheck = document.getElementById('tx-vat-included');
             const payload = {
                 id: document.getElementById('tx-id').value || undefined,
                 type: document.getElementById('tx-type').value,
@@ -2297,7 +2468,8 @@ export default `<!DOCTYPE html>
                 amount: parseFloat(document.getElementById('tx-amount').value),
                 date: document.getElementById('tx-date').value,
                 category: document.getElementById('tx-category').value,
-                interval: document.getElementById('tx-interval').value
+                interval: document.getElementById('tx-interval').value,
+                vatIncluded: vatCheck ? vatCheck.checked : true
             };
 
             try {
@@ -2331,32 +2503,54 @@ export default `<!DOCTYPE html>
             }
         }
 
-        function exportFinancesCSV() {
-            if (finTransactions.length === 0) {
-                alert('Keine Finanzdaten zum Exportieren vorhanden.');
+        function exportFinancesCSV(typeFilter = 'all') {
+            const expanded = getExpandedTransactions();
+            let list = expanded;
+            if (typeFilter === 'income') list = list.filter(t => t.type === 'income');
+            if (typeFilter === 'expense') list = list.filter(t => t.type === 'expense');
+
+            if (list.length === 0) {
+                alert('Keine Finanzdaten für diesen Export vorhanden.');
                 return;
             }
 
             // UTF-8 BOM for Microsoft Excel German compatibility
             let csvContent = '\\uFEFF';
-            csvContent += 'Typ;Datum;Beschreibung;Kategorie;Intervall;Betrag (EUR)\\n';
+            csvContent += 'Typ;Datum;Beschreibung;Kategorie;Intervall;Netto (EUR);19% MwSt (EUR);Brutto (EUR)\\n';
 
-            finTransactions.forEach(t => {
+            let sumNetto = 0;
+            let sumVat = 0;
+            let sumBrutto = 0;
+
+            const fmtCsvNum = (num) => (num || 0).toFixed(2).replace('.', ',');
+
+            list.forEach(t => {
                 const typStr = t.type === 'income' ? 'Einnahme' : 'Ausgabe';
                 const intervalStr = t.interval === 'monthly' ? 'Monatlich' : 'Einmalig';
-                const amtStr = (t.amount || 0).toFixed(2).replace('.', ',');
                 const descStr = '"' + (t.description || '').replace(/"/g, '""') + '"';
                 const catStr = '"' + (t.category || '').replace(/"/g, '""') + '"';
 
-                csvContent += typStr + ';' + t.date + ';' + descStr + ';' + catStr + ';' + intervalStr + ';' + amtStr + '\\n';
+                const nettoVal = t.netto || 0;
+                const vatVal = t.vat || 0;
+                const bruttoVal = t.brutto || 0;
+
+                sumNetto += nettoVal;
+                sumVat += vatVal;
+                sumBrutto += bruttoVal;
+
+                csvContent += typStr + ';' + t.date + ';' + descStr + ';' + catStr + ';' + intervalStr + ';' + fmtCsvNum(nettoVal) + ';' + fmtCsvNum(vatVal) + ';' + fmtCsvNum(bruttoVal) + '\\n';
             });
+
+            // Add Summenzeile at bottom for Steuerberater
+            csvContent += '\\n"GESAMTSUMME (Steuerberater)";"";"";"";"";"' + fmtCsvNum(sumNetto) + '";"' + fmtCsvNum(sumVat) + '";"' + fmtCsvNum(sumBrutto) + '"\\n';
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
             const dateSuffix = new Date().toISOString().split('T')[0];
-            link.setAttribute('download', 'scholz_friese_finanzen_export_' + dateSuffix + '.csv');
+            const filename = 'scholz_friese_finanzen_' + typeFilter + '_' + dateSuffix + '.csv';
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
