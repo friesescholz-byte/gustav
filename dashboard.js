@@ -2168,12 +2168,11 @@ export default `<!DOCTYPE html>
         async function toggleManualStatus() {
             if (!activeClient) return;
             const newStatus = activeClient.status === 'green' ? 'red' : 'green';
-            const reason = newStatus === 'red' ? 'Manuell auf Rot gesetzt' : 'Manuell gelöst';
-            const isOverride = newStatus === 'red';
+            const reason = newStatus === 'red' ? 'Manuell auf Rot gesetzt' : 'Manuell auf Grün gesetzt';
 
             activeClient.status = newStatus;
             activeClient.statusReason = reason;
-            activeClient.manualOverride = isOverride;
+            activeClient.manualOverride = true; // Always lock manual override so user choice is respected
 
             try {
                 const res = await fetch('/api/kunden', {
@@ -2183,7 +2182,7 @@ export default `<!DOCTYPE html>
                         ...activeClient, 
                         status: newStatus, 
                         statusReason: reason, 
-                        manualOverride: isOverride 
+                        manualOverride: true 
                     })
                 });
                 const data = await res.json();
