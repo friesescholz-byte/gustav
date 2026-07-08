@@ -1,6 +1,292 @@
 import { connect } from 'cloudflare:sockets';
 import dashboardHtml from './dashboard.js';
 
+const loginHtml = `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gustav Login – Scholz & Friese</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #080a0f;
+            --color-primary: #3b82f6;
+            --color-primary-hover: #2563eb;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%);
+            filter: blur(40px);
+            z-index: 1;
+        }
+        .glow-1 { top: -100px; left: -100px; }
+        .glow-2 { bottom: -100px; right: -100px; }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: rgba(17, 24, 39, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .logo-img {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid var(--color-primary);
+            object-fit: cover;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .input-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .login-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 44px 14px 16px;
+            font-size: 15px;
+            color: #fff;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .login-input:focus {
+            border-color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+
+        .eye-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .eye-icon:hover {
+            color: #fff;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            background: var(--color-primary-hover);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .footer {
+            margin-top: 24px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" class="logo-img" alt="Logo">
+            <h1 class="title">Gustav Access</h1>
+            <p class="subtitle">Scholz & Friese Command Center</p>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <label class="input-label" for="password">Passwort</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" class="login-input" required placeholder="••••••••" autofocus>
+                        <i class="fa-solid fa-eye eye-icon" id="toggle-eye" onclick="togglePasswordVisibility()"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-btn">
+                    <span>Anmelden</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <div class="error-message" id="error-msg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Falsches Passwort. Bitte erneut versuchen.</span>
+                </div>
+            </form>
+
+            <div class="footer">
+                &copy; 2026 Scholz & Friese GbR.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility() {
+            const pwd = document.getElementById('password');
+            const eye = document.getElementById('toggle-eye');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                eye.className = 'fa-solid fa-eye-slash eye-icon';
+            } else {
+                pwd.type = 'password';
+                eye.className = 'fa-solid fa-eye eye-icon';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submit-btn');
+            const errorMsg = document.getElementById('error-msg');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Prüfen...</span>';
+            errorMsg.style.display = 'none';
+
+            try {
+                const res = await fetch(\`/login\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    errorMsg.style.display = 'flex';
+                    document.getElementById('password').value = '';
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Anmelden</span><i class=\"fa-solid fa-arrow-right\"></i>';
+                }
+            } catch (err) {
+                errorMsg.style.display = 'flex';
+                btn.disabled = false;
+                btn.innerHTML = '<span>Anmelden</span><i class=\"fa-solid fa-arrow-right\"></i>';
+            }
+        }
+    </script>
+</body>
+</html>`;
+
+function getCookie(request, name) {
+  const cookieHeader = request.headers.get('Cookie');
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';');
+  for (let cookie of cookies) {
+    const [key, value] = cookie.trim().split('=');
+    if (key === name) {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -15,6 +301,47 @@ export default {
 
     if (method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // 0. Handle POST /login route
+    if (url.pathname === '/login' && method === 'POST') {
+      try {
+        const body = await request.json();
+        const expectedPassword = env.APP_PASSWORD || 'Start.123#';
+        if (body.password === expectedPassword) {
+          return new Response(JSON.stringify({ success: true }), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Set-Cookie': 'Authorization=GustavAuthorizedToken; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000',
+              ...corsHeaders
+            }
+          });
+        } else {
+          return new Response(JSON.stringify({ error: 'Falsches Passwort' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'Bad Request' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // Check authorization cookie
+    const isAuthorized = getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
+    if (!isAuthorized) {
+      if (url.pathname === '/' || url.pathname === '/index.html') {
+        return new Response(loginHtml, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
     }
 
     try {

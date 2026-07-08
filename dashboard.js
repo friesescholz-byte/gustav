@@ -969,6 +969,20 @@ export default `<!DOCTYPE html>
         }
 
         @media (max-width: 992px) {
+            .fin-kpis-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px !important;
+            }
+            @media (max-width: 480px) {
+                .fin-kpis-grid {
+                    grid-template-columns: 1fr !important;
+                }
+            }
+            .fin-top-grid, .fin-bottom-grid {
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
+            }
+
             body {
                 flex-direction: column;
                 height: 100vh;
@@ -1115,9 +1129,12 @@ export default `<!DOCTYPE html>
                 <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav Logo" style="width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
                 <span>Gustav</span>
             </div>
-            <div style="display:flex; gap: 8px; align-items:center;">
+            <div style="display:flex; gap: 6px; align-items:center;">
                 <button class="btn-add-client" style="background:rgba(255,255,255,0.05); border-color:var(--border-color); padding: 8px;" onclick="openImapModal()" title="IMAP Einstellungen">
                     <i class="fa-solid fa-cog"></i>
+                </button>
+                <button class="btn-add-client" style="background:rgba(255,255,255,0.05); border-color:var(--border-color); padding: 8px; color: #ef4444;" onclick="handleLogout()" title="Abmelden">
+                    <i class="fa-solid fa-sign-out-alt"></i>
                 </button>
                 <button class="btn-add-client" onclick="openAddClientModal()">
                     <i class="fa-solid fa-plus"></i> Neu
@@ -1332,7 +1349,7 @@ export default `<!DOCTYPE html>
 
             <div style="width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
                 <!-- KPI CARDS -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <div class="fin-kpis-grid">
                     <div class="card" style="padding: 18px; text-align: left; background: rgba(17, 24, 39, 0.4);">
                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Monatliche Einnahmen</div>
                         <div style="font-size: 24px; font-weight: 800; color: var(--color-green); margin-top: 6px; font-family: var(--font-heading);" id="fin-kpi-incomes">0,00 €</div>
@@ -1379,7 +1396,7 @@ export default `<!DOCTYPE html>
                 </div>
 
                 <!-- TOP CHARTS ROW (2 LARGE COMPARISON CHARTS) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="fin-top-grid">
                     <div class="card" style="padding: 22px; background: rgba(17, 24, 39, 0.4);">
                         <h3 class="card-title" style="margin-bottom: 16px; font-size: 14px;"><i class="fa-solid fa-chart-column" style="color: var(--color-green);"></i> Monatlicher Gesamtverlauf (Einnahmen vs. Ausgaben)</h3>
                         <div style="height: 280px; position: relative;">
@@ -1395,7 +1412,7 @@ export default `<!DOCTYPE html>
                 </div>
 
                 <!-- BOTTOM ROW: CATEGORY BREAKDOWNS (INCOME & EXPENSE) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="fin-bottom-grid">
                     <!-- INCOME CATEGORY ANALYSIS CARD -->
                     <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4); display: flex; flex-direction: column; gap: 16px;">
                         <h3 class="card-title" style="margin-bottom: 8px; font-size: 15px;">
@@ -2527,6 +2544,12 @@ export default `<!DOCTYPE html>
                     chevron.className = 'fa-solid fa-chevron-right';
                 }
             }
+        }
+
+        async function handleLogout() {
+            if (!confirm('Möchtest du dich wirklich abmelden?')) return;
+            document.cookie = "Authorization=; Path=/; Max-Age=0; SameSite=Lax";
+            window.location.reload();
         }
 
         function updateMobileBottomNav(viewName) {
