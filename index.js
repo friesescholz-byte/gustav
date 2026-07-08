@@ -1577,61 +1577,68 @@ async function fetchImapHeaders(email, password, host, port = 993) {
 
       if (messageCount === 0) return [];
 
-      const startMsg = Math.max(1, messageCount - 49);
-      await sendCommand(`${cmdIdPrefix}F FETCH ${startMsg}:${messageCount} (INTERNALDATE BODY[HEADER.FIELDS (DATE FROM TO SUBJECT)] BODY[TEXT]<0.10000>)`);
+      // Fetch last 25 messages from each folder (total up to 50 combined)
+      const startMsg = Math.max(1, messageCount - 24);
+      await sendCommand(`${cmdIdPrefix}F FETCH ${startMsg}:${messageCount} (INTERNALDATE BODY[HEADER.FIELDS (DATE FROM TO SUBJECT)] BODY[TEXT]<0.2500>)`);
       
-      const folderEmails = [];
-      let currentEmail = null;
-
+      let responseText = '';
       while (true) {
-        line = await readLine();
-        
-        if (line.startsWith('* ') && line.includes('FETCH')) {
-          if (currentEmail) {
-            folderEmails.push(currentEmail);
-          }
-          
-          const dateMatch = line.match(/INTERNALDATE "([^"]+)"/);
-          currentEmail = {
-            id: `imap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            date: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
-            from: '',
-            to: '',
-            subject: '',
-            body: '',
-            direction: 'incoming'
-          };
-        }
-
-        if (currentEmail) {
-          const lowerLine = line.toLowerCase();
-          if (lowerLine.startsWith('from:')) {
-            currentEmail.from = decodeRFC2047(line.substring(5).trim());
-          } else if (lowerLine.startsWith('to:')) {
-            currentEmail.to = decodeRFC2047(line.substring(3).trim());
-          } else if (lowerLine.startsWith('subject:')) {
-            currentEmail.subject = decodeRFC2047(line.substring(8).trim());
-          } else if (
-            line.trim() &&
-            !line.startsWith('*') &&
-            !line.startsWith(')') &&
-            !line.startsWith(`${cmdIdPrefix}`) &&
-            !lowerLine.startsWith('date:') &&
-            !lowerLine.startsWith('body[')
-          ) {
-            const cleanLine = line.replace(/\r/g, '').trim();
-            if (cleanLine) {
-              currentEmail.body = ((currentEmail.body || '') + ' ' + cleanLine).trim().substring(0, 10000);
-            }
-          }
-        }
-
-        if (line.startsWith(`${cmdIdPrefix}F OK`)) {
-          if (currentEmail) folderEmails.push(currentEmail);
-          break;
-        }
-        if (line.startsWith(`${cmdIdPrefix}F NO`) || line.startsWith(`${cmdIdPrefix}F BAD`)) break;
+        const fetchLine = await readLine();
+        responseText += fetchLine;
+        if (fetchLine.startsWith(`${cmdIdPrefix}F OK`)) break;
+        if (fetchLine.startsWith(`${cmdIdPrefix}F NO`) || fetchLine.startsWith(`${cmdIdPrefix}F BAD`)) break;
       }
+
+      const folderEmails = [];
+      // Split response into individual fetch messages safely using a prepended newline
+      const blocks = ('\n' + responseText).split(/\n\* \d+ FETCH /);
+      
+      for (let i = 1; i < blocks.length; i++) {
+        const block = blocks[i];
+        
+        const dateMatch = block.match(/INTERNALDATE "([^"]+)"/i);
+        const fromMatch = block.match(/From:\s*([^\r\n]+)/i);
+        const toMatch = block.match(/To:\s*([^\r\n]+)/i);
+        const subjectMatch = block.match(/Subject:\s*([^\r\n]+)/i);
+        
+        // Find body text literal: BODY[TEXT]<0.2500> {size}
+        const bodyMatch = block.match(/BODY\[TEXT\](?:<\d+>)?\s*\{(\d+)\}\r?\n([\s\S]*)/i);
+        
+        let body = '';
+        if (bodyMatch) {
+          const size = parseInt(bodyMatch[1]);
+          body = bodyMatch[2].substring(0, size).replace(/\r/g, '').trim();
+        }
+        
+        // Fallback parser if literal structure differs
+        if (!body) {
+          const lines = block.split('\n');
+          const bodyLines = lines.filter(l => {
+            const ll = l.toLowerCase();
+            return l.trim() && 
+                   !l.startsWith('*') && 
+                   !l.startsWith(')') && 
+                   !ll.startsWith('from:') && 
+                   !ll.startsWith('to:') && 
+                   !ll.startsWith('subject:') && 
+                   !ll.startsWith('date:') && 
+                   !ll.startsWith('internaldate') &&
+                   !ll.startsWith('body[');
+          });
+          body = bodyLines.join(' ').replace(/\r/g, '').trim().substring(0, 2500);
+        }
+
+        folderEmails.push({
+          id: `imap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          date: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          from: fromMatch ? decodeRFC2047(fromMatch[1].trim()) : '',
+          to: toMatch ? decodeRFC2047(toMatch[1].trim()) : '',
+          subject: subjectMatch ? decodeRFC2047(subjectMatch[1].trim()) : '(Kein Betreff)',
+          body: body,
+          direction: 'incoming'
+        });
+      }
+      
       return folderEmails;
     }
 
