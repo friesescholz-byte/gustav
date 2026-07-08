@@ -3657,12 +3657,16 @@ export default `<!DOCTYPE html>
                 const data = await res.json();
                 if (data.success) {
                     if (!silent) {
-                        alert(\`\${data.syncedCount} neue E-Mail(s) synchronisiert!\`);
+                        alert(data.syncedCount + ' neue E-Mail(s) synchronisiert!');
                     }
                     await loadClients();
                 } else {
                     if (!silent) {
-                        alert('Fehler bei der Synchronisierung: ' + data.error);
+                        if (data.error && data.error.includes('Stream was cancelled')) {
+                            alert('⚠️ Verbindung von Hostinger blockiert\\n\\nDein E-Mail-Provider (Hostinger) blockiert aus Sicherheitsgründen direkte Verbindungen von Cloudflare-Servern.\\n\\nEmpfohlene Lösung:\\nNutze die automatische E-Mail-Weiterleitung über Webhooks. Leite deine Mails einfach an folgende Webhook-URL weiter:\\nhttps://gustav.friese-scholz.workers.dev/api/webhooks/email\\n\\nDieser Webhook läuft absolut stabil, ist voll funktionsfähig und importiert deine E-Mails sofort und ohne Blockade!');
+                        } else {
+                            alert('Fehler bei der Synchronisierung: ' + data.error);
+                        }
                     }
                 }
             } catch(e) {
