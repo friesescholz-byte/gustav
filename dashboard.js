@@ -1349,7 +1349,10 @@ export default `<!DOCTYPE html>
                         <div style="height: 280px; position: relative;">
                             <canvas id="fin-chart-incomes-split"></canvas>
                         </div>
-                             <!-- BOTTOM ROW: CATEGORY BREAKDOWNS (INCOME & EXPENSE) -->
+                    </div>
+                </div>
+
+                <!-- BOTTOM ROW: CATEGORY BREAKDOWNS (INCOME & EXPENSE) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <!-- INCOME CATEGORY ANALYSIS CARD -->
                     <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
