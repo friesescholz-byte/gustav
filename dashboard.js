@@ -632,6 +632,48 @@ export default `<!DOCTYPE html>
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            position: relative;
+            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.3s;
+        }
+
+        @media (min-width: 993px) {
+            .chat-panel.collapsed {
+                width: 0px !important;
+                border-left: none !important;
+                overflow: hidden;
+            }
+        }
+
+        .chat-toggle-handle {
+            position: absolute;
+            left: -28px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 56px;
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            z-index: 100;
+            transition: var(--transition-smooth);
+            box-shadow: -4px 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-toggle-handle:hover {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 992px) {
+            .chat-toggle-handle {
+                display: none !important;
+            }
         }
 
         .chat-header {
@@ -1355,23 +1397,23 @@ export default `<!DOCTYPE html>
                 <!-- BOTTOM ROW: CATEGORY BREAKDOWNS (INCOME & EXPENSE) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <!-- INCOME CATEGORY ANALYSIS CARD -->
-                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;">
+                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4); display: flex; flex-direction: column; gap: 16px;">
+                        <h3 class="card-title" style="margin-bottom: 8px; font-size: 15px;">
                             <i class="fa-solid fa-chart-pie" style="color: var(--color-green);"></i> Einnahmen-Analyse nach Kategorie
                         </h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: center;">
-                            <!-- Left: Doughnut Chart -->
-                            <div style="height: 240px; position: relative;">
-                                <canvas id="fin-chart-categories-income"></canvas>
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Top: Doughnut Chart (Centered & scaled) -->
+                            <div style="height: 180px; position: relative; display: flex; justify-content: center; align-items: center; margin: 0 auto; width: 100%;">
+                                <canvas id="fin-chart-categories-income" style="max-height: 180px; max-width: 180px;"></canvas>
                             </div>
 
-                            <!-- Right: Big Total Income KPI & Detailed Category Breakdown List -->
-                            <div style="display: flex; flex-direction: column; gap: 16px;">
-                                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <!-- Bottom: Big Total Income KPI & Detailed Category Breakdown List -->
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
                                     <div>
                                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamteinnahmen im Jahr <span class="fin-cat-year-label-class">2026</span></div>
-                                        <div style="font-size: 32px; font-weight: 800; color: var(--color-green); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-incomes">0,00 €</div>
+                                        <div style="font-size: 28px; font-weight: 800; color: var(--color-green); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-incomes">0,00 €</div>
                                     </div>
                                     <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-income">
                                         Ø 0,00 € / Mon.
@@ -1379,7 +1421,7 @@ export default `<!DOCTYPE html>
                                 </div>
 
                                 <!-- Category breakdown list for income -->
-                                <div id="fin-category-breakdown-list-income" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                <div id="fin-category-breakdown-list-income" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto;">
                                     <!-- Dynamic breakdown list -->
                                 </div>
                             </div>
@@ -1387,23 +1429,23 @@ export default `<!DOCTYPE html>
                     </div>
 
                     <!-- EXPENSE CATEGORY ANALYSIS CARD -->
-                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
-                        <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;">
+                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4); display: flex; flex-direction: column; gap: 16px;">
+                        <h3 class="card-title" style="margin-bottom: 8px; font-size: 15px;">
                             <i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben-Analyse nach Kategorie
                         </h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: center;">
-                            <!-- Left: Doughnut Chart -->
-                            <div style="height: 240px; position: relative;">
-                                <canvas id="fin-chart-categories"></canvas>
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Top: Doughnut Chart (Centered & scaled) -->
+                            <div style="height: 180px; position: relative; display: flex; justify-content: center; align-items: center; margin: 0 auto; width: 100%;">
+                                <canvas id="fin-chart-categories" style="max-height: 180px; max-width: 180px;"></canvas>
                             </div>
 
-                            <!-- Right: Big Total Expense KPI & Detailed Category Breakdown List -->
-                            <div style="display: flex; flex-direction: column; gap: 16px;">
-                                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <!-- Bottom: Big Total Expense KPI & Detailed Category Breakdown List -->
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
                                     <div>
                                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamtausgaben im Jahr <span class="fin-cat-year-label-class">2026</span></div>
-                                        <div style="font-size: 32px; font-weight: 800; color: var(--color-red); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-expenses">0,00 €</div>
+                                        <div style="font-size: 28px; font-weight: 800; color: var(--color-red); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-expenses">0,00 €</div>
                                     </div>
                                     <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-expense">
                                         Ø 0,00 € / Mon.
@@ -1411,7 +1453,7 @@ export default `<!DOCTYPE html>
                                 </div>
 
                                 <!-- Category breakdown list for expense -->
-                                <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto;">
                                     <!-- Dynamic breakdown list -->
                                 </div>
                             </div>
@@ -1557,6 +1599,10 @@ export default `<!DOCTYPE html>
 
     <!-- GUSTAV CHAT PANEL -->
     <div class="chat-panel">
+        <!-- Collapse/Expand handle for Desktop -->
+        <div class="chat-toggle-handle" onclick="toggleChatCollapse()" title="Chat ein-/ausklappen">
+            <i class="fa-solid fa-chevron-right" id="chat-toggle-chevron"></i>
+        </div>
         <div class="chat-header">
             <div class="chat-title" style="display: flex; align-items: center; gap: 8px;">
                 <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav Assistant" style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
@@ -1739,6 +1785,15 @@ export default `<!DOCTYPE html>
 
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', async () => {
+            // Restore chat collapse state
+            const chatCollapsed = localStorage.getItem('chat_collapsed') === '1';
+            if (chatCollapsed) {
+                const cp = document.querySelector('.chat-panel');
+                const chevron = document.getElementById('chat-toggle-chevron');
+                if (cp) cp.classList.add('collapsed');
+                if (chevron) chevron.className = 'fa-solid fa-chevron-left';
+            }
+
             await loadCloudflareProjects();
             await loadClients();
             await loadCloudflareDomains();
@@ -2454,6 +2509,24 @@ export default `<!DOCTYPE html>
             if (sb) sb.classList.remove('mobile-open');
             if (cp) cp.classList.remove('mobile-open');
             if (backdrop) backdrop.classList.remove('active');
+        }
+
+        function toggleChatCollapse() {
+            const cp = document.querySelector('.chat-panel');
+            const chevron = document.getElementById('chat-toggle-chevron');
+            if (!cp) return;
+
+            const isCollapsed = cp.classList.toggle('collapsed');
+            
+            localStorage.setItem('chat_collapsed', isCollapsed ? '1' : '0');
+
+            if (chevron) {
+                if (isCollapsed) {
+                    chevron.className = 'fa-solid fa-chevron-left';
+                } else {
+                    chevron.className = 'fa-solid fa-chevron-right';
+                }
+            }
         }
 
         function updateMobileBottomNav(viewName) {
