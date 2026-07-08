@@ -640,7 +640,12 @@ export default `<!DOCTYPE html>
             .chat-panel.collapsed {
                 width: 0px !important;
                 border-left: none !important;
-                overflow: hidden;
+            }
+            .chat-panel.collapsed .chat-header,
+            .chat-panel.collapsed .chat-history,
+            .chat-panel.collapsed .chat-suggested,
+            .chat-panel.collapsed .chat-input-container {
+                display: none !important;
             }
         }
 
@@ -964,11 +969,60 @@ export default `<!DOCTYPE html>
             z-index: 940;
         }
 
+        .fin-header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto 24px auto;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            box-sizing: border-box;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .fin-header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .fin-container-wrapper {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
         .mobile-backdrop.active {
             display: block;
         }
 
         @media (max-width: 992px) {
+            .fin-header-container {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 16px !important;
+                padding-bottom: 14px !important;
+                padding-left: 14px !important;
+                padding-right: 14px !important;
+            }
+            .fin-header-actions {
+                flex-wrap: wrap !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+            .fin-header-actions button {
+                flex-grow: 1 !important;
+                font-size: 11px !important;
+                padding: 8px 10px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .fin-container-wrapper {
+                padding-left: 14px !important;
+                padding-right: 14px !important;
+            }
+
             .fin-kpis-grid {
                 grid-template-columns: 1fr 1fr !important;
                 gap: 12px !important;
@@ -1322,7 +1376,7 @@ export default `<!DOCTYPE html>
 
         <!-- FINANZEN SCREEN -->
         <div id="finanzen-screen" style="display: none; height: 100%; flex-direction: column; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto 24px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; box-sizing: border-box;">
+            <div class="fin-header-container">
                 <div style="text-align: left;">
                     <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-green); text-shadow: 0 0 10px rgba(16,185,129,0.2); display: block; margin-bottom: 8px;">
                         <i class="fa-solid fa-coins"></i> Agentur Finanzen & Cashflow
@@ -1331,7 +1385,7 @@ export default `<!DOCTYPE html>
                         Finanzübersicht & MRR
                     </h1>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="fin-header-actions">
                     <button class="btn btn-secondary" onclick="exportFinancesCSV('income')" style="padding: 8px 12px; font-size: 12px;" title="Nur Einnahmen mit MwSt für Steuerberater">
                         <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Einnahmen (CSV)
                     </button>
@@ -1347,7 +1401,7 @@ export default `<!DOCTYPE html>
                 </div>
             </div>
 
-            <div style="width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
+            <div class="fin-container-wrapper" style="width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
                 <!-- KPI CARDS -->
                 <div class="fin-kpis-grid">
                     <div class="card" style="padding: 18px; text-align: left; background: rgba(17, 24, 39, 0.4);">
@@ -1438,7 +1492,7 @@ export default `<!DOCTYPE html>
                                 </div>
 
                                 <!-- Category breakdown list for income -->
-                                <div id="fin-category-breakdown-list-income" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto;">
+                                <div id="fin-category-breakdown-list-income" style="display: flex; flex-direction: column; gap: 6px;">
                                     <!-- Dynamic breakdown list -->
                                 </div>
                             </div>
@@ -1470,7 +1524,7 @@ export default `<!DOCTYPE html>
                                 </div>
 
                                 <!-- Category breakdown list for expense -->
-                                <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto;">
+                                <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 6px;">
                                     <!-- Dynamic breakdown list -->
                                 </div>
                             </div>
