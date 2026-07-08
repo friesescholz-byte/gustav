@@ -1047,27 +1047,32 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                   let bodyText = mail.body || '';
                   let summary = '';
                   
-                  // Update customer metadata
+                   // Update customer metadata
                   matched.lastInteraction = mail.date;
                   matched.lastDirection = direction;
+
+                  const isOlderThan24h = (new Date() - new Date(mail.date)) > 24 * 60 * 60 * 1000;
 
                   if (direction === 'incoming') {
                     const analysis = await analyzeIncomingEmail(env, mail.subject, mail.body || '(Kein E-Mail-Inhalt geladen)');
                     summary = analysis.summary;
                     
-                    if (analysis.actionRequired) {
+                    if (analysis.actionRequired && !isOlderThan24h) {
                       matched.status = 'red';
                       matched.statusReason = analysis.summary;
                     } else {
-                      // Do not mark red if not actionable! Check if client is in draft state.
+                      // Do not mark red if older than 24h or not actionable! Check if client is in draft state.
                       const hasProject = matched.linkedCloudflareProject && matched.linkedCloudflareProject.trim();
                       const hasDomain = matched.customDomain && matched.customDomain.trim() && !matched.customDomain.includes('.workers.dev') && !matched.customDomain.includes('.pages.dev');
                       if (!hasProject || !hasDomain) {
                         matched.status = 'red';
                         matched.statusReason = 'Kunde ist noch ein Entwurf - Keine Domain verbunden';
                       } else {
-                        matched.status = 'green';
-                        matched.statusReason = `Info: ${analysis.summary}`;
+                        // Keep current status, or set to green if not red
+                        if (matched.status !== 'red') {
+                          matched.status = 'green';
+                          matched.statusReason = `Info: ${analysis.summary}`;
+                        }
                       }
                     }
                   } else {
@@ -1085,7 +1090,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                     subject: mail.subject,
                     body: bodyText,
                     summary: summary,
-                    isResolved: direction !== 'incoming', // Eingehende E-Mails sind initial offen, ausgehende erledigt
+                    isResolved: direction !== 'incoming' || isOlderThan24h, // Older emails are auto-resolved
                   };
                   mailLog.unshift(newMail);
                   await env.KUNDEN_DB.put(logKey, JSON.stringify(mailLog));
@@ -1572,7 +1577,7 @@ async function fetchImapHeaders(email, password, host, port = 993) {
 
       if (messageCount === 0) return [];
 
-      const startMsg = Math.max(1, messageCount - 9);
+      const startMsg = Math.max(1, messageCount - 49);
       await sendCommand(`${cmdIdPrefix}F FETCH ${startMsg}:${messageCount} (INTERNALDATE BODY[HEADER.FIELDS (DATE FROM TO SUBJECT)] BODY[TEXT]<0.10000>)`);
       
       const folderEmails = [];
