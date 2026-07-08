@@ -1302,7 +1302,7 @@ export default `<!DOCTYPE html>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;" id="fin-kpi-fix-expenses">Fixkosten: 0,00 € / Mon.</div>
                     </div>
                     <div class="card" style="padding: 18px; text-align: left; background: rgba(17, 24, 39, 0.4);">
-                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Netto-Gewinn (Monat)</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Jahres-Gewinn (<span id="fin-kpi-profit-year">2026</span>)</div>
                         <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px; font-family: var(--font-heading);" id="fin-kpi-profit">0,00 €</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;" id="fin-kpi-margin">Gewinnmarge: 0%</div>
                     </div>
@@ -1349,34 +1349,68 @@ export default `<!DOCTYPE html>
                         <div style="height: 280px; position: relative;">
                             <canvas id="fin-chart-incomes-split"></canvas>
                         </div>
-                    </div>
-                </div>
-
-                <!-- BOTTOM ROW: EXPENSE CATEGORY ANALYSIS CARD -->
-                <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
-                    <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;"><i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben-Analyse nach Kategorie</h3>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; align-items: center;">
-                        <!-- Left: Doughnut Chart -->
-                        <div style="height: 260px; position: relative;">
-                            <canvas id="fin-chart-categories"></canvas>
-                        </div>
-
-                        <!-- Right: Big Total Expense KPI & Detailed Category Breakdown List -->
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamtausgaben im Jahr <span id="fin-cat-year-label">2026</span></div>
-                                    <div style="font-size: 32px; font-weight: 800; color: var(--color-red); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-expenses">0,00 €</div>
-                                </div>
-                                <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-expense">
-                                    Ø 0,00 € / Mon.
-                                </div>
+                             <!-- BOTTOM ROW: CATEGORY BREAKDOWNS (INCOME & EXPENSE) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- INCOME CATEGORY ANALYSIS CARD -->
+                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;">
+                            <i class="fa-solid fa-chart-pie" style="color: var(--color-green);"></i> Einnahmen-Analyse nach Kategorie
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: center;">
+                            <!-- Left: Doughnut Chart -->
+                            <div style="height: 240px; position: relative;">
+                                <canvas id="fin-chart-categories-income"></canvas>
                             </div>
 
-                            <!-- Category breakdown list -->
-                            <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
-                                <!-- Dynamic breakdown list -->
+                            <!-- Right: Big Total Income KPI & Detailed Category Breakdown List -->
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamteinnahmen im Jahr <span class="fin-cat-year-label-class">2026</span></div>
+                                        <div style="font-size: 32px; font-weight: 800; color: var(--color-green); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-incomes">0,00 €</div>
+                                    </div>
+                                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-income">
+                                        Ø 0,00 € / Mon.
+                                    </div>
+                                </div>
+
+                                <!-- Category breakdown list for income -->
+                                <div id="fin-category-breakdown-list-income" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                    <!-- Dynamic breakdown list -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPENSE CATEGORY ANALYSIS CARD -->
+                    <div class="card" style="padding: 24px; background: rgba(17, 24, 39, 0.4);">
+                        <h3 class="card-title" style="margin-bottom: 18px; font-size: 15px;">
+                            <i class="fa-solid fa-chart-pie" style="color: var(--color-red);"></i> Ausgaben-Analyse nach Kategorie
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: center;">
+                            <!-- Left: Doughnut Chart -->
+                            <div style="height: 240px; position: relative;">
+                                <canvas id="fin-chart-categories"></canvas>
+                            </div>
+
+                            <!-- Right: Big Total Expense KPI & Detailed Category Breakdown List -->
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 16px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gesamtausgaben im Jahr <span class="fin-cat-year-label-class">2026</span></div>
+                                        <div style="font-size: 32px; font-weight: 800; color: var(--color-red); margin-top: 4px; font-family: var(--font-heading);" id="fin-cat-total-expenses">0,00 €</div>
+                                    </div>
+                                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary);" id="fin-cat-avg-expense">
+                                        Ø 0,00 € / Mon.
+                                    </div>
+                                </div>
+
+                                <!-- Category breakdown list for expense -->
+                                <div id="fin-category-breakdown-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                    <!-- Dynamic breakdown list -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2460,6 +2494,7 @@ export default `<!DOCTYPE html>
         let finMonthlyChartInstance = null;
         let finIncomesSplitChartInstance = null;
         let finCategoryChartInstance = null;
+        let finIncomesCategoryChartInstance = null;
 
         async function loadFinances() {
             try {
@@ -2486,8 +2521,13 @@ export default `<!DOCTYPE html>
             if (display) display.innerText = finSelectedYear;
             const label1 = document.getElementById('fin-selected-year-label');
             if (label1) label1.innerText = finSelectedYear;
-            const label2 = document.getElementById('fin-cat-year-label');
-            if (label2) label2.innerText = finSelectedYear;
+            
+            const profitYear = document.getElementById('fin-kpi-profit-year');
+            if (profitYear) profitYear.innerText = finSelectedYear;
+
+            document.querySelectorAll('.fin-cat-year-label-class').forEach(el => {
+                el.innerText = finSelectedYear;
+            });
 
             renderFinanceKPIs();
             renderFinanceTable();
@@ -2564,19 +2604,28 @@ export default `<!DOCTYPE html>
             let fixExpenses = 0;
             let ytdUmsatz = 0;
 
+            let yearIncomes = 0;
+            let yearExpenses = 0;
+
             expanded.forEach(t => {
                 const brutto = t.brutto || 0;
                 const isCurrentMonth = t.date && t.date.startsWith(currentMonthStr);
                 const isCurrentYear = t.date && t.date.startsWith(currentYearStr);
 
+                const tYear = t.date ? parseInt(t.date.split('-')[0]) : null;
+                const isSelectedYear = tYear === finSelectedYear;
+
                 if (t.type === 'income') {
                     if (isCurrentYear) ytdUmsatz += brutto;
+                    if (isSelectedYear) yearIncomes += brutto;
 
                     if (isCurrentMonth) {
                         monthIncomes += brutto;
                         if (t.interval === 'monthly') mrr += brutto;
                     }
                 } else if (t.type === 'expense') {
+                    if (isSelectedYear) yearExpenses += brutto;
+
                     if (isCurrentMonth) {
                         monthExpenses += brutto;
                         if (t.interval === 'monthly') fixExpenses += brutto;
@@ -2584,8 +2633,9 @@ export default `<!DOCTYPE html>
                 }
             });
 
-            const profit = monthIncomes - monthExpenses;
-            const margin = monthIncomes > 0 ? Math.round((profit / monthIncomes) * 100) : 0;
+            const monthProfit = monthIncomes - monthExpenses;
+            const yearProfit = yearIncomes - yearExpenses;
+            const yearMargin = yearIncomes > 0 ? Math.round((yearProfit / yearIncomes) * 100) : 0;
 
             const formatEur = (val) => val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
@@ -2602,12 +2652,12 @@ export default `<!DOCTYPE html>
 
             const profitEl = document.getElementById('fin-kpi-profit');
             if (profitEl) {
-                profitEl.innerText = formatEur(profit);
-                profitEl.style.color = profit >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+                profitEl.innerText = formatEur(yearProfit);
+                profitEl.style.color = yearProfit >= 0 ? 'var(--color-green)' : 'var(--color-red)';
             }
 
             const marginEl = document.getElementById('fin-kpi-margin');
-            if (marginEl) marginEl.innerText = 'Gewinnmarge: ' + margin + '%';
+            if (marginEl) marginEl.innerText = 'Gewinnmarge: ' + yearMargin + '%';
 
             const ytdEl = document.getElementById('fin-kpi-ytd');
             if (ytdEl) ytdEl.innerText = formatEur(ytdUmsatz);
@@ -2619,8 +2669,8 @@ export default `<!DOCTYPE html>
             if (dashInc) dashInc.innerText = formatEur(monthIncomes);
             const dashProfit = document.getElementById('dash-fin-profit');
             if (dashProfit) {
-                dashProfit.innerText = formatEur(profit);
-                dashProfit.style.color = profit >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+                dashProfit.innerText = formatEur(monthProfit);
+                dashProfit.style.color = monthProfit >= 0 ? 'var(--color-green)' : 'var(--color-red)';
             }
             const dashMrr = document.getElementById('dash-fin-mrr');
             if (dashMrr) dashMrr.innerText = formatEur(mrr);
@@ -2798,7 +2848,24 @@ export default `<!DOCTYPE html>
                 }
             });
 
+            // Chart 4: Income Category Breakdown for Selected Year
+            const incomeCatMap = {};
+            let totalYearIncomes = 0;
+
+            expanded.filter(t => t.type === 'income').forEach(t => {
+                if (!t.date) return;
+                const parts = t.date.split('-');
+                const y = parseInt(parts[0]);
+                if (y === finSelectedYear) {
+                    const cat = t.category || 'Webdesign & Entwicklung';
+                    const amt = t.brutto || 0;
+                    incomeCatMap[cat] = (incomeCatMap[cat] || 0) + amt;
+                    totalYearIncomes += amt;
+                }
+            });
+
             const formatEur = (val) => val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            const fmtNum = (val) => (val || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
             // Update Big Total Expense KPI & Avg Monthly Expense
             const totalExpEl = document.getElementById('fin-cat-total-expenses');
@@ -2806,33 +2873,94 @@ export default `<!DOCTYPE html>
             const avgExpEl = document.getElementById('fin-cat-avg-expense');
             if (avgExpEl) avgExpEl.innerText = 'Ø ' + formatEur(totalYearExpenses / 12) + ' / Mon.';
 
-            // Render Category Breakdown List with Euro values and percentages
-            const breakdownContainer = document.getElementById('fin-category-breakdown-list');
-            if (breakdownContainer) {
-                breakdownContainer.innerHTML = '';
-                const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'];
-                const entries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+            // Update Big Total Income KPI & Avg Monthly Income
+            const totalIncEl = document.getElementById('fin-cat-total-incomes');
+            if (totalIncEl) totalIncEl.innerText = formatEur(totalYearIncomes);
+            const avgIncEl = document.getElementById('fin-cat-avg-income');
+            if (avgIncEl) avgIncEl.innerText = 'Ø ' + formatEur(totalYearIncomes / 12) + ' / Mon.';
 
+            // Reusable Category Breakdown Render function with collapsible booking details
+            const renderCategoryBreakdown = (containerId, type, catData, totalAmt, colors) => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                container.innerHTML = '';
+
+                const entries = Object.entries(catData).sort((a, b) => b[1] - a[1]);
                 if (entries.length === 0) {
-                    breakdownContainer.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); padding: 12px; text-align: center;">Keine Ausgaben im Jahr ' + finSelectedYear + '</div>';
-                } else {
-                    entries.forEach(([catName, amt], idx) => {
-                        const pct = totalYearExpenses > 0 ? Math.round((amt / totalYearExpenses) * 100) : 0;
-                        const col = colors[idx % colors.length];
-
-                        const item = document.createElement('div');
-                        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);';
-                        item.innerHTML = '<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #fff;">' +
-                                '<span style="width: 10px; height: 10px; border-radius: 50%; background: ' + col + '; display: inline-block;"></span> ' + catName +
-                            '</span>' +
-                            '<div style="text-align: right;"><strong style="font-size: 13px; color: #fff; font-family: var(--font-heading);">' + formatEur(amt) + '</strong> <span style="font-size: 11px; color: var(--text-secondary); margin-left: 6px;">(' + pct + '%)</span></div>';
-
-                        breakdownContainer.appendChild(item);
-                    });
+                    const emptyText = type === 'income' ? 'Keine Einnahmen im Jahr ' : 'Keine Ausgaben im Jahr ';
+                    container.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); padding: 12px; text-align: center;">' + emptyText + finSelectedYear + '</div>';
+                    return;
                 }
-            }
 
-            // Render Doughnut Chart
+                entries.forEach(([catName, amt], idx) => {
+                    const pct = totalAmt > 0 ? Math.round((amt / totalAmt) * 100) : 0;
+                    const col = colors[idx % colors.length];
+
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display: flex; flex-direction: column; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; overflow: hidden;';
+
+                    const header = document.createElement('div');
+                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; transition: background 0.2s;';
+                    header.onmouseover = () => header.style.background = 'rgba(255,255,255,0.02)';
+                    header.onmouseout = () => header.style.background = 'transparent';
+
+                    header.innerHTML = '<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #fff;">' +
+                            '<span style="width: 8px; height: 8px; border-radius: 50%; background: ' + col + '; display: inline-block;"></span> ' + catName +
+                            ' <i class="fa-solid fa-chevron-down" style="font-size: 9px; color: var(--text-secondary); transition: transform 0.2s; margin-left: 2px;"></i>' +
+                        '</span>' +
+                        '<div style="text-align: right;"><strong style="font-size: 12px; color: #fff; font-family: var(--font-heading);">' + formatEur(amt) + '</strong> <span style="font-size: 10px; color: var(--text-secondary); margin-left: 6px;">(' + pct + '%)</span></div>';
+
+                    const details = document.createElement('div');
+                    details.style.cssText = 'display: none; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(0,0,0,0.15); padding: 8px 12px; max-height: 180px; overflow-y: auto;';
+
+                    const defaultCat = type === 'income' ? 'Webdesign & Entwicklung' : 'Büro & Sonstiges';
+                    const categoryTx = expanded.filter(t => t.type === type && (t.category || defaultCat) === catName && t.date && parseInt(t.date.split('-')[0]) === finSelectedYear);
+
+                    if (categoryTx.length === 0) {
+                        details.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 6px;">Keine Buchungen gefunden.</div>';
+                    } else {
+                        categoryTx.sort((a, b) => b.date.localeCompare(a.date));
+                        let txHtml = '<table style="width: 100%; border-collapse: collapse; font-size: 11px; color: var(--text-secondary);">';
+                        categoryTx.forEach(tx => {
+                            const sign = type === 'income' ? '+' : '-';
+                            const amtColor = type === 'income' ? '#10b981' : '#ef4444';
+                            const displayAmt = fmtNum(tx.brutto);
+                            const recurringLabel = tx.interval === 'monthly' ? ' <i class="fa-solid fa-repeat" style="color: var(--color-cyan); margin-left: 4px;" title="Monatlich wiederkehrend"></i>' : '';
+                            txHtml += '<tr style="border-bottom: 1px solid rgba(255,255,255,0.02);">' +
+                                '<td style="padding: 6px 4px; color: var(--text-muted); width: 75px;">' + tx.date + '</td>' +
+                                '<td style="padding: 6px 4px; font-weight: 500; color: var(--text-primary);">' + tx.description + recurringLabel + '</td>' +
+                                '<td style="padding: 6px 4px; text-align: right; font-weight: 600; color: ' + amtColor + '; font-family: var(--font-heading); width: 85px;">' + sign + displayAmt + '</td>' +
+                            '</tr>';
+                        });
+                        txHtml += '</table>';
+                        details.innerHTML = txHtml;
+                    }
+
+                    item.appendChild(header);
+                    item.appendChild(details);
+
+                    header.addEventListener('click', () => {
+                        const isShowing = details.style.display === 'block';
+                        details.style.display = isShowing ? 'none' : 'block';
+                        const chevron = header.querySelector('.fa-chevron-down');
+                        if (chevron) {
+                            chevron.style.transform = isShowing ? 'rotate(180deg)' : 'rotate(0deg)';
+                        }
+                    });
+
+                    container.appendChild(item);
+                });
+            };
+
+            // Render Income breakdown
+            const incomeColors = ['#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'];
+            renderCategoryBreakdown('fin-category-breakdown-list-income', 'income', incomeCatMap, totalYearIncomes, incomeColors);
+
+            // Render Expense breakdown
+            const expenseColors = ['#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#f43f5e', '#6b7280'];
+            renderCategoryBreakdown('fin-category-breakdown-list', 'expense', catMap, totalYearExpenses, expenseColors);
+
+            // Render Expense Doughnut Chart
             const catLabels = Object.keys(catMap);
             const catValues = Object.values(catMap);
 
@@ -2845,7 +2973,32 @@ export default `<!DOCTYPE html>
                         labels: catLabels.length > 0 ? catLabels : ['Keine Ausgaben'],
                         datasets: [{
                             data: catValues.length > 0 ? catValues : [1],
-                            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'],
+                            backgroundColor: expenseColors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // Render Income Doughnut Chart
+            const incomeLabels = Object.keys(incomeCatMap);
+            const incomeValues = Object.values(incomeCatMap);
+
+            const ctxIncomeCat = document.getElementById('fin-chart-categories-income');
+            if (ctxIncomeCat) {
+                if (finIncomesCategoryChartInstance) finIncomesCategoryChartInstance.destroy();
+                finIncomesCategoryChartInstance = new Chart(ctxIncomeCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: incomeLabels.length > 0 ? incomeLabels : ['Keine Einnahmen'],
+                        datasets: [{
+                            data: incomeValues.length > 0 ? incomeValues : [1],
+                            backgroundColor: incomeColors,
                             borderWidth: 0
                         }]
                     },
