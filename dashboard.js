@@ -624,6 +624,24 @@ export default `<!DOCTYPE html>
             white-space: pre-wrap;
         }
 
+        .email-attachment-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #fff;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .email-attachment-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         /* --- GUSTAV CHAT PANEL --- */
         .chat-panel {
             width: 380px;
@@ -2175,10 +2193,30 @@ export default `<!DOCTYPE html>
                     const directionText = e.direction === 'incoming' ? 'Eingehend' : 'Gesendet';
                     const iconClass = e.direction === 'incoming' ? 'fa-arrow-down-left' : 'fa-arrow-up-right';
                     
+                    let attachmentsHtml = '';
+                    if (e.attachments && e.attachments.length > 0) {
+                        attachmentsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">';
+                        e.attachments.forEach(att => {
+                            attachmentsHtml += '<a href="' + att.url + '" target="_blank" class="email-attachment-link"><i class="fa-solid fa-paperclip" style="color: var(--color-cyan);"></i> ' + att.name + '</a>';
+                        });
+                        attachmentsHtml += '</div>';
+                    }
+
+                    const badgeHtml = e.direction === 'incoming' 
+                        ? '<span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Kunde</span>'
+                        : '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Ich</span>';
+
+                    const summaryHtml = e.summary
+                        ? '<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; font-size: 12.5px; color: var(--text-primary); margin-top: 6px; line-height: 1.4;">' +
+                            '<strong style="color: var(--color-cyan); font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;"><i class="fa-solid fa-robot"></i> KI-Zusammenfassung</strong>' +
+                            e.summary +
+                           '</div>'
+                        : '';
+
                     item.innerHTML = \`
                         <div class="email-meta">
-                            <div class="email-meta-left">
-                                <i class="fa-solid \${iconClass}"></i> \${directionText} (\${e.from})
+                            <div class="email-meta-left" style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid \${iconClass}"></i> \${directionText} (\&lt;\${e.from}\&gt;) \${badgeHtml}
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <span>\${new Date(e.date).toLocaleString('de-DE')}</span>
@@ -2190,7 +2228,12 @@ export default `<!DOCTYPE html>
                             </div>
                         </div>
                         <div class="email-subject">\${e.subject}</div>
-                        <div class="email-body">\${e.body}</div>
+                        \${summaryHtml}
+                        <div onclick="const el = this.nextElementSibling; const isH = el.style.display === 'none'; el.style.display = isH ? 'block' : 'none'; this.querySelector('i').className = isH ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'; this.querySelector('span').innerText = isH ? 'E-Mail ausblenden' : 'Vollständige E-Mail anzeigen';" style="font-size: 11px; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-weight: 600; user-select: none;">
+                            <i class="fa-solid fa-chevron-down" style="font-size: 8px;"></i> <span>Vollständige E-Mail anzeigen</span>
+                        </div>
+                        <div class="email-body" style="display: none; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word;">\${e.body || '(Kein Inhalt)'}</div>
+                        \${attachmentsHtml}
 \`;
                     list.appendChild(item);
                 });

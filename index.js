@@ -1044,7 +1044,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                 // Check if mail already exists in logs (by subject and date)
                 const exists = mailLog.some(m => m.subject === mail.subject && m.date === mail.date);
                 if (!exists) {
-                  let bodyPreview = `E-Mail über Account ${account.email} geladen. E-Mail liegt auf dem Server.`;
+                  let bodyText = mail.body || '';
+                  let summary = '';
                   
                   // Update customer metadata
                   matched.lastInteraction = mail.date;
@@ -1052,7 +1053,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
 
                   if (direction === 'incoming') {
                     const analysis = await analyzeIncomingEmail(env, mail.subject, mail.body || '(Kein E-Mail-Inhalt geladen)');
-                    bodyPreview = analysis.summary;
+                    summary = analysis.summary;
                     
                     if (analysis.actionRequired) {
                       matched.status = 'red';
@@ -1082,7 +1083,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                     direction,
                     from: mail.from,
                     subject: mail.subject,
-                    body: bodyPreview,
+                    body: bodyText,
+                    summary: summary,
                     isResolved: direction !== 'incoming', // Eingehende E-Mails sind initial offen, ausgehende erledigt
                   };
                   mailLog.unshift(newMail);
@@ -1261,18 +1263,56 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             }
           }
 
+          // Parse attachments if any
+          const attachments = [];
+          const newMailId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          if (payload.attachments && Array.isArray(payload.attachments)) {
+            for (const att of payload.attachments) {
+              const attName = att.name || att.filename || 'Anhang';
+              const attType = att.mimeType || att.contentType || 'application/octet-stream';
+              const attContent = att.content || att.data; // base64 string
+              
+              if (attContent) {
+                try {
+                  const binaryString = atob(attContent);
+                  const len = binaryString.length;
+                  const bytes = new Uint8Array(len);
+                  for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                  }
+                  
+                  const r2Path = `attachments/${newMailId}/${attName}`;
+                  await env.BUCKET.put(r2Path, bytes, {
+                    httpMetadata: { contentType: attType }
+                  });
+                  
+                  const downloadUrl = `https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/${r2Path}`;
+                  attachments.push({
+                    name: attName,
+                    url: downloadUrl,
+                    type: attType
+                  });
+                } catch (e) {
+                  console.error('Failed to upload attachment to R2:', e);
+                }
+              }
+            }
+          }
+
           // Load / Initialize email log
           const logKey = `emails:${matchedCustomer.id}`;
           const rawMails = await env.KUNDEN_DB.get(logKey);
           const mailLog = rawMails ? JSON.parse(rawMails) : [];
 
           const newMail = {
-            id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            id: newMailId,
             date: new Date().toISOString(),
             direction,
             from: decodeRFC2047(fromRaw),
             subject: decodedSubject,
-            body: bodyPreview,
+            body: bodyText, // FULL BODY
+            summary: direction === 'incoming' ? bodyPreview : '', // AI Summary (which is analysis.summary)
+            attachments, // ATTACHMENTS
             isResolved: direction !== 'incoming',
           };
 
@@ -1533,7 +1573,7 @@ async function fetchImapHeaders(email, password, host, port = 993) {
       if (messageCount === 0) return [];
 
       const startMsg = Math.max(1, messageCount - 9);
-      await sendCommand(`${cmdIdPrefix}F FETCH ${startMsg}:${messageCount} (INTERNALDATE BODY[HEADER.FIELDS (DATE FROM TO SUBJECT)] BODY[TEXT]<0.500>)`);
+      await sendCommand(`${cmdIdPrefix}F FETCH ${startMsg}:${messageCount} (INTERNALDATE BODY[HEADER.FIELDS (DATE FROM TO SUBJECT)] BODY[TEXT]<0.10000>)`);
       
       const folderEmails = [];
       let currentEmail = null;
@@ -1576,7 +1616,7 @@ async function fetchImapHeaders(email, password, host, port = 993) {
           ) {
             const cleanLine = line.replace(/\r/g, '').trim();
             if (cleanLine) {
-              currentEmail.body = ((currentEmail.body || '') + ' ' + cleanLine).trim().substring(0, 500);
+              currentEmail.body = ((currentEmail.body || '') + ' ' + cleanLine).trim().substring(0, 10000);
             }
           }
         }
