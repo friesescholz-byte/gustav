@@ -1202,9 +1202,6 @@ export default `<!DOCTYPE html>
                 <span>Gustav</span>
             </div>
             <div style="display:flex; gap: 6px; align-items:center;">
-                <button class="btn-add-client" style="background:rgba(255,255,255,0.05); border-color:var(--border-color); padding: 8px;" onclick="openImapModal()" title="IMAP Einstellungen">
-                    <i class="fa-solid fa-cog"></i>
-                </button>
                 <button class="btn-add-client" style="background:rgba(255,255,255,0.05); border-color:var(--border-color); padding: 8px; color: #ef4444;" onclick="handleLogout()" title="Abmelden">
                     <i class="fa-solid fa-sign-out-alt"></i>
                 </button>
@@ -1282,8 +1279,8 @@ export default `<!DOCTYPE html>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="status-dot green" id="cf-api-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> Cloudflare API
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="openImapModal()" title="Klicke hier, um deine E-Mail-Postfächer einzurichten">
-                                <span class="status-dot green" id="imap-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> IMAP Mail-Sync <i class="fa-solid fa-gear" style="font-size: 10px; color: var(--color-primary); opacity: 0.8; margin-left: 2px;"></i>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="status-dot green" id="imap-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> E-Mail Webhooks
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="status-dot green" id="r2-check-dot" style="width: 8px; height: 8px; box-shadow: 0 0 6px var(--color-green); position: static; display: inline-block;"></span> R2 Cloud Storage
@@ -1673,9 +1670,9 @@ export default `<!DOCTYPE html>
                         <h3 class="card-title">
                             <i class="fa-solid fa-envelope-open-text"></i> Letzte Interaktionen (E-Mails)
                         </h3>
-                        <button class="btn btn-primary" style="padding:6px 12px; font-size:12px;" onclick="syncEmails()">
-                            <i class="fa-solid fa-rotate"></i> Mails abrufen
-                        </button>
+                        <span style="font-size: 11px; color: var(--color-green); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot green" style="width: 6px; height: 6px; position: static; display: inline-block; box-shadow: 0 0 4px var(--color-green);"></span> Webhooks aktiv
+                        </span>
                     </div>
                     <div class="email-list" id="email-list">
                         <!-- Dynamic Emails -->
