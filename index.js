@@ -1069,22 +1069,24 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         const payload = await request.json();
         console.log('Incoming email webhook payload:', JSON.stringify(payload));
         
-        // Support both Resend and Hostinger schemas
-        const fromRaw = payload.from || payload.sender || payload.fromAddress || '';
+        // Support both Resend (flat) and Hostinger Agentic Mail (nested inside .data) schemas
+        const dataObj = payload.data || payload;
+        
+        const fromRaw = dataObj.from || dataObj.sender || dataObj.fromAddress || '';
         const emailRegex = /<([^>]+)>/;
         const match = fromRaw.match(emailRegex);
         const senderEmail = match ? match[1].toLowerCase().trim() : fromRaw.toLowerCase().trim();
 
-        const subject = payload.subject || payload.title || 'Kein Betreff';
-        const bodyText = payload.text || payload.html || payload.body || payload.content || '';
+        const subject = dataObj.subject || dataObj.title || 'Kein Betreff';
+        const bodyText = dataObj.plainBody || dataObj.text || dataObj.htmlBody || dataObj.html || dataObj.body || dataObj.content || '';
         
         let toList = [];
-        if (payload.to) {
-          toList = Array.isArray(payload.to) ? payload.to : [payload.to];
-        } else if (payload.recipient) {
-          toList = [payload.recipient];
-        } else if (payload.toAddress) {
-          toList = [payload.toAddress];
+        if (dataObj.to) {
+          toList = Array.isArray(dataObj.to) ? dataObj.to : [dataObj.to];
+        } else if (dataObj.recipient) {
+          toList = [dataObj.recipient];
+        } else if (dataObj.toAddress) {
+          toList = [dataObj.toAddress];
         }
         
         // Find matching customer by checking their stored email address
@@ -1151,8 +1153,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           // Parse attachments if any
           const attachments = [];
           const newMailId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-          if (payload.attachments && Array.isArray(payload.attachments)) {
-            for (const att of payload.attachments) {
+          if (dataObj.attachments && Array.isArray(dataObj.attachments)) {
+            for (const att of dataObj.attachments) {
               const attName = att.name || att.filename || 'Anhang';
               const attType = att.mimeType || att.contentType || 'application/octet-stream';
               const attContent = att.content || att.data; // base64 string
