@@ -1194,19 +1194,28 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         });
       }
 
-      // 10. Webhook: Resend Inbound Email webhook intake
+      // 10. Webhook: Email webhook intake (Resend & Hostinger Agentic Mail compatible)
       if (url.pathname === '/api/webhooks/email' && method === 'POST') {
         const payload = await request.json();
-        // Resend inbound schema: payload has from, to, subject, text/html, etc.
-        // Let's parse out sender email address
-        const fromRaw = payload.from || '';
+        console.log('Incoming email webhook payload:', JSON.stringify(payload));
+        
+        // Support both Resend and Hostinger schemas
+        const fromRaw = payload.from || payload.sender || payload.fromAddress || '';
         const emailRegex = /<([^>]+)>/;
         const match = fromRaw.match(emailRegex);
         const senderEmail = match ? match[1].toLowerCase().trim() : fromRaw.toLowerCase().trim();
 
-        const subject = payload.subject || 'Kein Betreff';
-        const bodyText = payload.text || payload.html || '';
-        const toList = Array.isArray(payload.to) ? payload.to : [payload.to || ''];
+        const subject = payload.subject || payload.title || 'Kein Betreff';
+        const bodyText = payload.text || payload.html || payload.body || payload.content || '';
+        
+        let toList = [];
+        if (payload.to) {
+          toList = Array.isArray(payload.to) ? payload.to : [payload.to];
+        } else if (payload.recipient) {
+          toList = [payload.recipient];
+        } else if (payload.toAddress) {
+          toList = [payload.toAddress];
+        }
         
         // Find matching customer by checking their stored email address
         const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
