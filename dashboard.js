@@ -3526,11 +3526,16 @@ export default `<!DOCTYPE html>
                 
                 document.getElementById('imap-accounts-list').innerHTML = '';
                 
-                if (data.configured && data.accounts && data.accounts.length > 0) {
-                    data.accounts.forEach(acc => {
-                        addImapAccountRow(acc);
-                    });
-                    if (statusEl) statusEl.innerHTML = \`<span style="color:var(--color-green); font-weight:600;"><i class="fa-solid fa-circle-check"></i> \${data.accounts.length} E-Mail-Konto(e) eingerichtet</span>\`;
+                if (data.configured) {
+                    if (data.accounts && data.accounts.length > 0) {
+                        data.accounts.forEach(acc => {
+                            addImapAccountRow(acc);
+                        });
+                        if (statusEl) statusEl.innerHTML = \`<span style="color:var(--color-green); font-weight:600;"><i class="fa-solid fa-circle-check"></i> \${data.accounts.length} E-Mail-Konto(e) eingerichtet</span>\`;
+                    } else {
+                        addImapAccountRow();
+                        if (statusEl) statusEl.innerHTML = \`<span style="color:var(--color-green); font-weight:600;"><i class="fa-solid fa-circle-check"></i> Webhook-Integration aktiv</span>\`;
+                    }
                     if (checkDot) {
                         checkDot.className = 'status-dot green';
                         checkDot.style.boxShadow = '0 0 6px var(--color-green)';
@@ -3613,10 +3618,7 @@ export default `<!DOCTYPE html>
                 accounts.push({ host, port, email, password });
             }
             
-            if (accounts.length === 0) {
-                alert('Bitte mindestens ein E-Mail-Konto hinzufügen!');
-                return;
-            }
+            // We now allow saving an empty accounts array to switch to Webhook-only mode
 
             const btn = document.getElementById('imap-save-btn');
             btn.innerText = 'Speichere...';
@@ -3664,6 +3666,8 @@ export default `<!DOCTYPE html>
                     if (!silent) {
                         if (data.error && data.error.includes('Stream was cancelled')) {
                             alert('⚠️ Verbindung von Hostinger blockiert\\n\\nDein E-Mail-Provider (Hostinger) blockiert aus Sicherheitsgründen direkte Verbindungen von Cloudflare-Servern.\\n\\nEmpfohlene Lösung:\\nNutze die automatische E-Mail-Weiterleitung über Webhooks. Leite deine Mails einfach an folgende Webhook-URL weiter:\\nhttps://gustav.friese-scholz.workers.dev/api/webhooks/email\\n\\nDieser Webhook läuft absolut stabil, ist voll funktionsfähig und importiert deine E-Mails sofort und ohne Blockade!');
+                        } else if (data.error && data.error.includes('No IMAP accounts configured')) {
+                            alert('ℹ️ Webhook-Integration aktiv\\n\\nDa du keine IMAP-Konten eingetragen hast, ist Gustav im Webhook-Modus. E-Mails werden vollautomatisch und in Echtzeit empfangen, sobald sie ankommen oder gesendet werden (BCC).\\n\\nEin manuelles Abrufen ist nicht notwendig!');
                         } else {
                             alert('Fehler bei der Synchronisierung: ' + data.error);
                         }

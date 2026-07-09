@@ -971,7 +971,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             password: '********'
           }));
           return new Response(JSON.stringify({
-            configured: maskedAccounts.length > 0,
+            configured: true, // Configured is true if the setting exists, even if accounts list is empty (Webhook mode)
             accounts: maskedAccounts
           }), {
             headers: { 'Content-Type': 'application/json', ...corsHeaders },
