@@ -983,6 +983,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         }
       }
 
+
       // 8.3 API: Sync emails from all IMAP servers
       if (url.pathname === '/api/emails/sync' && method === 'POST') {
         const rawSettings = await env.KUNDEN_DB.get('settings:imap');
