@@ -1099,11 +1099,19 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             const customer = JSON.parse(raw);
             const customerEmail = (customer.email || '').toLowerCase().trim();
             
-            // Check if sender or recipient matches customer email
-            // (sender matches = incoming; recipient matches = outgoing copy)
-            if (customerEmail && (senderEmail === customerEmail || toList.some(t => t.toLowerCase().includes(customerEmail)))) {
-              matchedCustomer = customer;
-              break;
+            if (customerEmail) {
+              // 1. Direct match: sender is customer OR recipient is customer
+              if (senderEmail === customerEmail || toList.some(t => t.toLowerCase().includes(customerEmail))) {
+                matchedCustomer = customer;
+                break;
+              }
+              // 2. Fallback match for forwarded emails: if email is from us to us, check if the customer email appears in the body
+              const isSelfSent = (senderEmail.includes('scholz-friese-webdesign.de') || senderEmail.includes('info@') || senderEmail.includes('bastianscholz@')) &&
+                                 toList.some(t => t.toLowerCase().includes('scholz-friese-webdesign.de') || t.toLowerCase().includes('info@') || t.toLowerCase().includes('bastianscholz@'));
+              if (isSelfSent && bodyText.toLowerCase().includes(customerEmail)) {
+                matchedCustomer = customer;
+                break;
+              }
             }
           }
         }
@@ -1281,21 +1289,22 @@ E-Mail-Betreff: "${subject}"
 E-Mail-Inhalt: "${body}"
 
 Klassifizierungs-Regeln:
-1. Wenn der Kunde eine Änderung der Website, Textanpassungen, neue Bilder, Austausch von Bilddateien (z.B. "Bild in der Fußzeile"), neue Links, Google Drive Ordner-Bilder oder sonstige aktive Arbeitsaufträge wünscht (z.B. "möchte gerne ein neues Bild in der Fußzeile eingefügt haben und alle texte neu"), MUSST du "actionRequired" zwingend auf true setzen.
-2. Setze "actionRequired" nur dann auf false, wenn die E-Mail ein reiner Gruß ohne jeglichen Arbeitsauftrag ist (z.B. "Schönes Wochenende!", "Danke", "Frohe Ostern", "Schöne Grüße" oder automatische Abwesenheitsnotizen).
-3. Sobald irgendein Wunsch, eine Frage, eine Kritik oder eine Bitte um Umsetzung enthalten ist, gilt es als Aktion (actionRequired = true).
+- Setze "actionRequired" auf true, wenn der Kunde eine Aufgabe, Änderung der Website, Textanpassung, neue Bilder, Google Drive-Links oder Arbeitsaufträge wünscht.
+- Setze "actionRequired" auf false, wenn es sich um einen reinen Gruß, ein Danke oder eine Bestätigung handelt.
 
-Gib das Ergebnis AUSSCHLIESSLICH im folgenden JSON-Format aus, ohne zusätzlichen Text davor oder danach:
+Erstelle für "summary" eine kurze Zusammenfassung (maximal 1 Satz) auf Deutsch. Fasse NUR den tatsächlichen Inhalt dieser konkreten E-Mail zusammen. Kopiere NIEMALS die Regeln oder Beispiele aus der Eingabe!
+
+Ausgabeformat (streng als JSON):
 {
   "actionRequired": true/false,
-  "summary": "Deine kurze Zusammenfassung auf Deutsch (z.B. 'Wünscht neues Fußzeilen-Bild und Text-Update')"
+  "summary": "Tatsächlicher Inhalt der E-Mail zusammengefasst"
 }`;
 
     console.log('--- AI Email Analysis Input ---');
     console.log('Subject:', subject);
     console.log('Body:', body.substring(0, 100));
 
-    const res = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+    const res = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
       messages: [
         { role: 'system', content: 'You are a precise server assistant that outputs strictly valid JSON only.' },
         { role: 'user', content: prompt }
