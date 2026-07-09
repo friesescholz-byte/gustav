@@ -330,8 +330,9 @@ export default {
       }
     }
 
-    // Check authorization cookie
-    const isAuthorized = getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
+    // Check authorization cookie (skip for webhook endpoint)
+    const isWebhook = url.pathname === '/api/webhooks/email';
+    const isAuthorized = isWebhook || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
     if (!isAuthorized) {
       if (url.pathname === '/' || url.pathname === '/index.html') {
         return new Response(loginHtml, {
