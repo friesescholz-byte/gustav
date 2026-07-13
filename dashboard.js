@@ -2303,13 +2303,13 @@ export default `<!DOCTYPE html>
                 
                 return \`
                     <tr>
-                        <td style="white-space: nowrap;">\\${dateStr}</td>
-                        <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\\${item.from}">\\${item.from}</td>
-                        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\\${toStr}">\\${toStr}</td>
-                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;" title="\\${item.subject}">\\${item.subject || '(Kein Betreff)'}</td>
-                        <td><span class="mail-log-badge \\${statusClass}">\\${statusLabel}</span></td>
+                        <td style="white-space: nowrap;">\${dateStr}</td>
+                        <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\${item.from}">\${item.from}</td>
+                        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\${toStr}">\${toStr}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;" title="\${item.subject}">\${item.subject || '(Kein Betreff)'}</td>
+                        <td><span class="mail-log-badge \${statusClass}">\${statusLabel}</span></td>
                         <td style="text-align: right; white-space: nowrap;">
-                            <button type="button" class="btn" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="viewResendEmailDetails('\\${item.id}')">
+                            <button type="button" class="btn" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="viewResendEmailDetails('\${item.id}')">
                                 <i class="fa-solid fa-eye"></i> Details
                             </button>
                         </td>
@@ -2354,7 +2354,7 @@ export default `<!DOCTYPE html>
             modal.style.display = 'flex';
 
             try {
-                const response = await fetch(\`/api/emails/log?id=\\${emailId}\`);
+                const response = await fetch('/api/emails/log?id=' + emailId);
                 if (!response.ok) {
                     throw new Error('E-Mail Details konnten nicht geladen werden.');
                 }
@@ -2370,7 +2370,7 @@ export default `<!DOCTYPE html>
                 badge.innerText = data.status === 'sent' ? 'Gesendet' : (data.status === 'failed' ? 'Fehlgeschlagen' : data.status);
 
                 // Set HTML content inside safe iframe
-                const htmlContent = data.html || \`<div style="font-family: sans-serif; padding: 20px; white-space: pre-wrap;">\\${data.text || ''}</div>\`;
+                const htmlContent = data.html || ('<div style="font-family: sans-serif; padding: 20px; white-space: pre-wrap;">' + (data.text || '') + '</div>');
                 previewFrame.srcdoc = htmlContent;
             } catch (e) {
                 console.error('Error fetching email details:', e);
