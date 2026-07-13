@@ -1434,15 +1434,24 @@ export default `<!DOCTYPE html>
             <div style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
                 <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 30px; display: flex; flex-direction: column; gap: 20px;">
                     
-                    <!-- Absender und Empfänger in einem 2-Spalten Layout -->
-                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                    <!-- Absender, Unterschrift und Empfänger in einem 3-Spalten Layout -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 2fr; gap: 20px;">
                         
                         <!-- Absender -->
                         <div class="form-group" style="margin: 0;">
                             <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absender (Sender)</label>
-                            <select id="mail-sender" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                            <select id="mail-sender" onchange="autoSelectSignature()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
                                 <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
                                 <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
+                            </select>
+                        </div>
+
+                        <!-- Unterschrift -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Unterschrift (Signature)</label>
+                            <select id="mail-signature" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                                <option value="bastian">Bastian Scholz</option>
+                                <option value="adrian">Adrian Friese</option>
                             </select>
                         </div>
                         
@@ -2144,6 +2153,16 @@ export default `<!DOCTYPE html>
             renderMailRecipientTags();
         }
 
+        function autoSelectSignature() {
+            const sender = document.getElementById('mail-sender').value;
+            const sigSelect = document.getElementById('mail-signature');
+            if (sender === 'bastianscholz@scholz-friese-webdesign.de') {
+                sigSelect.value = 'bastian';
+            } else if (sender === 'info@scholz-friese-webdesign.de') {
+                sigSelect.value = 'bastian';
+            }
+        }
+
         async function sendMail() {
             if (selectedMailRecipients.length === 0) {
                 alert('Bitte wähle mindestens einen Empfänger aus.');
@@ -2159,6 +2178,7 @@ export default `<!DOCTYPE html>
             }
 
             const sender = document.getElementById('mail-sender').value;
+            const signature = document.getElementById('mail-signature').value;
             const btn = document.getElementById('btn-send-mail');
             const icon = document.getElementById('mail-send-icon');
             const btnText = document.getElementById('mail-send-btn-text');
@@ -2182,7 +2202,8 @@ export default `<!DOCTYPE html>
                         sender,
                         recipients: recipientEmails,
                         subject,
-                        body
+                        body,
+                        signature
                     })
                 });
 
@@ -2328,6 +2349,7 @@ export default `<!DOCTYPE html>
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'flex';
             document.getElementById('domains-screen').style.display = 'none';
+            document.getElementById('mail-screen').style.display = 'none';
             const finS = document.getElementById('finanzen-screen');
             if (finS) finS.style.display = 'none';
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));

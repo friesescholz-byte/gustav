@@ -996,7 +996,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
       if (url.pathname === '/api/emails/send' && method === 'POST') {
         try {
           const payload = await request.json();
-          const { sender, recipients, subject, body } = payload;
+          const { sender, recipients, subject, body, signature } = payload;
           
           if (!sender || !recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !body) {
             return new Response(JSON.stringify({ error: 'Fehlende Felder: Absender, Empfänger, Betreff und Inhalt sind Pflichtfelder.' }), { status: 400, headers: corsHeaders });
@@ -1010,9 +1010,9 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           // Format the body using a premium HTML design
           const getHtmlEmail = (content) => {
             const formatted = content.replace(/\n/g, '<br>');
-            const signature = sender === 'info@scholz-friese-webdesign.de'
-              ? `Mit freundlichen Grüßen,<br><strong>Adrian Friese & Bastian Scholz</strong><br>Scholz & Friese Webdesign GbR<br><a href="https://scholz-friese-webdesign.de" style="color: #06b6d4; text-decoration: none;">www.scholz-friese-webdesign.de</a>`
-              : `Mit freundlichen Grüßen,<br><strong>Bastian Scholz</strong><br>Scholz & Friese Webdesign GbR<br><a href="https://scholz-friese-webdesign.de" style="color: #06b6d4; text-decoration: none;">www.scholz-friese-webdesign.de</a>`;
+            const signatureHtml = signature === 'adrian'
+              ? `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/visitenkarte-adrian.png" alt="Adrian Friese | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`
+              : `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/visitenkarte-bastian.png" alt="Bastian Scholz | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`;
 
             return `
               <!DOCTYPE html>
@@ -1023,7 +1023,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; }
                   .container { max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
                   .logo-area { text-align: center; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 20px; }
-                  .logo-area img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #06b6d4; }
+                  .logo-area img { width: 140px; height: auto; display: inline-block; }
                   .content { font-size: 15px; margin-bottom: 30px; color: #374151; white-space: pre-wrap; }
                   .signature { border-top: 1px solid #f3f4f6; padding-top: 20px; font-size: 13.5px; color: #4b5563; }
                   .signature a { color: #06b6d4; font-weight: 600; }
@@ -1032,10 +1032,10 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               <body>
                 <div class="container">
                   <div class="logo-area">
-                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Scholz & Friese Logo">
+                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-logo.png" alt="Scholz & Friese Logo">
                   </div>
                   <div class="content">${formatted}</div>
-                  <div class="signature">${signature}</div>
+                  <div class="signature">${signatureHtml}</div>
                 </div>
               </body>
               </html>
