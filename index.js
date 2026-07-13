@@ -992,6 +992,147 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         });
       }
 
+      // 8.35 API: Send email via Resend
+      if (url.pathname === '/api/emails/send' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          const { sender, recipients, subject, body } = payload;
+          
+          if (!sender || !recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !body) {
+            return new Response(JSON.stringify({ error: 'Fehlende Felder: Absender, Empfänger, Betreff und Inhalt sind Pflichtfelder.' }), { status: 400, headers: corsHeaders });
+          }
+          
+          const resendApiKey = env.RESEND_API_KEY;
+          if (!resendApiKey) {
+            return new Response(JSON.stringify({ error: 'Resend API-Schlüssel nicht in den Umgebungsvariablen hinterlegt.' }), { status: 500, headers: corsHeaders });
+          }
+
+          // Format the body using a premium HTML design
+          const getHtmlEmail = (content) => {
+            const formatted = content.replace(/\n/g, '<br>');
+            const signature = sender === 'info@scholz-friese-webdesign.de'
+              ? `Mit freundlichen Grüßen,<br><strong>Adrian Friese & Bastian Scholz</strong><br>Scholz & Friese Webdesign GbR<br><a href="https://scholz-friese-webdesign.de" style="color: #06b6d4; text-decoration: none;">www.scholz-friese-webdesign.de</a>`
+              : `Mit freundlichen Grüßen,<br><strong>Bastian Scholz</strong><br>Scholz & Friese Webdesign GbR<br><a href="https://scholz-friese-webdesign.de" style="color: #06b6d4; text-decoration: none;">www.scholz-friese-webdesign.de</a>`;
+
+            return `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; }
+                  .container { max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+                  .logo-area { text-align: center; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 20px; }
+                  .logo-area img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #06b6d4; }
+                  .content { font-size: 15px; margin-bottom: 30px; color: #374151; white-space: pre-wrap; }
+                  .signature { border-top: 1px solid #f3f4f6; padding-top: 20px; font-size: 13.5px; color: #4b5563; }
+                  .signature a { color: #06b6d4; font-weight: 600; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="logo-area">
+                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Scholz & Friese Logo">
+                  </div>
+                  <div class="content">${formatted}</div>
+                  <div class="signature">${signature}</div>
+                </div>
+              </body>
+              </html>
+            `;
+          };
+
+          const htmlContent = getHtmlEmail(body);
+          const fromName = sender === 'info@scholz-friese-webdesign.de'
+            ? 'Scholz & Friese Webdesign'
+            : 'Bastian Scholz | Scholz & Friese';
+
+          // Send individual emails to prevent DSGVO leaks and log them in customer histories
+          const sendPromises = recipients.map(async (recipientEmail) => {
+            try {
+              const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${resendApiKey}`
+                },
+                body: JSON.stringify({
+                  from: `${fromName} <${sender}>`,
+                  to: [recipientEmail],
+                  subject: subject,
+                  html: htmlContent,
+                })
+              });
+              
+              const result = await response.json();
+              
+              if (response.ok) {
+                // Find matched customer by email and log the mail
+                const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+                for (const key of list.keys) {
+                  const raw = await env.KUNDEN_DB.get(key.name);
+                  if (raw) {
+                    const customer = JSON.parse(raw);
+                    if (customer.email && customer.email.toLowerCase().trim() === recipientEmail.toLowerCase().trim()) {
+                      const logKey = `emails:${customer.id}`;
+                      const rawMails = await env.KUNDEN_DB.get(logKey);
+                      const mailLog = rawMails ? JSON.parse(rawMails) : [];
+                      
+                      mailLog.unshift({
+                        id: `msg_sent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                        date: new Date().toISOString(),
+                        direction: 'outgoing',
+                        from: `${fromName} <${sender}>`,
+                        subject: subject,
+                        body: body,
+                        summary: '',
+                        attachments: [],
+                        isResolved: true,
+                      });
+                      
+                      customer.lastInteraction = new Date().toISOString();
+                      customer.lastDirection = 'outgoing';
+                      if (!customer.manualOverride) {
+                        customer.status = 'green';
+                        customer.statusReason = `Beantwortet am ${new Date().toLocaleDateString('de-DE')}`;
+                      }
+                      
+                      await env.KUNDEN_DB.put(logKey, JSON.stringify(mailLog));
+                      await env.KUNDEN_DB.put(`kunde:${customer.id}`, JSON.stringify(customer));
+                      break;
+                    }
+                  }
+                }
+              }
+              
+              return { email: recipientEmail, success: response.ok, data: result };
+            } catch (e) {
+              return { email: recipientEmail, success: false, error: e.message };
+            }
+          });
+
+          const results = await Promise.all(sendPromises);
+          const failed = results.filter(r => !r.success);
+          
+          if (failed.length > 0) {
+            return new Response(JSON.stringify({ 
+              success: false, 
+              message: `${failed.length} von ${recipients.length} E-Mails konnten nicht gesendet werden.`, 
+              details: results 
+            }), {
+              status: 207,
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+          }
+          
+          return new Response(JSON.stringify({ success: true, message: 'Alle E-Mails wurden erfolgreich gesendet.' }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message || 'Internal Server Error' }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       // 8.4 API: Cloudflare Domain List (Zones)
       if (url.pathname === '/api/cloudflare/domains' && method === 'GET') {
         const apiToken = env.CLOUDFLARE_API_TOKEN;

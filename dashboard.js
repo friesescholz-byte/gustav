@@ -889,6 +889,25 @@ export default `<!DOCTYPE html>
             border-color: var(--color-primary);
         }
 
+        .recipient-suggestion-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 13.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: var(--transition-smooth);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recipient-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .recipient-suggestion-item:hover {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan);
+        }
+
         .modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1220,6 +1239,9 @@ export default `<!DOCTYPE html>
             <button class="nav-item" id="nav-btn-finanzen" onclick="showView('finanzen')">
                 <i class="fa-solid fa-wallet"></i> Finanzen
             </button>
+            <button class="nav-item" id="nav-btn-mail" onclick="showView('mail')">
+                <i class="fa-solid fa-paper-plane"></i> E-Mail verfassen
+            </button>
         </div>
         <div class="search-container">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -1385,6 +1407,102 @@ export default `<!DOCTYPE html>
                             <!-- Dynamic Rows -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIL COMPOSER SCREEN -->
+        <div class="welcome-screen" id="mail-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 40px; box-sizing: border-box; width: 100%; height: 100%;">
+            <!-- Header-Leiste -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1000px; margin: 0 auto 30px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; box-sizing: border-box;">
+                <div style="text-align: left;">
+                    <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-cyan); text-shadow: 0 0 10px rgba(6,182,212,0.2); display: block; margin-bottom: 8px;">
+                        <i class="fa-solid fa-paper-plane"></i> Outbound Mail Engine
+                    </span>
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 32px; background: linear-gradient(135deg, var(--text-primary) 30%, var(--color-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        E-Mail verfassen
+                    </h1>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 11px; color: var(--color-green); font-weight: 600; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 6px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-green); box-shadow: 0 0 6px var(--color-green);"></span> Resend API verbunden
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Composer Form Card -->
+            <div style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
+                <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- Absender und Empfänger in einem 2-Spalten Layout -->
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                        
+                        <!-- Absender -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absender (Sender)</label>
+                            <select id="mail-sender" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                                <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
+                                <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Empfänger-Optionen -->
+                        <div class="form-group" style="margin: 0; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin: 0;">Empfänger (Recipients)</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600;" onclick="selectMailRecipients('all')">
+                                        <i class="fa-solid fa-check-double"></i> Alle Kunden
+                                    </button>
+                                    <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-red); border-color: rgba(239,68,68,0.2);" onclick="selectMailRecipients('clear')">
+                                        <i class="fa-solid fa-trash-can"></i> Leeren
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Empfänger-Eingabe & Such-Dropdown -->
+                            <div style="position: relative; display: flex; gap: 8px;">
+                                <input type="text" id="mail-recipient-input" placeholder="Kunde suchen oder E-Mail eingeben..." oninput="showMailRecipientSuggestions()" onkeydown="handleMailRecipientKeyDown(event)" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; flex-grow: 1; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
+                                <button type="button" class="btn btn-primary" style="padding: 0 16px;" onclick="addMailRecipientFromInput()">Hinzufügen</button>
+                                
+                                <!-- Dropdown Suggestions -->
+                                <div id="mail-suggestions-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; max-height: 200px; overflow-y: auto;">
+                                    <!-- Dynamic items -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Empfänger Tags Container -->
+                    <div id="mail-recipients-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; box-sizing: border-box; align-items: center;">
+                        <span style="font-size: 12px; color: var(--text-secondary); padding: 2px 4px;">Keine Empfänger ausgewählt. Verwende die Suche, trage eine Mail ein oder wähle "Alle Kunden".</span>
+                    </div>
+                    
+                    <!-- Betreff -->
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Betreff (Subject)</label>
+                        <input type="text" id="mail-subject" placeholder="Betreff der E-Mail eingeben..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
+                    </div>
+                    
+                    <!-- E-Mail Inhalt (Body) -->
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">E-Mail Inhalt (Plain Text / HTML)</label>
+                        <textarea id="mail-body" placeholder="Schreibe deine E-Mail hier..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 16px; border-radius: 8px; width: 100%; height: 280px; box-sizing: border-box; font-size: 14px; line-height: 1.5; outline: none; font-family: inherit; resize: vertical; transition: var(--transition-smooth);"></textarea>
+                    </div>
+
+                    <!-- Signatur-Hinweis -->
+                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <i class="fa-solid fa-signature" style="color: var(--color-cyan);"></i>
+                        <span>Die Standard-Signatur von **Scholz & Friese Webdesign** wird automatisch an die gesendete Mail angehängt.</span>
+                    </div>
+                    
+                    <!-- Senden-Bereich -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
+                        <div id="mail-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
+                        <button type="button" class="btn btn-primary" id="btn-send-mail" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendMail()">
+                            <i class="fa-solid fa-paper-plane" id="mail-send-icon"></i> <span id="mail-send-btn-text">E-Mail senden</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1593,6 +1711,9 @@ export default `<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openMailWithClient()">
+                        <i class="fa-solid fa-paper-plane"></i> E-Mail schreiben
+                    </button>
                     <button class="btn" onclick="toggleManualStatus()">
                         <i class="fa-solid fa-rotate"></i> Status umstellen
                     </button>
@@ -1868,6 +1989,233 @@ export default `<!DOCTYPE html>
         let clients = [];
         let activeClient = null;
         let cfProjects = { pages: [], workers: [] };
+
+        // --- OUTBOUND MAIL SYSTEM STATE & LOGIC ---
+        let selectedMailRecipients = [];
+
+        function initMailScreen() {
+            // Clear inputs
+            document.getElementById('mail-subject').value = '';
+            document.getElementById('mail-body').value = '';
+            document.getElementById('mail-recipient-input').value = '';
+            document.getElementById('mail-status-message').innerHTML = '';
+            
+            // Re-render tags
+            renderMailRecipientTags();
+        }
+
+        function renderMailRecipientTags() {
+            const container = document.getElementById('mail-recipients-tags');
+            if (selectedMailRecipients.length === 0) {
+                container.innerHTML = '<span style="font-size: 12px; color: var(--text-secondary); padding: 2px 4px;">Keine Empfänger ausgewählt. Verwende die Suche, trage eine Mail ein oder wähle "Alle Kunden".</span>';
+                return;
+            }
+
+            container.innerHTML = selectedMailRecipients.map((r, idx) => {
+                return \`
+                    <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.25); color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 500;">
+                        \${r.name} <span style="font-size: 11px; opacity: 0.65;">(\${r.email})</span>
+                        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--color-cyan); margin-left: 2px; font-size: 12px;" onclick="removeMailRecipient(\${idx})"></i>
+                    </span>
+                \`;
+            }).join('');
+        }
+
+        function removeMailRecipient(idx) {
+            selectedMailRecipients.splice(idx, 1);
+            renderMailRecipientTags();
+        }
+
+        function selectMailRecipients(action) {
+            if (action === 'all') {
+                clients.forEach(c => {
+                    const email = (c.email || '').trim();
+                    if (email && !selectedMailRecipients.some(r => r.email.toLowerCase() === email.toLowerCase())) {
+                        selectedMailRecipients.push({
+                            name: c.name,
+                            email: email,
+                            id: c.id
+                        });
+                    }
+                });
+            } else if (action === 'clear') {
+                selectedMailRecipients = [];
+            }
+            renderMailRecipientTags();
+        }
+
+        function showMailRecipientSuggestions() {
+            const input = document.getElementById('mail-recipient-input');
+            const dropdown = document.getElementById('mail-suggestions-dropdown');
+            const val = input.value.trim().toLowerCase();
+
+            if (!val) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const matches = clients.filter(c => {
+                const email = (c.email || '').toLowerCase();
+                const name = (c.name || '').toLowerCase();
+                const isAlreadySelected = selectedMailRecipients.some(r => r.email.toLowerCase() === email);
+                return email && !isAlreadySelected && (name.includes(val) || email.includes(val));
+            });
+
+            if (matches.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            dropdown.innerHTML = matches.map(c => {
+                return \`
+                    <div class="recipient-suggestion-item" onclick="addMailRecipient('\${c.name.replace(/'/g, "\\\\'")}', '\${c.email}', '\${c.id}')">
+                        <span style="font-weight: 600;">\${c.name}</span>
+                        <span style="font-size: 11px; opacity: 0.6;">\${c.email}</span>
+                    </div>
+                \`;
+            }).join('');
+
+            dropdown.style.display = 'block';
+        }
+
+        function addMailRecipient(name, email, id) {
+            if (!selectedMailRecipients.some(r => r.email.toLowerCase() === email.toLowerCase())) {
+                selectedMailRecipients.push({ name, email, id });
+                renderMailRecipientTags();
+            }
+            const input = document.getElementById('mail-recipient-input');
+            input.value = '';
+            document.getElementById('mail-suggestions-dropdown').style.display = 'none';
+            input.focus();
+        }
+
+        function handleMailRecipientKeyDown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addMailRecipientFromInput();
+            }
+        }
+
+        function addMailRecipientFromInput() {
+            const input = document.getElementById('mail-recipient-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+            if (!emailRegex.test(val)) {
+                alert('Bitte gib eine gültige E-Mail-Adresse ein.');
+                return;
+            }
+
+            if (selectedMailRecipients.some(r => r.email.toLowerCase() === val.toLowerCase())) {
+                input.value = '';
+                return;
+            }
+
+            const existingClient = clients.find(c => (c.email || '').toLowerCase().trim() === val.toLowerCase());
+            const name = existingClient ? existingClient.name : 'Extern';
+            const id = existingClient ? existingClient.id : null;
+
+            addMailRecipient(name, val, id);
+        }
+
+        // Click outside listener for dropdown
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('mail-suggestions-dropdown');
+            const input = document.getElementById('mail-recipient-input');
+            if (dropdown && e.target !== input && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function openMailWithClient() {
+            if (!activeClient || !activeClient.email) {
+                alert('Dieser Kunde hat keine E-Mail-Adresse hinterlegt.');
+                return;
+            }
+            
+            showView('mail');
+            
+            selectedMailRecipients = [{
+                name: activeClient.name,
+                email: activeClient.email.trim(),
+                id: activeClient.id
+            }];
+            renderMailRecipientTags();
+        }
+
+        async function sendMail() {
+            if (selectedMailRecipients.length === 0) {
+                alert('Bitte wähle mindestens einen Empfänger aus.');
+                return;
+            }
+
+            const subject = document.getElementById('mail-subject').value.trim();
+            const body = document.getElementById('mail-body').value.trim();
+
+            if (!subject || !body) {
+                alert('Bitte fülle Betreff und Inhalt aus.');
+                return;
+            }
+
+            const sender = document.getElementById('mail-sender').value;
+            const btn = document.getElementById('btn-send-mail');
+            const icon = document.getElementById('mail-send-icon');
+            const btnText = document.getElementById('mail-send-btn-text');
+            const statusMsg = document.getElementById('mail-status-message');
+
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            icon.className = 'fa-solid fa-spinner fa-spin';
+            btnText.innerText = 'Wird gesendet...';
+            statusMsg.innerHTML = '<span style="color: var(--text-secondary);"><i class="fa-solid fa-hourglass-half"></i> Sende E-Mails via Resend...</span>';
+
+            const recipientEmails = selectedMailRecipients.map(r => r.email);
+
+            try {
+                const res = await fetch('/api/emails/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender,
+                        recipients: recipientEmails,
+                        subject,
+                        body
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok || res.status === 207) {
+                    if (data.success) {
+                        statusMsg.innerHTML = '<span style="color: var(--color-green); font-weight: 600;"><i class="fa-solid fa-circle-check"></i> E-Mail erfolgreich gesendet!</span>';
+                        document.getElementById('mail-subject').value = '';
+                        document.getElementById('mail-body').value = '';
+                        selectedMailRecipients = [];
+                        renderMailRecipientTags();
+                        
+                        if (activeClient && recipientEmails.some(email => email.toLowerCase() === activeClient.email.toLowerCase())) {
+                            await loadClients();
+                            showClientDetails(activeClient.id);
+                        }
+                    } else {
+                        statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Fehler: ' + (data.message || 'Versand fehlgeschlagen') + '</span>';
+                    }
+                } else {
+                    statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Serverfehler beim Senden: ' + (data.error || 'Fehlgeschlagen') + '</span>';
+                }
+            } catch (e) {
+                console.error(\'Mail sending error:\', e);
+                statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Netzwerkfehler beim Mailversand.</span>';
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                icon.className = 'fa-solid fa-paper-plane';
+                btnText.innerText = 'E-Mail senden';
+            }
+        }
 
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', async () => {
@@ -2660,6 +3008,7 @@ export default `<!DOCTYPE html>
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'none';
             document.getElementById('domains-screen').style.display = 'none';
+            document.getElementById('mail-screen').style.display = 'none';
             const finScreen = document.getElementById('finanzen-screen');
             if (finScreen) finScreen.style.display = 'none';
             
@@ -2677,6 +3026,11 @@ export default `<!DOCTYPE html>
                 const finBtn = document.getElementById('nav-btn-finanzen');
                 if (finBtn) finBtn.classList.add('active');
                 loadFinances();
+            } else if (viewName === 'mail') {
+                document.getElementById('mail-screen').style.display = 'flex';
+                const mailBtn = document.getElementById('nav-btn-mail');
+                if (mailBtn) mailBtn.classList.add('active');
+                initMailScreen();
             }
         }
 
