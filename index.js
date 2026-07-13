@@ -1011,8 +1011,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const getHtmlEmail = (content) => {
             const formatted = content.replace(/\n/g, '<br>');
             const signatureHtml = signature === 'adrian'
-              ? `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/visitenkarte-adrian.png" alt="Adrian Friese | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`
-              : `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/visitenkarte-bastian.png" alt="Bastian Scholz | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`;
+              ? `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Adrian_Friese_Unterschrift.png" alt="Adrian Friese | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`
+              : `Mit freundlichen Grüßen,<br><br><img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Bastian_Scholz_Unterschrift.png" alt="Bastian Scholz | Scholz & Friese" style="width: 100%; max-width: 320px; display: block; border-radius: 4px;">`;
 
             return `
               <!DOCTYPE html>
@@ -1032,7 +1032,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               <body>
                 <div class="container">
                   <div class="logo-area">
-                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-logo.png" alt="Scholz & Friese Logo">
+                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/logo_F%2BS_Violett.png" alt="Scholz & Friese Logo">
                   </div>
                   <div class="content">${formatted}</div>
                   <div class="signature">${signatureHtml}</div>
