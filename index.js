@@ -630,7 +630,7 @@ export default {
       }
 
       // 6. API: Get Email Logs for Client
-      if (url.pathname.startsWith('/api/emails/') && method === 'GET') {
+      if (url.pathname.startsWith('/api/emails/') && url.pathname !== '/api/emails/log' && method === 'GET') {
         const id = url.pathname.split('/').pop();
         const raw = await env.KUNDEN_DB.get(`emails:${id}`);
         const emails = raw ? JSON.parse(raw) : [];
