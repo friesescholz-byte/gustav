@@ -1016,16 +1016,16 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Adrian_Friese_Unterschrift.png" alt="Adrian Friese | Scholz & Friese" width="320" style="width: 100%; max-width: 320px; display: block; border-radius: 4px; border: none;">
                  </a>
                  <div style="margin-top: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                   <a href="tel:+491556343678" style="display: inline-block; background-color: #06b6d4; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; margin-right: 10px;">📞 Anrufen</a>
-                   <a href="mailto:info@scholz-friese-webdesign.de" style="display: inline-block; background-color: #1f2937; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; border: 1px solid #374151;">✉️ E-Mail schreiben</a>
+                   <a href="tel:+491556343678" style="display: inline-block; background-color: #0B726D; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; margin-right: 10px;">📞 Anrufen</a>
+                   <a href="mailto:info@scholz-friese-webdesign.de" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; border: 1px solid #000000;">✉️ E-Mail schreiben</a>
                  </div>`
               : `Mit freundlichen Grüßen,<br><br>
                  <a href="https://scholz-friese-webdesign.de" style="display: block; text-decoration: none;">
                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Bastian_Scholz_Unterschrift.png" alt="Bastian Scholz | Scholz & Friese" width="320" style="width: 100%; max-width: 320px; display: block; border-radius: 4px; border: none;">
                  </a>
                  <div style="margin-top: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                   <a href="tel:+491556343678" style="display: inline-block; background-color: #06b6d4; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; margin-right: 10px;">📞 Anrufen</a>
-                   <a href="mailto:bastianscholz@scholz-friese-webdesign.de" style="display: inline-block; background-color: #1f2937; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; border: 1px solid #374151;">✉️ E-Mail schreiben</a>
+                   <a href="tel:+491556343678" style="display: inline-block; background-color: #0B726D; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; margin-right: 10px;">📞 Anrufen</a>
+                   <a href="mailto:bastianscholz@scholz-friese-webdesign.de" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; border: 1px solid #000000;">✉️ E-Mail schreiben</a>
                  </div>`;
 
             return `
@@ -1045,7 +1045,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               <body>
                 <div class="container">
                   <div class="logo-area">
-                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/logo_F%2BS_Violett.png" alt="Scholz & Friese Logo" width="140" style="width: 140px; height: auto; display: inline-block; border: none;">
+                    <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/logo_F%2BS_Violett.png" alt="Scholz & Friese Logo" width="55" height="55" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #0B726D; object-fit: cover; display: inline-block; border: none;">
                   </div>
                   <div class="content">${formatted}</div>
                   <div class="signature">${signatureHtml}</div>
