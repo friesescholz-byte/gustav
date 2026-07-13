@@ -908,6 +908,49 @@ export default `<!DOCTYPE html>
             color: var(--color-cyan);
         }
 
+        .mail-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 30px auto;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            box-sizing: border-box;
+        }
+        .mail-form-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1.2fr 2fr;
+            gap: 20px;
+        }
+        .mail-form-card {
+            background: rgba(17, 24, 39, 0.4);
+            border-color: var(--border-color);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            #mail-screen {
+                padding: 20px !important;
+            }
+            .mail-header-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            .mail-form-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px;
+            }
+            .mail-form-card {
+                padding: 20px !important;
+                gap: 15px;
+            }
+        }
+
         .modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1414,7 +1457,7 @@ export default `<!DOCTYPE html>
         <!-- MAIL COMPOSER SCREEN -->
         <div class="welcome-screen" id="mail-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 40px; box-sizing: border-box; width: 100%; height: 100%;">
             <!-- Header-Leiste -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1000px; margin: 0 auto 30px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; box-sizing: border-box;">
+            <div class="mail-header-bar">
                 <div style="text-align: left;">
                     <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-cyan); text-shadow: 0 0 10px rgba(6,182,212,0.2); display: block; margin-bottom: 8px;">
                         <i class="fa-solid fa-paper-plane"></i> Outbound Mail Engine
@@ -1432,10 +1475,10 @@ export default `<!DOCTYPE html>
             
             <!-- Composer Form Card -->
             <div style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
-                <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+                <div class="card mail-form-card">
                     
                     <!-- Absender, Unterschrift und Empfänger in einem 3-Spalten Layout -->
-                    <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 2fr; gap: 20px;">
+                    <div class="mail-form-grid">
                         
                         <!-- Absender -->
                         <div class="form-group" style="margin: 0;">
@@ -1720,11 +1763,11 @@ export default `<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openMailWithClient()">
-                        <i class="fa-solid fa-paper-plane"></i> E-Mail schreiben
-                    </button>
                     <button class="btn" onclick="toggleManualStatus()">
                         <i class="fa-solid fa-rotate"></i> Status umstellen
+                    </button>
+                    <button class="btn btn-primary" onclick="openMailWithClient()">
+                        <i class="fa-solid fa-paper-plane"></i> E-Mail schreiben
                     </button>
                     <button class="btn" onclick="openEditClientModal()">
                         <i class="fa-solid fa-pen-to-square"></i> Bearbeiten
