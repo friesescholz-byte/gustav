@@ -951,6 +951,111 @@ export default `<!DOCTYPE html>
             }
         }
 
+        .mail-tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid transparent;
+        }
+        .mail-tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .mail-tab-btn.active {
+            color: #fff;
+            background: rgba(6, 182, 212, 0.1);
+            border-color: rgba(6, 182, 212, 0.3);
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+        .mail-log-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+        .mail-log-table th {
+            padding: 14px 16px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            border-bottom: 1.5px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .mail-log-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .mail-log-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        .mail-log-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .mail-log-badge.sent {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .mail-log-badge.failed {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .mail-log-badge.other {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .mail-preview-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+        .mail-preview-header-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: rgba(0,0,0,0.2);
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 13.5px;
+        }
+        .mail-preview-iframe-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            flex-grow: 1;
+            height: 480px;
+        }
+        .mail-preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+        }
+
         .modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1476,84 +1581,133 @@ export default `<!DOCTYPE html>
             <!-- Composer Form Card -->
             <div style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
                 <div class="card mail-form-card">
-                    
-                    <!-- Absender, Unterschrift und Empfänger in einem 3-Spalten Layout -->
-                    <div class="mail-form-grid">
-                        
-                        <!-- Absender -->
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absender (Sender)</label>
-                            <select id="mail-sender" onchange="autoSelectSignature()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
-                                <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
-                                <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
-                            </select>
-                        </div>
+                    <!-- Tab-Leiste -->
+                    <div style="display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 15px; margin-bottom: 15px;">
+                        <button class="mail-tab-btn active" id="mail-tab-compose" onclick="switchMailTab('compose')">
+                            <i class="fa-solid fa-pen-to-square"></i> E-Mail verfassen
+                        </button>
+                        <button class="mail-tab-btn" id="mail-tab-log" onclick="switchMailTab('log')">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Gesendete E-Mails
+                        </button>
+                    </div>
 
-                        <!-- Unterschrift -->
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Unterschrift (Signature)</label>
-                            <select id="mail-signature" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
-                                <option value="bastian">Bastian Scholz</option>
-                                <option value="adrian">Adrian Friese</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Empfänger-Optionen -->
-                        <div class="form-group" style="margin: 0; display: flex; flex-direction: column; gap: 6px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin: 0;">Empfänger (Recipients)</label>
-                                <div style="display: flex; gap: 8px;">
-                                    <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600;" onclick="selectMailRecipients('all')">
-                                        <i class="fa-solid fa-check-double"></i> Alle Kunden
-                                    </button>
-                                    <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-red); border-color: rgba(239,68,68,0.2);" onclick="selectMailRecipients('clear')">
-                                        <i class="fa-solid fa-trash-can"></i> Leeren
-                                    </button>
-                                </div>
+                    <!-- COMPOSE VIEW -->
+                    <div id="mail-compose-view" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+                        <!-- Absender, Unterschrift und Empfänger in einem 3-Spalten Layout -->
+                        <div class="mail-form-grid">
+                            <!-- Absender -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absender (Sender)</label>
+                                <select id="mail-sender" onchange="autoSelectSignature()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                                    <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
+                                    <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
+                                </select>
+                            </div>
+
+                            <!-- Unterschrift -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Unterschrift (Signature)</label>
+                                <select id="mail-signature" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                                    <option value="bastian">Bastian Scholz</option>
+                                    <option value="adrian">Adrian Friese</option>
+                                </select>
                             </div>
                             
-                            <!-- Empfänger-Eingabe & Such-Dropdown -->
-                            <div style="position: relative; display: flex; gap: 8px;">
-                                <input type="text" id="mail-recipient-input" placeholder="Kunde suchen oder E-Mail eingeben..." oninput="showMailRecipientSuggestions()" onkeydown="handleMailRecipientKeyDown(event)" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; flex-grow: 1; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
-                                <button type="button" class="btn btn-primary" style="padding: 0 16px;" onclick="addMailRecipientFromInput()">Hinzufügen</button>
+                            <!-- Empfänger-Optionen -->
+                            <div class="form-group" style="margin: 0; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin: 0;">Empfänger (Recipients)</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600;" onclick="selectMailRecipients('all')">
+                                            <i class="fa-solid fa-check-double"></i> Alle Kunden
+                                        </button>
+                                        <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-red); border-color: rgba(239,68,68,0.2);" onclick="selectMailRecipients('clear')">
+                                            <i class="fa-solid fa-trash-can"></i> Leeren
+                                        </button>
+                                    </div>
+                                </div>
                                 
-                                <!-- Dropdown Suggestions -->
-                                <div id="mail-suggestions-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; max-height: 200px; overflow-y: auto;">
-                                    <!-- Dynamic items -->
+                                <!-- Empfänger-Eingabe & Such-Dropdown -->
+                                <div style="position: relative; display: flex; gap: 8px;">
+                                    <input type="text" id="mail-recipient-input" placeholder="Kunde suchen oder E-Mail eingeben..." oninput="showMailRecipientSuggestions()" onkeydown="handleMailRecipientKeyDown(event)" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; flex-grow: 1; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
+                                    <button type="button" class="btn btn-primary" style="padding: 0 16px;" onclick="addMailRecipientFromInput()">Hinzufügen</button>
+                                    
+                                    <!-- Dropdown Suggestions -->
+                                    <div id="mail-suggestions-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; max-height: 200px; overflow-y: auto;">
+                                        <!-- Dynamic items -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Empfänger Tags Container -->
-                    <div id="mail-recipients-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; box-sizing: border-box; align-items: center;">
-                        <span style="font-size: 12px; color: var(--text-secondary); padding: 2px 4px;">Keine Empfänger ausgewählt. Verwende die Suche, trage eine Mail ein oder wähle "Alle Kunden".</span>
-                    </div>
-                    
-                    <!-- Betreff -->
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Betreff (Subject)</label>
-                        <input type="text" id="mail-subject" placeholder="Betreff der E-Mail eingeben..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
-                    </div>
-                    
-                    <!-- E-Mail Inhalt (Body) -->
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">E-Mail Inhalt (Plain Text / HTML)</label>
-                        <textarea id="mail-body" placeholder="Schreibe deine E-Mail hier..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 16px; border-radius: 8px; width: 100%; height: 280px; box-sizing: border-box; font-size: 14px; line-height: 1.5; outline: none; font-family: inherit; resize: vertical; transition: var(--transition-smooth);"></textarea>
+                        
+                        <!-- Empfänger Tags Container -->
+                        <div id="mail-recipients-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; box-sizing: border-box; align-items: center;">
+                            <span style="font-size: 12px; color: var(--text-secondary); padding: 2px 4px;">Keine Empfänger ausgewählt. Verwende die Suche, trage eine Mail ein oder wähle "Alle Kunden".</span>
+                        </div>
+                        
+                        <!-- Betreff -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Betreff (Subject)</label>
+                            <input type="text" id="mail-subject" placeholder="Betreff der E-Mail eingeben..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
+                        </div>
+                        
+                        <!-- E-Mail Inhalt (Body) -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">E-Mail Inhalt (Plain Text / HTML)</label>
+                            <textarea id="mail-body" placeholder="Schreibe deine E-Mail hier..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 16px; border-radius: 8px; width: 100%; height: 280px; box-sizing: border-box; font-size: 14px; line-height: 1.5; outline: none; font-family: inherit; resize: vertical; transition: var(--transition-smooth);"></textarea>
+                        </div>
+
+                        <!-- Signatur-Hinweis -->
+                        <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                            <i class="fa-solid fa-signature" style="color: var(--color-cyan);"></i>
+                            <span>Die Standard-Signatur von **Scholz & Friese Webdesign** wird automatisch an die gesendete Mail angehängt.</span>
+                        </div>
+                        
+                        <!-- Senden-Bereich -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
+                            <div id="mail-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
+                            <button type="button" class="btn btn-primary" id="btn-send-mail" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendMail()">
+                                <i class="fa-solid fa-paper-plane" id="mail-send-icon"></i> <span id="mail-send-btn-text">E-Mail senden</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Signatur-Hinweis -->
-                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                        <i class="fa-solid fa-signature" style="color: var(--color-cyan);"></i>
-                        <span>Die Standard-Signatur von **Scholz & Friese Webdesign** wird automatisch an die gesendete Mail angehängt.</span>
-                    </div>
-                    
-                    <!-- Senden-Bereich -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
-                        <div id="mail-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
-                        <button type="button" class="btn btn-primary" id="btn-send-mail" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendMail()">
-                            <i class="fa-solid fa-paper-plane" id="mail-send-icon"></i> <span id="mail-send-btn-text">E-Mail senden</span>
-                        </button>
+                    <!-- LOG VIEW -->
+                    <div id="mail-log-view" style="display: none; flex-direction: column; gap: 20px; width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <div style="position: relative; flex-grow: 1; min-width: 250px;">
+                                <input type="text" id="mail-log-search" placeholder="Empfänger, Betreff oder Absender filtern..." oninput="filterMailLog()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px 14px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none; transition: var(--transition-smooth);">
+                            </div>
+                            <button class="btn" style="padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px;" onclick="loadResendMailLog()">
+                                <i class="fa-solid fa-rotate"></i> Aktualisieren
+                            </button>
+                        </div>
+
+                        <div style="overflow-x: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; min-height: 200px; box-sizing: border-box; width: 100%;">
+                            <table class="mail-log-table">
+                                <thead>
+                                    <tr>
+                                        <th>Datum</th>
+                                        <th>Von</th>
+                                        <th>An</th>
+                                        <th>Betreff</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mail-log-table-body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                            <div id="mail-log-loader" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+                                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--color-cyan); margin-bottom: 10px;"></i>
+                                <p style="margin: 0; font-size: 13px;">E-Mail Verlauf wird geladen...</p>
+                            </div>
+                            <div id="mail-log-empty" style="display: none; padding: 60px 40px; text-align: center; color: var(--text-secondary);">
+                                <i class="fa-solid fa-envelope-open" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;"></i>
+                                <p style="margin: 0; font-size: 14px; font-weight: 500;">Keine gesendeten E-Mails gefunden.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2012,6 +2166,45 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- E-MAIL DETAILS PREVIEW MODAL -->
+    <div class="modal" id="mail-preview-modal">
+        <div class="modal-content" style="max-width: 700px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 12px; padding: 25px;">
+            <h3 class="modal-title" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;">
+                <span>E-Mail Details</span>
+                <span class="mail-log-badge sent" id="mail-preview-badge">Status</span>
+            </h3>
+            
+            <div class="mail-preview-modal-body">
+                <div class="mail-preview-header-meta">
+                    <div>
+                        <strong style="color: var(--text-secondary);">Von:</strong> 
+                        <span id="mail-preview-from" style="color: var(--text-primary);"></span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">Datum:</strong> 
+                        <span id="mail-preview-date" style="color: var(--text-primary);"></span>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <strong style="color: var(--text-secondary);">An:</strong> 
+                        <span id="mail-preview-to" style="color: var(--text-primary);"></span>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <strong style="color: var(--text-secondary);">Betreff:</strong> 
+                        <span id="mail-preview-subject" style="color: var(--text-primary); font-weight: 600;"></span>
+                    </div>
+                </div>
+
+                <div class="mail-preview-iframe-container">
+                    <iframe id="mail-preview-frame" class="mail-preview-iframe" title="E-Mail Vorschau"></iframe>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <button type="button" class="btn btn-primary" onclick="closeMailPreviewModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MOBILE BOTTOM NAVIGATION BAR -->
     <div class="mobile-bottom-nav">
         <button class="mobile-nav-item active" id="mob-nav-hub" onclick="showView('hub'); updateMobileBottomNav('hub');">
@@ -2044,8 +2237,153 @@ export default `<!DOCTYPE html>
 
         // --- OUTBOUND MAIL SYSTEM STATE & LOGIC ---
         let selectedMailRecipients = [];
+        let resendMailLogData = [];
+
+        function switchMailTab(tabName) {
+            document.querySelectorAll('.mail-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const composeTabBtn = document.getElementById('mail-tab-compose');
+            const logTabBtn = document.getElementById('mail-tab-log');
+            const composeView = document.getElementById('mail-compose-view');
+            const logView = document.getElementById('mail-log-view');
+
+            if (tabName === 'compose') {
+                if (composeTabBtn) composeTabBtn.classList.add('active');
+                if (composeView) composeView.style.display = 'flex';
+                if (logView) logView.style.display = 'none';
+            } else if (tabName === 'log') {
+                if (logTabBtn) logTabBtn.classList.add('active');
+                if (composeView) composeView.style.display = 'none';
+                if (logView) logView.style.display = 'flex';
+                loadResendMailLog();
+            }
+        }
+
+        async function loadResendMailLog() {
+            const tableBody = document.getElementById('mail-log-table-body');
+            const loader = document.getElementById('mail-log-loader');
+            const emptyState = document.getElementById('mail-log-empty');
+
+            tableBody.innerHTML = '';
+            loader.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/emails/log');
+                if (!response.ok) {
+                    throw new Error('E-Mail Log konnte nicht geladen werden.');
+                }
+                const result = await response.json();
+                resendMailLogData = result.data || [];
+                
+                loader.style.display = 'none';
+                renderMailLogTable(resendMailLogData);
+            } catch (e) {
+                console.error('Error fetching Resend mail log:', e);
+                loader.style.display = 'none';
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--color-red); padding: 30px;"><i class="fa-solid fa-triangle-exclamation"></i> Fehler beim Laden des E-Mail Verlaufs: ' + e.message + '</td></tr>';
+            }
+        }
+
+        function renderMailLogTable(emails) {
+            const tableBody = document.getElementById('mail-log-table-body');
+            const emptyState = document.getElementById('mail-log-empty');
+
+            if (emails.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tableBody.innerHTML = emails.map(item => {
+                const dateStr = new Date(item.created_at).toLocaleString('de-DE');
+                const toStr = Array.isArray(item.to) ? item.to.join(', ') : item.to;
+                const statusClass = item.status === 'sent' ? 'sent' : (item.status === 'failed' ? 'failed' : 'other');
+                const statusLabel = item.status === 'sent' ? 'Gesendet' : (item.status === 'failed' ? 'Fehlgeschlagen' : item.status);
+                
+                return \`
+                    <tr>
+                        <td style="white-space: nowrap;">\\${dateStr}</td>
+                        <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\\${item.from}">\\${item.from}</td>
+                        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\\${toStr}">\\${toStr}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;" title="\\${item.subject}">\\${item.subject || '(Kein Betreff)'}</td>
+                        <td><span class="mail-log-badge \\${statusClass}">\\${statusLabel}</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button type="button" class="btn" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="viewResendEmailDetails('\\${item.id}')">
+                                <i class="fa-solid fa-eye"></i> Details
+                            </button>
+                        </td>
+                    </tr>
+                \`;
+            }).join('');
+        }
+
+        function filterMailLog() {
+            const query = document.getElementById('mail-log-search').value.toLowerCase().trim();
+            if (!query) {
+                renderMailLogTable(resendMailLogData);
+                return;
+            }
+
+            const filtered = resendMailLogData.filter(item => {
+                const toStr = (Array.isArray(item.to) ? item.to.join(', ') : item.to || '').toLowerCase();
+                const fromStr = (item.from || '').toLowerCase();
+                const subjectStr = (item.subject || '').toLowerCase();
+                return toStr.includes(query) || fromStr.includes(query) || subjectStr.includes(query);
+            });
+
+            renderMailLogTable(filtered);
+        }
+
+        async function viewResendEmailDetails(emailId) {
+            const modal = document.getElementById('mail-preview-modal');
+            const badge = document.getElementById('mail-preview-badge');
+            const fromSpan = document.getElementById('mail-preview-from');
+            const toSpan = document.getElementById('mail-preview-to');
+            const dateSpan = document.getElementById('mail-preview-date');
+            const subjectSpan = document.getElementById('mail-preview-subject');
+            const previewFrame = document.getElementById('mail-preview-frame');
+
+            // Reset modal fields and show loading inside iframe
+            fromSpan.innerText = 'Laden...';
+            toSpan.innerText = 'Laden...';
+            dateSpan.innerText = 'Laden...';
+            subjectSpan.innerText = 'Laden...';
+            previewFrame.srcdoc = '<div style="font-family: sans-serif; padding: 20px; text-align: center; color: #666;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; margin-bottom: 8px;"></i> E-Mail Inhalt wird geladen...</div>';
+            
+            modal.style.display = 'flex';
+
+            try {
+                const response = await fetch(\`/api/emails/log?id=\\${emailId}\`);
+                if (!response.ok) {
+                    throw new Error('E-Mail Details konnten nicht geladen werden.');
+                }
+                const data = await response.json();
+                
+                // Set metadata
+                fromSpan.innerText = data.from || '';
+                toSpan.innerText = Array.isArray(data.to) ? data.to.join(', ') : data.to || '';
+                dateSpan.innerText = new Date(data.created_at).toLocaleString('de-DE');
+                subjectSpan.innerText = data.subject || '(Kein Betreff)';
+                
+                badge.className = 'mail-log-badge ' + (data.status === 'sent' ? 'sent' : (data.status === 'failed' ? 'failed' : 'other'));
+                badge.innerText = data.status === 'sent' ? 'Gesendet' : (data.status === 'failed' ? 'Fehlgeschlagen' : data.status);
+
+                // Set HTML content inside safe iframe
+                const htmlContent = data.html || \`<div style="font-family: sans-serif; padding: 20px; white-space: pre-wrap;">\\${data.text || ''}</div>\`;
+                previewFrame.srcdoc = htmlContent;
+            } catch (e) {
+                console.error('Error fetching email details:', e);
+                previewFrame.srcdoc = '<div style="font-family: sans-serif; padding: 20px; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Fehler beim Laden: ' + e.message + '</div>';
+            }
+        }
+
+        function closeMailPreviewModal() {
+            document.getElementById('mail-preview-modal').style.display = 'none';
+        }
 
         function initMailScreen() {
+            switchMailTab('compose');
             // Clear inputs
             document.getElementById('mail-subject').value = '';
             document.getElementById('mail-body').value = '';

@@ -1036,7 +1036,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                 <style>
                   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; }
                   .container { max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-                  .logo-area { text-align: center; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 20px; }
+                  .logo-area { text-align: left; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 20px; }
                   .content { font-size: 15px; margin-bottom: 30px; color: #374151; white-space: pre-wrap; }
                   .signature { border-top: 1px solid #f3f4f6; padding-top: 20px; font-size: 13.5px; color: #4b5563; }
                   .signature a { color: #06b6d4; font-weight: 600; }
@@ -1141,6 +1141,49 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           return new Response(JSON.stringify({ success: true, message: 'Alle E-Mails wurden erfolgreich gesendet.' }), {
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message || 'Internal Server Error' }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8.36 API: Get Resend Email Log
+      if (url.pathname === '/api/emails/log' && method === 'GET') {
+        try {
+          const resendApiKey = env.RESEND_API_KEY;
+          if (!resendApiKey) {
+            return new Response(JSON.stringify({ error: 'Resend API-Schlüssel nicht in den Umgebungsvariablen hinterlegt.' }), { status: 500, headers: corsHeaders });
+          }
+
+          const emailId = url.searchParams.get('id');
+          if (emailId) {
+            const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`
+              }
+            });
+            
+            if (!response.ok) {
+              const errText = await response.text();
+              return new Response(JSON.stringify({ error: `Resend API Error: ${errText}` }), { status: response.status, headers: corsHeaders });
+            }
+            
+            const data = await response.json();
+            return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          } else {
+            const response = await fetch('https://api.resend.com/emails', {
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`
+              }
+            });
+            
+            if (!response.ok) {
+              const errText = await response.text();
+              return new Response(JSON.stringify({ error: `Resend API Error: ${errText}` }), { status: response.status, headers: corsHeaders });
+            }
+            
+            const data = await response.json();
+            return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          }
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message || 'Internal Server Error' }), { status: 500, headers: corsHeaders });
         }
