@@ -2685,6 +2685,10 @@ export default `<!DOCTYPE html>
         async function fetchCustomTasks() {
             try {
                 const res = await fetch('/api/tasks');
+                if (res.status === 401) {
+                    window.location.reload();
+                    return;
+                }
                 if (res.ok) {
                     const data = await res.json();
                     customTasksData = Array.isArray(data) ? data : [];
@@ -2878,7 +2882,7 @@ export default `<!DOCTYPE html>
                     statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Serverfehler beim Senden: ' + (data.error || 'Fehlgeschlagen') + '</span>';
                 }
             } catch (e) {
-                console.error(\'Mail sending error:\', e);
+                console.error('Mail sending error:', e);
                 statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Netzwerkfehler beim Mailversand.</span>';
             } finally {
                 btn.disabled = false;
@@ -2890,29 +2894,7 @@ export default `<!DOCTYPE html>
 
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', async () => {
-            // Restore chat collapse state
-            const chatCollapsed = localStorage.getItem('chat_collapsed') === '1';
-            if (chatCollapsed) {
-                const cp = document.querySelector('.chat-panel');
-                const chevron = document.getElementById('chat-toggle-chevron');
-                if (cp) cp.classList.add('collapsed');
-                if (chevron) chevron.className = 'fa-solid fa-chevron-left';
-            }
-
-            await loadCloudflareProjects();
-            await loadClients();
-            await loadCloudflareDomains();
-            updateGlobalStats();
-            initDragAndDrop();
-            await loadImapSettings();
-            await updateSystemChecklist();
-            
-            // Sync emails on load and every 5 minutes silently
-            syncEmails(true);
-            setInterval(() => syncEmails(true), 5 * 60 * 1000);
-            setInterval(updateSystemChecklist, 60 * 1000);
-            
-            // Live-Uhrzeit & Datum für das Command Center
+            // Live-Uhrzeit & Datum sofort starten
             const updateClock = () => {
                 const clockEl = document.getElementById('live-clock');
                 const dateEl = document.getElementById('live-date');
@@ -2926,6 +2908,28 @@ export default `<!DOCTYPE html>
             };
             updateClock();
             setInterval(updateClock, 1000);
+
+            // Restore chat collapse state
+            const chatCollapsed = localStorage.getItem('chat_collapsed') === '1';
+            if (chatCollapsed) {
+                const cp = document.querySelector('.chat-panel');
+                const chevron = document.getElementById('chat-toggle-chevron');
+                if (cp) cp.classList.add('collapsed');
+                if (chevron) chevron.className = 'fa-solid fa-chevron-left';
+            }
+
+            try { await loadCloudflareProjects(); } catch(e) { console.error('CF projects init error:', e); }
+            try { await loadClients(); } catch(e) { console.error('Clients init error:', e); }
+            try { await loadCloudflareDomains(); } catch(e) { console.error('CF domains init error:', e); }
+            try { updateGlobalStats(); } catch(e) { console.error('Global stats init error:', e); }
+            try { initDragAndDrop(); } catch(e) { console.error('Drag drop init error:', e); }
+            try { await loadImapSettings(); } catch(e) { console.error('IMAP settings init error:', e); }
+            try { await updateSystemChecklist(); } catch(e) { console.error('System checklist init error:', e); }
+            
+            // Sync emails on load and every 5 minutes silently
+            try { syncEmails(true); } catch(e) {}
+            setInterval(() => { try { syncEmails(true); } catch(e) {} }, 5 * 60 * 1000);
+            setInterval(() => { try { updateSystemChecklist(); } catch(e) {} }, 60 * 1000);
         });
 
         // --- CLOUDFLARE FETCH ---
@@ -2942,7 +2946,15 @@ export default `<!DOCTYPE html>
         async function loadClients() {
             try {
                 const res = await fetch('/api/kunden');
+                if (res.status === 401) {
+                    window.location.reload();
+                    return;
+                }
                 const loaded = await res.json();
+                if (loaded && loaded.error === 'Unauthorized') {
+                    window.location.reload();
+                    return;
+                }
                 clients = Array.isArray(loaded) ? loaded : [];
                 renderClientList();
                 if (activeClient) {
