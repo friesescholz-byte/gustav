@@ -4523,10 +4523,10 @@ export default `<!DOCTYPE html>
                         '</div>' +
                         '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
                             '<span style="font-size: 10px; color: ' + badgeColor + '; font-weight: 700; background: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + badgeLabel + '</span>' +
-                            '<button type="button" class="btn" onclick="toggleCustomTask(\'' + t.id + '\')" title="Erledigt" style="padding: 4px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                            '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Erledigt" style="padding: 4px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i>' +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCustomTask(\'' + t.id + '\')" title="Löschen" style="padding: 4px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                            '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen" style="padding: 4px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i>' +
                             '</button>' +
                         '</div>';
@@ -4559,7 +4559,6 @@ export default `<!DOCTYPE html>
                     });
                 }
             }
-        }
         }
 
         // --- IMAP SETTINGS ---
