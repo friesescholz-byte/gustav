@@ -1510,9 +1510,14 @@ export default `<!DOCTYPE html>
                 <div style="display: flex; flex-direction: column; gap: 30px; box-sizing: border-box;">
                     <!-- Card: Active alerts / Mail Action Center -->
                     <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 24px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
-                        <h3 class="card-title" style="margin-bottom: 16px;"><i class="fa-solid fa-bell" style="color: var(--color-red);"></i> Aktivitäts- & Alarm-Zentrale</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                            <h3 class="card-title" style="margin: 0;"><i class="fa-solid fa-bell" style="color: var(--color-red);"></i> Aktivitäts- & Alarm-Zentrale</h3>
+                            <button type="button" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;" onclick="openCustomTaskModal()">
+                                <i class="fa-solid fa-plus"></i> Aufgabe hinzufügen
+                            </button>
+                        </div>
                         <div id="alerts-center-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex-grow: 1; max-height: 380px; padding-right: 4px;">
-                            <!-- Dynamische Liste von Kunden-Alarms -->
+                            <!-- Dynamische Liste von Kunden-Alarms & Aufgaben -->
                         </div>
                     </div>
                 </div>
@@ -1655,6 +1660,26 @@ export default `<!DOCTYPE html>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">E-Mail Inhalt (Plain Text / HTML)</label>
                             <textarea id="mail-body" placeholder="Schreibe deine E-Mail hier..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 16px; border-radius: 8px; width: 100%; height: 280px; box-sizing: border-box; font-size: 14px; line-height: 1.5; outline: none; font-family: inherit; resize: vertical; transition: var(--transition-smooth);"></textarea>
+                        </div>
+
+                        <!-- Dateianhänge (Attachments) Container -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fa-solid fa-paperclip" style="color: var(--color-cyan); margin-right: 4px;"></i> Dateianhänge</span>
+                                <span style="font-size: 11px; text-transform: none; font-weight: normal; color: var(--text-secondary);" id="mail-attachments-count">0 Dateien</span>
+                            </label>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <label for="mail-attachment-input" class="btn" style="padding: 9px 16px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(6, 182, 212, 0.1); border: 1px dashed var(--color-cyan); color: #fff;">
+                                        <i class="fa-solid fa-cloud-arrow-up" style="color: var(--color-cyan);"></i> Datei(en) auswählen
+                                    </label>
+                                    <input type="file" id="mail-attachment-input" multiple style="display: none;" onchange="handleMailAttachmentSelection(event)">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">PDF, Bilder, ZIP, DOCX usw. (Max. 10MB gesamt)</span>
+                                </div>
+
+                                <div id="mail-attachments-list" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 10px;"></div>
+                            </div>
                         </div>
 
                         <!-- Signatur-Hinweis -->
@@ -2205,6 +2230,56 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- CUSTOM TASK MODAL (Aktivitäts- & Alarm-Zentrale) -->
+    <div class="modal" id="custom-task-modal">
+        <div class="modal-content" style="max-width: 520px; width: 90%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; box-sizing: border-box;">
+            <h3 class="modal-title" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <span><i class="fa-solid fa-list-check" style="color: var(--color-cyan); margin-right: 8px;"></i> Neue Aufgabe hinzufügen</span>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-secondary);" onclick="closeCustomTaskModal()"></i>
+            </h3>
+            
+            <form onsubmit="handleSaveCustomTask(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Aufgaben-Titel *</label>
+                    <input type="text" id="task-title-input" required placeholder="z. B. Neues Banner für Startseite hochladen..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none;">
+                </div>
+
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Kunde zuweisen (Optional)</label>
+                    <select id="task-client-select" onchange="handleTaskClientSelectChange()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none;">
+                        <option value="">Kein Kunde (Allgemeine Aufgabe)</option>
+                    </select>
+                </div>
+
+                <!-- Checkbox: Kunde auf rot setzen -->
+                <div id="task-set-red-container" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); padding: 12px 14px; border-radius: 8px; transition: var(--transition-smooth);">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="task-set-red-checkbox" checked style="width: 16px; height: 16px; accent-color: var(--color-red); cursor: pointer;">
+                        <span style="font-size: 13px; color: #fca5a5; font-weight: 600;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red); margin-right: 4px;"></i> Kunde auf ROT (Aktion erforderlich) setzen
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Allgemeine Aufgaben Kategorie -->
+                <div class="form-group" id="task-category-container" style="margin: 0;">
+                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Kategorie / Tag</label>
+                    <select id="task-category-select" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none;">
+                        <option value="Allgemein">💡 Allgemein (Violett/Cyan)</option>
+                        <option value="Dringend">🔥 Dringend (Orange)</option>
+                        <option value="Design">🎨 Design & Layout (Lila)</option>
+                        <option value="Wartung">🛠️ Wartung & Support (Blau)</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn" onclick="closeCustomTaskModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Aufgabe speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MOBILE BOTTOM NAVIGATION BAR -->
     <div class="mobile-bottom-nav">
         <button class="mobile-nav-item active" id="mob-nav-hub" onclick="showView('hub'); updateMobileBottomNav('hub');">
@@ -2544,6 +2619,179 @@ export default `<!DOCTYPE html>
             }
         }
 
+        // --- MAIL ATTACHMENTS & CUSTOM TASKS LOGIC ---
+        let mailAttachments = [];
+        let customTasksData = [];
+
+        function handleMailAttachmentSelection(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            files.forEach(file => {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Datei "' + file.name + '" überschreitet das Limit von 10 MB.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const base64Data = evt.target.result.split(',')[1];
+                    mailAttachments.push({
+                        filename: file.name,
+                        size: file.size,
+                        type: file.type,
+                        content: base64Data
+                    });
+                    renderMailAttachmentsList();
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        }
+
+        function removeMailAttachment(index) {
+            mailAttachments.splice(index, 1);
+            renderMailAttachmentsList();
+        }
+
+        function renderMailAttachmentsList() {
+            const container = document.getElementById('mail-attachments-list');
+            const countEl = document.getElementById('mail-attachments-count');
+            if (countEl) countEl.innerText = mailAttachments.length + ' Datei(en)';
+            if (!container) return;
+
+            if (mailAttachments.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = mailAttachments.map((att, idx) => {
+                const sizeKb = (att.size / 1024).toFixed(1);
+                const sizeStr = att.size > 1024 * 1024 ? (att.size / (1024 * 1024)).toFixed(1) + ' MB' : sizeKb + ' KB';
+                let iconClass = 'fa-file';
+                if (att.type.includes('pdf')) iconClass = 'fa-file-pdf';
+                else if (att.type.includes('image')) iconClass = 'fa-file-image';
+                else if (att.type.includes('zip') || att.type.includes('compressed')) iconClass = 'fa-file-zipper';
+                else if (att.type.includes('word') || att.type.includes('document')) iconClass = 'fa-file-word';
+
+                return '<div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px; font-size: 12px; color: var(--text-primary);">' +
+                    '<i class="fa-solid ' + iconClass + '" style="color: var(--color-cyan);"></i>' +
+                    '<span style="font-weight: 500; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + att.filename + '</span>' +
+                    '<span style="color: var(--text-secondary); font-size: 11px;">(' + sizeStr + ')</span>' +
+                    '<i class="fa-solid fa-xmark" onclick="removeMailAttachment(' + idx + ')" style="cursor: pointer; color: var(--color-red); margin-left: 4px;" title="Entfernen"></i>' +
+                '</div>';
+            }).join('');
+        }
+
+        async function fetchCustomTasks() {
+            try {
+                const res = await fetch('/api/tasks');
+                if (res.ok) {
+                    customTasksData = await res.json();
+                }
+            } catch(e) {
+                console.error('Error fetching custom tasks:', e);
+            }
+        }
+
+        function openCustomTaskModal() {
+            const select = document.getElementById('task-client-select');
+            if (select) {
+                select.innerHTML = '<option value="">Kein Kunde (Allgemeine Aufgabe)</option>' +
+                    clients.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
+            }
+            document.getElementById('task-title-input').value = '';
+            document.getElementById('task-set-red-checkbox').checked = true;
+            handleTaskClientSelectChange();
+            document.getElementById('custom-task-modal').style.display = 'flex';
+        }
+
+        function closeCustomTaskModal() {
+            document.getElementById('custom-task-modal').style.display = 'none';
+        }
+
+        function handleTaskClientSelectChange() {
+            const select = document.getElementById('task-client-select');
+            const redContainer = document.getElementById('task-set-red-container');
+            if (select && redContainer) {
+                if (select.value) {
+                    redContainer.style.display = 'block';
+                } else {
+                    redContainer.style.display = 'none';
+                }
+            }
+        }
+
+        async function handleSaveCustomTask(e) {
+            e.preventDefault();
+            const title = document.getElementById('task-title-input').value.trim();
+            const clientId = document.getElementById('task-client-select').value;
+            const setRed = clientId ? document.getElementById('task-set-red-checkbox').checked : false;
+            const category = document.getElementById('task-category-select').value;
+
+            if (!title) return;
+
+            try {
+                const clientObj = clients.find(c => c.id === clientId);
+                const payload = {
+                    title,
+                    clientId: clientId || null,
+                    clientName: clientObj ? clientObj.name : null,
+                    setRed,
+                    category
+                };
+
+                const res = await fetch('/api/tasks/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    customTasksData = data.tasks || customTasksData;
+                    closeCustomTaskModal();
+                    if (typeof loadClients === 'function') await loadClients();
+                    updateGlobalStats();
+                }
+            } catch(err) {
+                console.error('Error saving custom task:', err);
+            }
+        }
+
+        async function toggleCustomTask(taskId) {
+            try {
+                const res = await fetch('/api/tasks/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: taskId })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    customTasksData = data.tasks || customTasksData;
+                    updateGlobalStats();
+                }
+            } catch(e) {
+                console.error('Error toggling custom task:', e);
+            }
+        }
+
+        async function deleteCustomTask(taskId) {
+            try {
+                const res = await fetch('/api/tasks/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: taskId })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    customTasksData = data.tasks || customTasksData;
+                    updateGlobalStats();
+                }
+            } catch(e) {
+                console.error('Error deleting custom task:', e);
+            }
+        }
+
         async function sendMail() {
             if (selectedMailRecipients.length === 0) {
                 alert('Bitte wähle mindestens einen Empfänger aus.');
@@ -2584,7 +2832,8 @@ export default `<!DOCTYPE html>
                         recipients: recipientEmails,
                         subject,
                         body,
-                        signature
+                        signature,
+                        attachments: mailAttachments
                     })
                 });
 
@@ -2596,6 +2845,8 @@ export default `<!DOCTYPE html>
                         document.getElementById('mail-subject').value = '';
                         document.getElementById('mail-body').value = '';
                         selectedMailRecipients = [];
+                        mailAttachments = [];
+                        renderMailAttachmentsList();
                         renderMailRecipientTags();
                         
                         if (activeClient && recipientEmails.some(email => email.toLowerCase() === activeClient.email.toLowerCase())) {
@@ -2674,6 +2925,7 @@ export default `<!DOCTYPE html>
             try {
                 const res = await fetch('/api/kunden');
                 clients = await res.json();
+                await fetchCustomTasks();
                 renderClientList();
                 if (activeClient) {
                     // Refresh current active client view
@@ -4165,17 +4417,19 @@ export default `<!DOCTYPE html>
             const statusTitle = document.getElementById('status-title-center');
             const statusDesc = document.getElementById('status-desc-center');
             const alertsList = document.getElementById('alerts-center-list');
+            const openCustomTasks = (customTasksData || []).filter(t => !t.completed);
+            const totalAlertsCount = redCount + openCustomTasks.length;
 
             if (ringEl && ringIcon && statusTitle && statusDesc) {
-                if (redCount > 0) {
+                if (totalAlertsCount > 0) {
                     ringEl.style.borderColor = 'var(--color-red)';
                     ringEl.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.4)';
                     ringEl.style.animation = 'pulse-red 2s infinite';
                     ringIcon.className = 'fa-solid fa-triangle-exclamation';
                     ringIcon.style.color = 'var(--color-red)';
                     
-                    statusTitle.innerText = \`\${redCount} Aktion(en) ausstehend\`;
-                    statusDesc.innerText = 'Es gibt Kunden-E-Mails oder offene Anfragen, auf die wir reagieren müssen.';
+                    statusTitle.innerText = totalAlertsCount + ' Aktion(en) ausstehend';
+                    statusDesc.innerText = 'Es gibt Kunden-Alarme oder offene Aufgaben in der Zentrale.';
                 } else {
                     ringEl.style.borderColor = 'var(--color-green)';
                     ringEl.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.3)';
@@ -4184,21 +4438,65 @@ export default `<!DOCTYPE html>
                     ringIcon.style.color = 'var(--color-green)';
                     
                     statusTitle.innerText = 'Alle Systeme nominal';
-                    statusDesc.innerText = 'Sämtliche Kunden-Websites laufen stabil. Keine offenen Support-Mails ausstehend.';
+                    statusDesc.innerText = 'Sämtliche Kunden-Websites laufen stabil. Keine offenen Support-Mails oder Aufgaben ausstehend.';
                 }
             }
 
             if (alertsList) {
                 alertsList.innerHTML = '';
                 const redClients = clients.filter(c => c.status === 'red');
-                if (redClients.length === 0) {
-                    alertsList.innerHTML = \`
-                        <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">
-                            <i class="fa-solid fa-circle-check" style="color: var(--color-green);"></i>
-                            Keine ausstehenden Alarme. Großartige Arbeit!
-                        </div>
-                    \`;
+                
+                if (redClients.length === 0 && openCustomTasks.length === 0) {
+                    alertsList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">' +
+                        '<i class="fa-solid fa-circle-check" style="color: var(--color-green);"></i>' +
+                        'Keine ausstehenden Alarme oder Aufgaben. Großartige Arbeit!' +
+                    '</div>';
                 } else {
+                    // Render custom tasks first
+                    openCustomTasks.forEach(t => {
+                        const taskItem = document.createElement('div');
+                        taskItem.className = 'drive-item';
+                        
+                        if (t.clientId) {
+                            taskItem.style.background = 'rgba(239, 68, 68, 0.06)';
+                            taskItem.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                        } else {
+                            taskItem.style.background = 'rgba(124, 58, 237, 0.08)';
+                            taskItem.style.borderColor = 'rgba(167, 139, 250, 0.25)';
+                        }
+                        
+                        taskItem.style.padding = '12px';
+                        taskItem.style.display = 'flex';
+                        taskItem.style.alignItems = 'center';
+                        taskItem.style.justifyContent = 'space-between';
+                        taskItem.style.marginBottom = '8px';
+
+                        const iconHtml = t.clientId ? '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>' : '<i class="fa-solid fa-list-check" style="color: #a78bfa;"></i>';
+                        const metaText = t.clientId ? ('Kunde: ' + (t.clientName || 'Zugewiesen')) : ('Allgemeine Aufgabe &bull; ' + (t.category || 'Allgemein'));
+                        const badgeColor = t.clientId ? 'var(--color-red)' : '#a78bfa';
+                        const badgeBg = t.clientId ? 'rgba(239, 68, 68, 0.1)' : 'rgba(167, 139, 250, 0.15)';
+                        const badgeLabel = t.clientId ? 'Kunden-Aufgabe' : (t.category || 'Allgemein');
+
+                        taskItem.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
+                            iconHtml +
+                            '<div style="min-width: 0;">' +
+                                '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + t.title + '</strong>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">' + metaText + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
+                            '<span style="font-size: 10px; color: ' + badgeColor + '; font-weight: 700; background: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + badgeLabel + '</span>' +
+                            '<button type="button" class="btn" onclick="toggleCustomTask(\'' + t.id + '\')" title="Erledigt" style="padding: 4px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                                '<i class="fa-solid fa-check"></i>' +
+                            '</button>' +
+                            '<button type="button" class="btn" onclick="deleteCustomTask(\'' + t.id + '\')" title="Löschen" style="padding: 4px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                                '<i class="fa-solid fa-trash"></i>' +
+                            '</button>' +
+                        '</div>';
+                    alertsList.appendChild(taskItem);
+                    });
+
+                    // Render red clients
                     redClients.forEach(c => {
                         const alertItem = document.createElement('div');
                         alertItem.className = 'drive-item';
@@ -4212,16 +4510,14 @@ export default `<!DOCTYPE html>
                         alertItem.style.marginBottom = '8px';
                         alertItem.onclick = () => selectClient(c);
                         
-                        alertItem.innerHTML = \`
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i>
-                                <div>
-                                    <strong style="color: var(--text-primary); font-size: 13px;">\${c.name}</strong>
-                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">\${c.statusReason || 'Aktion nötig'}</div>
-                                </div>
-                            </div>
-                            <span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Aktion</span>
-                        \`;
+                        alertItem.innerHTML = '<div style="display: flex; align-items: center; gap: 10px;">' +
+                            '<i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i>' +
+                            '<div>' +
+                                '<strong style="color: var(--text-primary); font-size: 13px;">' + c.name + '</strong>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">' + (c.statusReason || 'Aktion nötig') + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Aktion</span>';
                         alertsList.appendChild(alertItem);
                     });
                 }

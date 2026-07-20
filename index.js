@@ -996,7 +996,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
       if (url.pathname === '/api/emails/send' && method === 'POST') {
         try {
           const payload = await request.json();
-          const { sender, recipients, subject, body, signature } = payload;
+          const { sender, recipients, subject, body, signature, attachments } = payload;
           
           if (!sender || !recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !body) {
             return new Response(JSON.stringify({ error: 'Fehlende Felder: Absender, Empfänger, Betreff und Inhalt sind Pflichtfelder.' }), { status: 400, headers: corsHeaders });
@@ -1069,18 +1069,26 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           // Send individual emails to prevent DSGVO leaks and log them in customer histories
           const sendPromises = recipients.map(async (recipientEmail) => {
             try {
+              const resendBody = {
+                from: `${fromName} <${sender}>`,
+                to: [recipientEmail],
+                subject: subject,
+                html: htmlContent,
+              };
+              if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+                resendBody.attachments = attachments.map(a => ({
+                  filename: a.filename,
+                  content: a.content
+                }));
+              }
+
               const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${resendApiKey}`
                 },
-                body: JSON.stringify({
-                  from: `${fromName} <${sender}>`,
-                  to: [recipientEmail],
-                  subject: subject,
-                  html: htmlContent,
-                })
+                body: JSON.stringify(resendBody)
               });
               
               const result = await response.json();
@@ -1192,6 +1200,87 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           }
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message || 'Internal Server Error' }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8.37 API: Custom Tasks (Aktivitäts- & Alarm-Zentrale)
+      if (url.pathname === '/api/tasks' && method === 'GET') {
+        try {
+          const raw = await env.KUNDEN_DB.get('tasks:custom');
+          const tasks = raw ? JSON.parse(raw) : [];
+          return new Response(JSON.stringify(tasks), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/tasks/save' && method === 'POST') {
+        try {
+          const taskData = await request.json();
+          const raw = await env.KUNDEN_DB.get('tasks:custom');
+          let tasks = raw ? JSON.parse(raw) : [];
+
+          if (taskData.id) {
+            const idx = tasks.findIndex(t => t.id === taskData.id);
+            if (idx >= 0) {
+              tasks[idx] = { ...tasks[idx], ...taskData, updatedAt: new Date().toISOString() };
+            } else {
+              tasks.unshift({ ...taskData, createdAt: new Date().toISOString() });
+            }
+          } else {
+            taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+            taskData.createdAt = new Date().toISOString();
+            taskData.completed = false;
+            tasks.unshift(taskData);
+          }
+
+          await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+
+          // If assigned to customer and setRed status option checked
+          if (taskData.clientId && taskData.setRed) {
+            const rawClient = await env.KUNDEN_DB.get(`kunde:${taskData.clientId}`);
+            if (rawClient) {
+              const clientObj = JSON.parse(rawClient);
+              clientObj.status = 'red';
+              clientObj.statusReason = `Offene Aufgabe: ${taskData.title}`;
+              clientObj.lastInteraction = new Date().toISOString();
+              await env.KUNDEN_DB.put(`kunde:${taskData.clientId}`, JSON.stringify(clientObj));
+            }
+          }
+
+          return new Response(JSON.stringify({ success: true, task: taskData, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/tasks/delete' && method === 'POST') {
+        try {
+          const { id } = await request.json();
+          const raw = await env.KUNDEN_DB.get('tasks:custom');
+          let tasks = raw ? JSON.parse(raw) : [];
+          tasks = tasks.filter(t => t.id !== id);
+          await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+          return new Response(JSON.stringify({ success: true, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/tasks/toggle' && method === 'POST') {
+        try {
+          const { id } = await request.json();
+          const raw = await env.KUNDEN_DB.get('tasks:custom');
+          let tasks = raw ? JSON.parse(raw) : [];
+          const task = tasks.find(t => t.id === id);
+          if (task) {
+            task.completed = !task.completed;
+            task.completedAt = task.completed ? new Date().toISOString() : null;
+            await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+          }
+          return new Response(JSON.stringify({ success: true, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
       }
 
