@@ -1013,20 +1013,32 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             const signatureHtml = signature === 'adrian'
               ? `Mit freundlichen Grüßen,<br><br>
                  <a href="https://scholz-friese-webdesign.de" style="display: block; text-decoration: none;">
-                   <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Adrian_Friese_Unterschrift.png" alt="Adrian Friese | Scholz & Friese" width="360" style="width: 100%; max-width: 360px; display: block; border-radius: 4px; border: none;">
+                   <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Adrian_Friese_Unterschrift.png" alt="Adrian Friese | Scholz & Friese" width="360" style="width: 100%; max-width: 360px; display: block; border-radius: 8px; border: none; margin-bottom: 14px;">
                  </a>
-                 <div style="margin-top: 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                   <a href="tel:+491556343678" style="display: inline-block; background-color: #0B726D; color: #ffffff; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13.5px; margin-right: 12px; box-shadow: 0 4px 12px rgba(11, 114, 109, 0.2);">📞 Anrufen</a>
-                   <a href="mailto:info@scholz-friese-webdesign.de" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13.5px; border: 1px solid #000000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">✉️ E-Mail schreiben</a>
-                 </div>`
+                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                   <tr>
+                     <td style="padding-right: 6px; width: 50%;">
+                       <a href="tel:+491556343678" style="display: block; text-align: center; background-color: #0B726D; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(11, 114, 109, 0.25); border: 1px solid #0B726D; box-sizing: border-box;">📞 Anrufen</a>
+                     </td>
+                     <td style="padding-left: 6px; width: 50%;">
+                       <a href="mailto:info@scholz-friese-webdesign.de" style="display: block; text-align: center; background-color: #111827; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 1px solid #111827; box-sizing: border-box;">✉️ E-Mail</a>
+                     </td>
+                   </tr>
+                 </table>`
               : `Mit freundlichen Grüßen,<br><br>
                  <a href="https://scholz-friese-webdesign.de" style="display: block; text-decoration: none;">
-                   <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Bastian_Scholz_Unterschrift.png" alt="Bastian Scholz | Scholz & Friese" width="360" style="width: 100%; max-width: 360px; display: block; border-radius: 4px; border: none;">
+                   <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/Bastian_Scholz_Unterschrift.png" alt="Bastian Scholz | Scholz & Friese" width="360" style="width: 100%; max-width: 360px; display: block; border-radius: 8px; border: none; margin-bottom: 14px;">
                  </a>
-                 <div style="margin-top: 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                   <a href="tel:+491556343678" style="display: inline-block; background-color: #0B726D; color: #ffffff; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13.5px; margin-right: 12px; box-shadow: 0 4px 12px rgba(11, 114, 109, 0.2);">📞 Anrufen</a>
-                   <a href="mailto:bastianscholz@scholz-friese-webdesign.de" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13.5px; border: 1px solid #000000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">✉️ E-Mail schreiben</a>
-                 </div>`;
+                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                   <tr>
+                     <td style="padding-right: 6px; width: 50%;">
+                       <a href="tel:+491556343678" style="display: block; text-align: center; background-color: #0B726D; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(11, 114, 109, 0.25); border: 1px solid #0B726D; box-sizing: border-box;">📞 Anrufen</a>
+                     </td>
+                     <td style="padding-left: 6px; width: 50%;">
+                       <a href="mailto:bastianscholz@scholz-friese-webdesign.de" style="display: block; text-align: center; background-color: #111827; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 1px solid #111827; box-sizing: border-box;">✉️ E-Mail</a>
+                     </td>
+                   </tr>
+                 </table>`;
 
             return `
               <!DOCTYPE html>
