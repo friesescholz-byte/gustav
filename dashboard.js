@@ -2261,16 +2261,7 @@ export default `<!DOCTYPE html>
                     </label>
                 </div>
 
-                <!-- Allgemeine Aufgaben Kategorie -->
-                <div class="form-group" id="task-category-container" style="margin: 0;">
-                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Kategorie / Tag</label>
-                    <select id="task-category-select" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none;">
-                        <option value="Allgemein">💡 Allgemein (Violett/Cyan)</option>
-                        <option value="Dringend">🔥 Dringend (Orange)</option>
-                        <option value="Design">🎨 Design & Layout (Lila)</option>
-                        <option value="Wartung">🛠️ Wartung & Support (Blau)</option>
-                    </select>
-                </div>
+
 
                 <div class="modal-actions" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" class="btn" onclick="closeCustomTaskModal()">Abbrechen</button>
@@ -2741,8 +2732,6 @@ export default `<!DOCTYPE html>
             const clientId = clientSelect ? clientSelect.value : '';
             const redCb = document.getElementById('task-set-red-checkbox');
             const setRed = (clientId && redCb) ? redCb.checked : false;
-            const catSelect = document.getElementById('task-category-select');
-            const category = catSelect ? catSelect.value : 'Allgemein';
 
             if (!title) return;
 
@@ -2752,8 +2741,7 @@ export default `<!DOCTYPE html>
                     title,
                     clientId: clientId || null,
                     clientName: clientObj ? clientObj.name : null,
-                    setRed,
-                    category
+                    setRed
                 };
 
                 const res = await fetch('/api/tasks/save', {
@@ -4495,11 +4483,11 @@ export default `<!DOCTYPE html>
                         taskItem.className = 'drive-item';
                         
                         if (t.clientId) {
-                            taskItem.style.background = 'rgba(239, 68, 68, 0.06)';
-                            taskItem.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                            taskItem.style.background = 'rgba(239, 68, 68, 0.08)';
+                            taskItem.style.borderColor = 'rgba(239, 68, 68, 0.25)';
                         } else {
-                            taskItem.style.background = 'rgba(124, 58, 237, 0.08)';
-                            taskItem.style.borderColor = 'rgba(167, 139, 250, 0.25)';
+                            taskItem.style.background = 'rgba(59, 130, 246, 0.08)';
+                            taskItem.style.borderColor = 'rgba(59, 130, 246, 0.25)';
                         }
                         
                         taskItem.style.padding = '12px';
@@ -4508,11 +4496,8 @@ export default `<!DOCTYPE html>
                         taskItem.style.justifyContent = 'space-between';
                         taskItem.style.marginBottom = '8px';
 
-                        const iconHtml = t.clientId ? '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>' : '<i class="fa-solid fa-list-check" style="color: #a78bfa;"></i>';
-                        const metaText = t.clientId ? ('Kunde: ' + (t.clientName || 'Zugewiesen')) : ('Allgemeine Aufgabe &bull; ' + (t.category || 'Allgemein'));
-                        const badgeColor = t.clientId ? 'var(--color-red)' : '#a78bfa';
-                        const badgeBg = t.clientId ? 'rgba(239, 68, 68, 0.1)' : 'rgba(167, 139, 250, 0.15)';
-                        const badgeLabel = t.clientId ? 'Kunden-Aufgabe' : (t.category || 'Allgemein');
+                        const iconHtml = t.clientId ? '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>' : '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
+                        const metaText = t.clientId ? ('Kunde: ' + (t.clientName || 'Zugewiesen')) : 'Allgemeine Aufgabe';
 
                         taskItem.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
                             iconHtml +
@@ -4522,7 +4507,6 @@ export default `<!DOCTYPE html>
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
-                            '<span style="font-size: 10px; color: ' + badgeColor + '; font-weight: 700; background: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + badgeLabel + '</span>' +
                             '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Erledigt" style="padding: 4px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i>' +
                             '</button>' +
