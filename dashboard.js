@@ -2946,10 +2946,15 @@ export default `<!DOCTYPE html>
                 clients = Array.isArray(loaded) ? loaded : [];
                 renderClientList();
                 if (activeClient) {
-                    // Refresh current active client view
+                    // Refresh current active client data
                     const refreshed = clients.find(c => c.id === activeClient.id);
                     if (refreshed) {
-                        selectClient(refreshed);
+                        activeClient = refreshed;
+                        // Only refresh client view UI if client view is currently active
+                        const clientView = document.getElementById('client-view');
+                        if (clientView && clientView.style.display !== 'none') {
+                            selectClient(refreshed);
+                        }
                     }
                 }
             } catch(e) {
@@ -4499,18 +4504,18 @@ export default `<!DOCTYPE html>
                         const iconHtml = t.clientId ? '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>' : '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
                         const metaText = t.clientId ? ('Kunde: ' + (t.clientName || 'Zugewiesen')) : 'Allgemeine Aufgabe';
 
-                        taskItem.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
-                            iconHtml +
-                            '<div style="min-width: 0;">' +
-                                '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + t.title + '</strong>' +
-                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">' + metaText + '</div>' +
+                        taskItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
+                            '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
+                            '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
+                                '<strong style="color: var(--text-primary); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.35;">' + t.title + '</strong>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + metaText + '</div>' +
                             '</div>' +
                         '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
-                            '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Erledigt" style="padding: 4px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                        '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; align-self: center;">' +
+                            '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Erledigt" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i>' +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen" style="padding: 4px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                            '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i>' +
                             '</button>' +
                         '</div>';
@@ -4531,14 +4536,14 @@ export default `<!DOCTYPE html>
                         alertItem.style.marginBottom = '8px';
                         alertItem.onclick = () => selectClient(c);
                         
-                        alertItem.innerHTML = '<div style="display: flex; align-items: center; gap: 10px;">' +
-                            '<i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i>' +
-                            '<div>' +
-                                '<strong style="color: var(--text-primary); font-size: 13px;">' + c.name + '</strong>' +
-                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">' + (c.statusReason || 'Aktion nötig') + '</div>' +
+                        alertItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex-grow: 1; margin-right: 8px;">' +
+                            '<div style="margin-top: 2px; flex-shrink: 0;"><i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i></div>' +
+                            '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
+                                '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + c.name + '</strong>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; overflow-wrap: anywhere;">' + (c.statusReason || 'Aktion nötig') + '</div>' +
                             '</div>' +
                         '</div>' +
-                        '<span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Aktion</span>';
+                        '<span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; align-self: center;">Aktion</span>';
                         alertsList.appendChild(alertItem);
                     });
                 }
