@@ -934,7 +934,7 @@ export default `<!DOCTYPE html>
         }
         @media (max-width: 768px) {
             #mail-screen {
-                padding: 20px !important;
+                padding: 16px 16px 140px 16px !important;
             }
             .mail-header-bar {
                 flex-direction: column;
@@ -946,8 +946,21 @@ export default `<!DOCTYPE html>
                 gap: 15px;
             }
             .mail-form-card {
-                padding: 20px !important;
+                padding: 16px 16px 30px 16px !important;
                 gap: 15px;
+                margin-bottom: 40px !important;
+            }
+            #mail-body {
+                height: 180px !important;
+            }
+            .mail-send-bar {
+                flex-direction: column-reverse !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            #btn-send-mail {
+                width: 100% !important;
+                justify-content: center !important;
             }
         }
 
@@ -1689,7 +1702,7 @@ export default `<!DOCTYPE html>
                         </div>
                         
                         <!-- Senden-Bereich -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
+                        <div class="mail-send-bar" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
                             <div id="mail-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
                             <button type="button" class="btn btn-primary" id="btn-send-mail" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendMail()">
                                 <i class="fa-solid fa-paper-plane" id="mail-send-icon"></i> <span id="mail-send-btn-text">E-Mail senden</span>
