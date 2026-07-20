@@ -2686,10 +2686,14 @@ export default `<!DOCTYPE html>
             try {
                 const res = await fetch('/api/tasks');
                 if (res.ok) {
-                    customTasksData = await res.json();
+                    const data = await res.json();
+                    customTasksData = Array.isArray(data) ? data : [];
+                } else {
+                    customTasksData = [];
                 }
             } catch(e) {
                 console.error('Error fetching custom tasks:', e);
+                customTasksData = [];
             }
         }
 
@@ -2697,16 +2701,20 @@ export default `<!DOCTYPE html>
             const select = document.getElementById('task-client-select');
             if (select) {
                 select.innerHTML = '<option value="">Kein Kunde (Allgemeine Aufgabe)</option>' +
-                    clients.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
+                    (Array.isArray(clients) ? clients : []).map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
             }
-            document.getElementById('task-title-input').value = '';
-            document.getElementById('task-set-red-checkbox').checked = true;
+            const titleEl = document.getElementById('task-title-input');
+            if (titleEl) titleEl.value = '';
+            const redCb = document.getElementById('task-set-red-checkbox');
+            if (redCb) redCb.checked = true;
             handleTaskClientSelectChange();
-            document.getElementById('custom-task-modal').style.display = 'flex';
+            const modal = document.getElementById('custom-task-modal');
+            if (modal) modal.style.display = 'flex';
         }
 
         function closeCustomTaskModal() {
-            document.getElementById('custom-task-modal').style.display = 'none';
+            const modal = document.getElementById('custom-task-modal');
+            if (modal) modal.style.display = 'none';
         }
 
         function handleTaskClientSelectChange() {
@@ -2723,15 +2731,19 @@ export default `<!DOCTYPE html>
 
         async function handleSaveCustomTask(e) {
             e.preventDefault();
-            const title = document.getElementById('task-title-input').value.trim();
-            const clientId = document.getElementById('task-client-select').value;
-            const setRed = clientId ? document.getElementById('task-set-red-checkbox').checked : false;
-            const category = document.getElementById('task-category-select').value;
+            const titleInput = document.getElementById('task-title-input');
+            const title = titleInput ? titleInput.value.trim() : '';
+            const clientSelect = document.getElementById('task-client-select');
+            const clientId = clientSelect ? clientSelect.value : '';
+            const redCb = document.getElementById('task-set-red-checkbox');
+            const setRed = (clientId && redCb) ? redCb.checked : false;
+            const catSelect = document.getElementById('task-category-select');
+            const category = catSelect ? catSelect.value : 'Allgemein';
 
             if (!title) return;
 
             try {
-                const clientObj = clients.find(c => c.id === clientId);
+                const clientObj = Array.isArray(clients) ? clients.find(c => c.id === clientId) : null;
                 const payload = {
                     title,
                     clientId: clientId || null,
@@ -2748,7 +2760,9 @@ export default `<!DOCTYPE html>
 
                 if (res.ok) {
                     const data = await res.json();
-                    customTasksData = data.tasks || customTasksData;
+                    if (Array.isArray(data.tasks)) {
+                        customTasksData = data.tasks;
+                    }
                     closeCustomTaskModal();
                     if (typeof loadClients === 'function') await loadClients();
                     updateGlobalStats();
@@ -2767,7 +2781,9 @@ export default `<!DOCTYPE html>
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    customTasksData = data.tasks || customTasksData;
+                    if (Array.isArray(data.tasks)) {
+                        customTasksData = data.tasks;
+                    }
                     updateGlobalStats();
                 }
             } catch(e) {
@@ -2784,7 +2800,9 @@ export default `<!DOCTYPE html>
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    customTasksData = data.tasks || customTasksData;
+                    if (Array.isArray(data.tasks)) {
+                        customTasksData = data.tasks;
+                    }
                     updateGlobalStats();
                 }
             } catch(e) {
@@ -2924,8 +2942,8 @@ export default `<!DOCTYPE html>
         async function loadClients() {
             try {
                 const res = await fetch('/api/kunden');
-                clients = await res.json();
-                await fetchCustomTasks();
+                const loaded = await res.json();
+                clients = Array.isArray(loaded) ? loaded : [];
                 renderClientList();
                 if (activeClient) {
                     // Refresh current active client view
@@ -2935,7 +2953,13 @@ export default `<!DOCTYPE html>
                     }
                 }
             } catch(e) {
-                alert("Fehler beim Laden der Kunden.");
+                console.error("Fehler beim Laden der Kunden:", e);
+            }
+
+            try {
+                await fetchCustomTasks();
+            } catch(e) {
+                console.error("Fehler beim Laden der Aufgaben:", e);
             }
         }
 
@@ -4398,8 +4422,8 @@ export default `<!DOCTYPE html>
 
         // --- GLOBAL STATS ---
         function updateGlobalStats() {
-            const okCount = clients.filter(c => c.status === 'green').length;
-            const redCount = clients.filter(c => c.status === 'red').length;
+            const okCount = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'green').length;
+            const redCount = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'red').length;
             
             const okEl = document.getElementById('stats-ok');
             const redEl = document.getElementById('stats-red');
@@ -4417,8 +4441,10 @@ export default `<!DOCTYPE html>
             const statusTitle = document.getElementById('status-title-center');
             const statusDesc = document.getElementById('status-desc-center');
             const alertsList = document.getElementById('alerts-center-list');
-            const openCustomTasks = (customTasksData || []).filter(t => !t.completed);
-            const totalAlertsCount = redCount + openCustomTasks.length;
+
+            const openCustomTasks = (Array.isArray(customTasksData) ? customTasksData : []).filter(t => t && !t.completed);
+            const redClients = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'red');
+            const totalAlertsCount = redClients.length + openCustomTasks.length;
 
             if (ringEl && ringIcon && statusTitle && statusDesc) {
                 if (totalAlertsCount > 0) {
@@ -4444,7 +4470,6 @@ export default `<!DOCTYPE html>
 
             if (alertsList) {
                 alertsList.innerHTML = '';
-                const redClients = clients.filter(c => c.status === 'red');
                 
                 if (redClients.length === 0 && openCustomTasks.length === 0) {
                     alertsList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">' +
@@ -4493,7 +4518,7 @@ export default `<!DOCTYPE html>
                                 '<i class="fa-solid fa-trash"></i>' +
                             '</button>' +
                         '</div>';
-                    alertsList.appendChild(taskItem);
+                        alertsList.appendChild(taskItem);
                     });
 
                     // Render red clients
@@ -4522,6 +4547,7 @@ export default `<!DOCTYPE html>
                     });
                 }
             }
+        }
         }
 
         // --- IMAP SETTINGS ---
