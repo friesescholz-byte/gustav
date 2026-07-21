@@ -2002,8 +2002,13 @@ export default `<!DOCTYPE html>
                         <ul class="todo-list" id="todo-list" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; margin-bottom:15px;">
                             <!-- Todos list populated dynamically -->
                         </ul>
-                        <div class="todo-input-area" style="display:flex; gap:8px;">
+                        <div class="todo-input-area" style="display:flex; gap:8px; align-items:center;">
                             <input type="text" id="new-todo-input" placeholder="Neue Aufgabe / Notiz hinzufügen..." style="flex:1; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 12px; font-size:13px; outline:none;" onkeydown="if(event.key === 'Enter') addTodo()">
+                            <select id="new-todo-assignee" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; outline:none; cursor:pointer; min-width:90px;">
+                                <option value="">Keiner</option>
+                                <option value="adrian">Adrian</option>
+                                <option value="basti">Basti</option>
+                            </select>
                             <button class="btn btn-primary" onclick="addTodo()" style="padding:8px 14px; font-size:13px;"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
@@ -3350,17 +3355,22 @@ export default `<!DOCTYPE html>
         async function addTodo() {
             if (!activeClient) return;
             const input = document.getElementById('new-todo-input');
-            const text = input.value.trim();
+            const text = input ? input.value.trim() : '';
             if (!text) return;
+
+            const assigneeSelect = document.getElementById('new-todo-assignee');
+            const assignee = assigneeSelect ? assigneeSelect.value : '';
 
             activeClient.todos = activeClient.todos || [];
             activeClient.todos.push({
                 id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
                 text: text,
+                assignee: assignee || null,
                 done: false
             });
 
-            input.value = '';
+            if (input) input.value = '';
+            if (assigneeSelect) assigneeSelect.value = '';
             renderTodos(activeClient);
             await saveClientTodos(activeClient);
         }
