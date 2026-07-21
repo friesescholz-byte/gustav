@@ -2264,6 +2264,15 @@ export default `<!DOCTYPE html>
                     </select>
                 </div>
 
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Bearbeiter zuweisen (Optional)</label>
+                    <select id="task-assignee-select" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none;">
+                        <option value="">Kein Bearbeiter</option>
+                        <option value="adrian">👤 Adrian (Blau)</option>
+                        <option value="basti">👤 Basti (Pink)</option>
+                    </select>
+                </div>
+
                 <!-- Checkbox: Kunde auf rot setzen -->
                 <div id="task-set-red-container" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); padding: 12px 14px; border-radius: 8px; transition: var(--transition-smooth);">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
@@ -2713,6 +2722,8 @@ export default `<!DOCTYPE html>
             }
             const titleEl = document.getElementById('task-title-input');
             if (titleEl) titleEl.value = '';
+            const assigneeEl = document.getElementById('task-assignee-select');
+            if (assigneeEl) assigneeEl.value = '';
             const redCb = document.getElementById('task-set-red-checkbox');
             if (redCb) redCb.checked = true;
             handleTaskClientSelectChange();
@@ -2743,6 +2754,8 @@ export default `<!DOCTYPE html>
             const title = titleInput ? titleInput.value.trim() : '';
             const clientSelect = document.getElementById('task-client-select');
             const clientId = clientSelect ? clientSelect.value : '';
+            const assigneeSelect = document.getElementById('task-assignee-select');
+            const assignee = assigneeSelect ? assigneeSelect.value : null;
             const redCb = document.getElementById('task-set-red-checkbox');
             const setRed = (clientId && redCb) ? redCb.checked : false;
 
@@ -2754,6 +2767,7 @@ export default `<!DOCTYPE html>
                     title,
                     clientId: clientId || null,
                     clientName: clientObj ? clientObj.name : null,
+                    assignee: assignee || null,
                     setRed
                 };
 
@@ -4500,22 +4514,44 @@ export default `<!DOCTYPE html>
                         const taskItem = document.createElement('div');
                         taskItem.className = 'drive-item';
                         
+                        let bgColor = 'rgba(59, 130, 246, 0.08)';
+                        let borderColor = 'rgba(59, 130, 246, 0.25)';
+                        let iconHtml = '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
+                        let assigneeText = t.assignee === 'adrian' ? 'Adrian' : (t.assignee === 'basti' ? 'Basti' : null);
+
                         if (t.clientId) {
-                            taskItem.style.background = 'rgba(239, 68, 68, 0.08)';
-                            taskItem.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-                        } else {
-                            taskItem.style.background = 'rgba(59, 130, 246, 0.08)';
-                            taskItem.style.borderColor = 'rgba(59, 130, 246, 0.25)';
+                            // Customer task -> RED
+                            bgColor = 'rgba(239, 68, 68, 0.08)';
+                            borderColor = 'rgba(239, 68, 68, 0.25)';
+                            iconHtml = '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>';
+                        } else if (t.assignee === 'basti') {
+                            // General task for Basti -> PINK
+                            bgColor = 'rgba(236, 72, 153, 0.08)';
+                            borderColor = 'rgba(244, 114, 182, 0.3)';
+                            iconHtml = '<i class="fa-solid fa-list-check" style="color: #f472b6;"></i>';
+                        } else if (t.assignee === 'adrian') {
+                            // General task for Adrian -> BLUE
+                            bgColor = 'rgba(59, 130, 246, 0.08)';
+                            borderColor = 'rgba(59, 130, 246, 0.25)';
+                            iconHtml = '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
                         }
-                        
+
+                        taskItem.style.background = bgColor;
+                        taskItem.style.borderColor = borderColor;
                         taskItem.style.padding = '12px';
                         taskItem.style.display = 'flex';
                         taskItem.style.alignItems = 'center';
                         taskItem.style.justifyContent = 'space-between';
                         taskItem.style.marginBottom = '8px';
 
-                        const iconHtml = t.clientId ? '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>' : '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
-                        const metaText = t.clientId ? ('Kunde: ' + (t.clientName || 'Zugewiesen')) : 'Allgemeine Aufgabe';
+                        let metaText = '';
+                        if (t.clientId) {
+                            metaText = 'Kunde: ' + (t.clientName || 'Zugewiesen');
+                            if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
+                        } else {
+                            metaText = 'Allgemeine Aufgabe';
+                            if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
+                        }
 
                         taskItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
                             '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
