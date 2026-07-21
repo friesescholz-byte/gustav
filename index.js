@@ -1248,13 +1248,32 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
 
           await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
 
-          // If assigned to customer and setRed status option checked
-          if (taskData.clientId && taskData.setRed) {
+          // If assigned to customer
+          if (taskData.clientId) {
             const rawClient = await env.KUNDEN_DB.get(`kunde:${taskData.clientId}`);
             if (rawClient) {
               const clientObj = JSON.parse(rawClient);
-              clientObj.status = 'red';
-              clientObj.statusReason = `Offene Aufgabe: ${taskData.title}`;
+              if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
+              const todoId = taskData.id || ('todo_' + Date.now());
+              const existingIdx = clientObj.todos.findIndex(td => td.id === todoId || td.text === taskData.title);
+              if (existingIdx < 0) {
+                clientObj.todos.push({
+                  id: todoId,
+                  text: taskData.title,
+                  assignee: taskData.assignee || null,
+                  done: false,
+                  createdAt: new Date().toISOString()
+                });
+              } else {
+                clientObj.todos[existingIdx].assignee = taskData.assignee || clientObj.todos[existingIdx].assignee || null;
+              }
+              if (taskData.setRed) {
+                clientObj.status = 'red';
+              }
+              const openTodos = clientObj.todos.filter(td => !td.done);
+              if (openTodos.length > 0) {
+                clientObj.statusReason = openTodos.map(td => 'Offene Aufgabe: ' + td.text + (td.assignee ? ` (${td.assignee === 'adrian' ? 'Adrian' : 'Basti'})` : '')).join(' • ');
+              }
               clientObj.lastInteraction = new Date().toISOString();
               await env.KUNDEN_DB.put(`kunde:${taskData.clientId}`, JSON.stringify(clientObj));
             }

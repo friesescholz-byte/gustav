@@ -3322,6 +3322,12 @@ export default `<!DOCTYPE html>
                 item.className = 'todo-item';
                 item.style.cssText = \`display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(0,0,0,0.15); border:1px solid var(--border-color); border-radius:6px; font-size:13px; transition:all 0.2s; \${t.done ? 'opacity:0.6;' : ''}\`;
                 
+                const assigneeBadge = t.assignee === 'adrian' 
+                    ? '<span style="font-size:10px; background:rgba(59, 130, 246, 0.15); border:1px solid rgba(59, 130, 246, 0.3); color:#60a5fa; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:6px;">Adrian</span>'
+                    : (t.assignee === 'basti'
+                        ? '<span style="font-size:10px; background:rgba(236, 72, 153, 0.15); border:1px solid rgba(244, 114, 182, 0.3); color:#f472b6; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:6px;">Basti</span>'
+                        : '');
+
                 item.innerHTML = \`
                     <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                         <div style="display:flex; align-items:center; gap:12px; flex:1; text-align: left;">
@@ -3330,6 +3336,7 @@ export default `<!DOCTYPE html>
                                 : \`<button onclick="toggleTodo('\${client.id}', '\${t.id}', true)" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
                             }
                             <span style="\${t.done ? 'text-decoration:line-through; color:var(--text-secondary);' : 'color:#fff;'}">\${t.text}</span>
+                            \${assigneeBadge}
                         </div>
                         <button onclick="deleteTodo('\${client.id}', '\${t.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:2px; opacity:0.8; display:inline-flex; align-items:center; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
                             <i class="fa-solid fa-xmark"></i>
@@ -4503,14 +4510,17 @@ export default `<!DOCTYPE html>
             if (alertsList) {
                 alertsList.innerHTML = '';
                 
-                if (redClients.length === 0 && openCustomTasks.length === 0) {
+                // Only render general custom tasks (without clientId) as separate task cards
+                const generalTasks = openCustomTasks.filter(t => !t.clientId);
+
+                if (redClients.length === 0 && generalTasks.length === 0) {
                     alertsList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">' +
                         '<i class="fa-solid fa-circle-check" style="color: var(--color-green);"></i>' +
                         'Keine ausstehenden Alarme oder Aufgaben. Großartige Arbeit!' +
                     '</div>';
                 } else {
-                    // Render custom tasks first
-                    openCustomTasks.forEach(t => {
+                    // Render general custom tasks first
+                    generalTasks.forEach(t => {
                         const taskItem = document.createElement('div');
                         taskItem.className = 'drive-item';
                         
@@ -4519,12 +4529,7 @@ export default `<!DOCTYPE html>
                         let iconHtml = '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
                         let assigneeText = t.assignee === 'adrian' ? 'Adrian' : (t.assignee === 'basti' ? 'Basti' : null);
 
-                        if (t.clientId) {
-                            // Customer task -> RED
-                            bgColor = 'rgba(239, 68, 68, 0.08)';
-                            borderColor = 'rgba(239, 68, 68, 0.25)';
-                            iconHtml = '<i class="fa-solid fa-thumbtack" style="color: var(--color-red);"></i>';
-                        } else if (t.assignee === 'basti') {
+                        if (t.assignee === 'basti') {
                             // General task for Basti -> PINK
                             bgColor = 'rgba(236, 72, 153, 0.08)';
                             borderColor = 'rgba(244, 114, 182, 0.3)';
@@ -4544,14 +4549,8 @@ export default `<!DOCTYPE html>
                         taskItem.style.justifyContent = 'space-between';
                         taskItem.style.marginBottom = '8px';
 
-                        let metaText = '';
-                        if (t.clientId) {
-                            metaText = 'Kunde: ' + (t.clientName || 'Zugewiesen');
-                            if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
-                        } else {
-                            metaText = 'Allgemeine Aufgabe';
-                            if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
-                        }
+                        let metaText = 'Allgemeine Aufgabe';
+                        if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
 
                         taskItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
                             '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
@@ -4585,11 +4584,39 @@ export default `<!DOCTYPE html>
                         alertItem.style.marginBottom = '8px';
                         alertItem.onclick = () => selectClient(c);
                         
+                        // Gather all open tasks for this client
+                        const openClientTodos = (c.todos || []).filter(td => !td.done);
+                        const openClientCustom = (customTasksData || []).filter(t => t.clientId === c.id && !t.completed);
+                        
+                        let allOpenTasks = [...openClientTodos.map(td => ({ text: td.text, assignee: td.assignee }))];
+                        openClientCustom.forEach(ct => {
+                            if (!allOpenTasks.some(ot => ot.text === ct.title)) {
+                                allOpenTasks.push({ text: ct.title, assignee: ct.assignee });
+                            }
+                        });
+
+                        let reasonHtml = '';
+                        if (allOpenTasks.length > 0) {
+                            reasonHtml = allOpenTasks.map(ot => {
+                                const assigneeTag = ot.assignee === 'adrian' 
+                                    ? ' <span style="color: #60a5fa; font-weight: 600;">(Adrian)</span>' 
+                                    : (ot.assignee === 'basti' 
+                                        ? ' <span style="color: #f472b6; font-weight: 600;">(Basti)</span>' 
+                                        : '');
+                                return '<div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: 6px;">' +
+                                    '<span style="color: var(--color-red); font-weight: bold; line-height: 1;">&bull;</span>' +
+                                    '<span style="line-height: 1.35;">Offene Aufgabe: ' + ot.text + assigneeTag + '</span>' +
+                                '</div>';
+                            }).join('');
+                        } else {
+                            reasonHtml = '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; overflow-wrap: anywhere;">' + (c.statusReason || 'Aktion nötig') + '</div>';
+                        }
+
                         alertItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex-grow: 1; margin-right: 8px;">' +
                             '<div style="margin-top: 2px; flex-shrink: 0;"><i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i></div>' +
                             '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
                                 '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + c.name + '</strong>' +
-                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; overflow-wrap: anywhere;">' + (c.statusReason || 'Aktion nötig') + '</div>' +
+                                reasonHtml +
                             '</div>' +
                         '</div>' +
                         '<span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; align-self: center;">Aktion</span>';
