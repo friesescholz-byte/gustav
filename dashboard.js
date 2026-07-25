@@ -2016,6 +2016,67 @@ export default `<!DOCTYPE html>
 
                 <!-- COL 2 -->
                 <div style="display: flex; flex-direction: column; gap: 30px;">
+                    <!-- Hosting & Billing Card -->
+                    <div class="card" style="border: 1px solid rgba(6, 182, 212, 0.25); background: linear-gradient(135deg, rgba(17, 24, 39, 0.6) 0%, rgba(6, 182, 212, 0.04) 100%); box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-server" style="color: var(--color-cyan);"></i> Hosting & Abo-Verwaltung
+                            </h3>
+                            <span id="hosting-status-badge" style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); color: var(--color-green); border: 1px solid rgba(16, 185, 129, 0.3); display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-check"></i> Aktiv
+                            </span>
+                        </div>
+
+                        <!-- Presets Buttons -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Hosting-Tarif Schnell-Auswahl</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <button type="button" class="btn" onclick="applyHostingPreset(95, 'Basic')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
+                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Basic</span>
+                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">95 € / Mtl.</span>
+                                </button>
+                                <button type="button" class="btn" onclick="applyHostingPreset(145, 'Pro')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
+                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Pro</span>
+                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">145 € / Mtl.</span>
+                                </button>
+                                <button type="button" class="btn" onclick="applyHostingPreset(295, 'Enterprise')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
+                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Enterprise</span>
+                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">295 € / Mtl.</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Inputs Form -->
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <!-- Start Date & Net Price in 2 cols -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Start-Datum</label>
+                                    <input type="date" id="client-hosting-start-date" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Netto (€ / Mtl.)</label>
+                                    <input type="number" step="0.01" id="client-hosting-price-net" placeholder="z. B. 95" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
+                                </div>
+                            </div>
+
+                            <!-- SEPA Direct Debit Checkbox -->
+                            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px;">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" id="client-sepa-active-checkbox" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
+                                    <span style="font-size: 13px; color: #fff; font-weight: 600;">
+                                        <i class="fa-solid fa-building-columns" style="color: var(--color-cyan); margin-right: 4px;"></i> SEPA-Lastschrift aktiv
+                                    </span>
+                                </label>
+                            </div>
+
+                            <!-- Save Button -->
+                            <button type="button" class="btn btn-primary" onclick="confirmSaveHostingData()" style="padding: 11px 16px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
+                                <i class="fa-solid fa-floppy-disk"></i> Hosting & Abo-Daten speichern
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Contracts (R2) -->
                     <div class="card">
                         <h3 class="card-title">
@@ -2244,6 +2305,38 @@ export default `<!DOCTYPE html>
 
             <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                 <button type="button" class="btn btn-primary" onclick="closeMailPreviewModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOSTING PRICE CHANGE MODAL -->
+    <div class="modal" id="hosting-price-change-modal" style="display: none; z-index: 2000;">
+        <div class="modal-content" style="max-width: 480px; width: 90%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 14px; padding: 25px; box-sizing: border-box; text-align: left;">
+            <h3 style="margin-top: 0; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
+                <i class="fa-solid fa-circle-question" style="color: var(--color-cyan);"></i> Hosting-Preis anpassen
+            </h3>
+            
+            <p style="font-size: 14px; color: var(--text-primary); line-height: 1.5; margin-bottom: 14px;" id="hosting-price-change-text">
+                Der Hosting-Preis für diesen Kunden wird geändert.
+            </p>
+            
+            <div style="background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.2); padding: 12px 14px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.45;">
+                <i class="fa-solid fa-info-circle" style="color: var(--color-cyan); margin-right: 4px;"></i>
+                Wähle aus, ob der neue Preis auch rückwirkend für vergangene Monate in den Finanzen angepasst werden soll oder erst ab jetzt (nur für zukünftige Einnahmen) gilt.
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button type="button" class="btn btn-primary" onclick="saveHostingDataWithMode('future_only')" style="padding: 12px; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-plus"></i> Nur für zukünftige Einnahmen (ab jetzt)
+                </button>
+                
+                <button type="button" class="btn" onclick="saveHostingDataWithMode('retroactive')" style="padding: 12px; font-size: 13.5px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Auch vergangene Monate anpassen (rückwirkend)
+                </button>
+
+                <button type="button" class="btn btn-danger" onclick="closeHostingPriceModal()" style="padding: 8px; font-size: 12px; margin-top: 4px;">
+                    Abbrechen
+                </button>
             </div>
         </div>
     </div>
@@ -3078,6 +3171,9 @@ export default `<!DOCTYPE html>
             // Render Cloudflare info
             renderCloudflareStatus(client);
 
+            // Render Hosting Status & Inputs
+            renderHostingStatus(client);
+
             // Render Contracts
             renderContracts(client);
 
@@ -3158,6 +3254,188 @@ export default `<!DOCTYPE html>
             projectUrlEl.innerText = '-';
             projectUrlEl.href = '#';
             projectModEl.innerText = '-';
+        }
+
+        // Render Hosting Status & Form Inputs
+        function renderHostingStatus(client) {
+            if (!client) return;
+            const dateInput = document.getElementById('client-hosting-start-date');
+            if (dateInput) dateInput.value = client.hostingStartDate || '';
+
+            const priceInput = document.getElementById('client-hosting-price-net');
+            if (priceInput) priceInput.value = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null) ? client.hostingPriceNet : '';
+
+            const sepaCb = document.getElementById('client-sepa-active-checkbox');
+            if (sepaCb) sepaCb.checked = !!client.sepaActive;
+
+            const badge = document.getElementById('hosting-status-badge');
+            if (badge) {
+                const price = parseFloat(client.hostingPriceNet) || 0;
+                if (price > 0) {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(16, 185, 129, 0.1)';
+                    badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    badge.style.color = 'var(--color-green)';
+                    badge.innerHTML = '<i class="fa-solid fa-check" style="margin-right: 4px;"></i> ' + price.toFixed(2) + ' €/Mtl.' + (client.sepaActive ? ' (SEPA)' : '');
+                } else {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(255, 255, 255, 0.05)';
+                    badge.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    badge.style.color = 'var(--text-secondary)';
+                    badge.innerHTML = '<i class="fa-solid fa-circle-minus" style="margin-right: 4px;"></i> Inaktiv / Inklusiv';
+                }
+            }
+        }
+
+        function applyHostingPreset(netPrice, planName) {
+            const priceInput = document.getElementById('client-hosting-price-net');
+            if (priceInput) priceInput.value = netPrice;
+
+            const dateInput = document.getElementById('client-hosting-start-date');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        let pendingHostingData = null;
+
+        function confirmSaveHostingData() {
+            if (!activeClient) return;
+
+            const dateInput = document.getElementById('client-hosting-start-date');
+            const priceInput = document.getElementById('client-hosting-price-net');
+            const sepaCb = document.getElementById('client-sepa-active-checkbox');
+
+            const startDate = dateInput ? dateInput.value : '';
+            const newPrice = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+            const sepaActive = sepaCb ? sepaCb.checked : false;
+
+            pendingHostingData = { startDate, newPrice, sepaActive };
+
+            const oldPrice = activeClient.hostingPriceNet !== undefined ? parseFloat(activeClient.hostingPriceNet) : 0;
+
+            // If price changed and there was an existing positive price
+            if (oldPrice > 0 && newPrice !== oldPrice) {
+                const textEl = document.getElementById('hosting-price-change-text');
+                if (textEl) {
+                    textEl.innerHTML = 'Der Hosting-Preis für <strong>' + activeClient.name + '</strong> wird von <strong>' + oldPrice.toFixed(2) + ' €</strong> auf <strong>' + newPrice.toFixed(2) + ' €</strong> geändert.';
+                }
+                const modal = document.getElementById('hosting-price-change-modal');
+                if (modal) modal.style.display = 'flex';
+            } else {
+                saveHostingDataWithMode('retroactive');
+            }
+        }
+
+        function closeHostingPriceModal() {
+            const modal = document.getElementById('hosting-price-change-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function saveHostingDataWithMode(mode) {
+            closeHostingPriceModal();
+            if (!activeClient || !pendingHostingData) return;
+
+            const { startDate, newPrice, sepaActive } = pendingHostingData;
+
+            // 1. Update client object
+            activeClient.hostingStartDate = startDate;
+            activeClient.hostingPriceNet = newPrice;
+            activeClient.sepaActive = sepaActive;
+
+            try {
+                // Save customer to KV
+                const clientRes = await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(activeClient)
+                });
+                const clientData = await clientRes.json();
+                if (clientData.success) {
+                    activeClient = clientData.customer;
+                }
+
+                // 2. Sync with Finanzen API
+                const finRes = await fetch('/api/finanzen');
+                let finList = await finRes.json();
+                if (!Array.isArray(finList)) finList = [];
+
+                const txIdBase = 'hosting_client_' + activeClient.id;
+                const existingTx = finList.find(t => t.clientId === activeClient.id || t.id === txIdBase || t.id.startsWith(txIdBase));
+
+                const now = new Date();
+                const currentMonthStart = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+                
+                // Calculate previous month end string (e.g. 2026-06-30)
+                const prevMonthDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                const prevMonthEnd = prevMonthDate.getFullYear() + '-' + String(prevMonthDate.getMonth() + 1).padStart(2, '0') + '-' + String(prevMonthDate.getDate()).padStart(2, '0');
+
+                if (newPrice > 0) {
+                    if (mode === 'future_only' && existingTx) {
+                        // End old transaction at previous month
+                        existingTx.endDate = prevMonthEnd;
+                        await fetch('/api/finanzen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(existingTx)
+                        });
+
+                        // Create new transaction for current month onwards
+                        const newTx = {
+                            id: txIdBase + '_' + Date.now(),
+                            clientId: activeClient.id,
+                            description: 'Hosting: ' + activeClient.name,
+                            category: 'Hosting & Domains',
+                            type: 'income',
+                            interval: 'monthly',
+                            date: currentMonthStart,
+                            amount: newPrice,
+                            vatIncluded: false, // Netto price
+                            sepaActive: sepaActive
+                        };
+                        await fetch('/api/finanzen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newTx)
+                        });
+                    } else {
+                        // Retroactive update or new hosting: single transaction starting from startDate
+                        const tx = {
+                            id: existingTx ? existingTx.id : txIdBase,
+                            clientId: activeClient.id,
+                            description: 'Hosting: ' + activeClient.name,
+                            category: 'Hosting & Domains',
+                            type: 'income',
+                            interval: 'monthly',
+                            date: startDate || currentMonthStart,
+                            amount: newPrice,
+                            vatIncluded: false, // Netto price
+                            sepaActive: sepaActive,
+                            endDate: null // clear any prior endDate
+                        };
+                        await fetch('/api/finanzen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(tx)
+                        });
+                    }
+                } else if (existingTx) {
+                    // Hosting removed / set to 0: end existing transaction
+                    existingTx.endDate = prevMonthEnd;
+                    await fetch('/api/finanzen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(existingTx)
+                    });
+                }
+
+                renderHostingStatus(activeClient);
+                await loadClients();
+                if (typeof loadFinances === 'function') await loadFinances();
+            } catch(e) {
+                console.error("Failed to save hosting data", e);
+                alert("Fehler beim Speichern der Hosting-Daten.");
+            }
         }
 
         // Render Contracts (R2)
@@ -3829,11 +4107,25 @@ export default `<!DOCTYPE html>
                     const startMonth = parseInt(parts[1]) - 1; // 0-indexed
                     const startDay = parts[2] || '01';
 
+                    let endYear = currentYear;
+                    let endMonth = currentMonth;
+                    if (t.endDate) {
+                        const endParts = t.endDate.split('-');
+                        const ey = parseInt(endParts[0]);
+                        const em = parseInt(endParts[1]) - 1;
+                        if (!isNaN(ey) && !isNaN(em)) {
+                            if (ey < endYear || (ey === endYear && em < endMonth)) {
+                                endYear = ey;
+                                endMonth = em;
+                            }
+                        }
+                    }
+
                     if (!isNaN(startYear) && !isNaN(startMonth)) {
                         let y = startYear;
                         let m = startMonth;
 
-                        while (y < currentYear || (y === currentYear && m <= currentMonth)) {
+                        while (y < endYear || (y === endYear && m <= endMonth)) {
                             const monthStr = String(m + 1).padStart(2, '0');
                             const genDate = y + '-' + monthStr + '-' + startDay;
 
