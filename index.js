@@ -518,6 +518,15 @@ export default {
         const id = url.pathname.split('/').pop();
         await env.KUNDEN_DB.delete(`kunde:${id}`);
         await env.KUNDEN_DB.delete(`emails:${id}`);
+
+        // Clean up associated finance transactions for this client
+        const rawFin = await env.KUNDEN_DB.get('finanzen');
+        if (rawFin) {
+          let finList = JSON.parse(rawFin);
+          finList = finList.filter(t => t.clientId !== id && !t.id.startsWith(`hosting_client_${id}`));
+          await env.KUNDEN_DB.put('finanzen', JSON.stringify(finList));
+        }
+
         return new Response(JSON.stringify({ success: true }), {
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });

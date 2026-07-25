@@ -2031,17 +2031,17 @@ export default `<!DOCTYPE html>
                         <div style="margin-bottom: 16px;">
                             <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Hosting-Tarif Schnell-Auswahl</label>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                                <button type="button" class="btn" onclick="applyHostingPreset(95, 'Basic')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
-                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Basic</span>
-                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">95 € / Mtl.</span>
+                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-95" onclick="applyHostingPreset(95, 'Basic')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; transition: all 0.2s;">
+                                    <span style="font-size: 12px; font-weight: 800; color: #34d399;">Basic</span>
+                                    <span style="font-size: 11px; color: #10b981; font-weight: 700;">95 € / Mtl.</span>
                                 </button>
-                                <button type="button" class="btn" onclick="applyHostingPreset(145, 'Pro')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
-                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Pro</span>
-                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">145 € / Mtl.</span>
+                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-145" onclick="applyHostingPreset(145, 'Pro')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 8px; transition: all 0.2s;">
+                                    <span style="font-size: 12px; font-weight: 800; color: #38bdf8;">Pro</span>
+                                    <span style="font-size: 11px; color: #06b6d4; font-weight: 700;">145 € / Mtl.</span>
                                 </button>
-                                <button type="button" class="btn" onclick="applyHostingPreset(295, 'Enterprise')" style="padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);">
-                                    <span style="font-size: 12px; font-weight: 700; color: #fff;">Enterprise</span>
-                                    <span style="font-size: 11px; color: var(--color-cyan); font-weight: 800;">295 € / Mtl.</span>
+                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-295" onclick="applyHostingPreset(295, 'Enterprise')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; transition: all 0.2s;">
+                                    <span style="font-size: 12px; font-weight: 800; color: #c084fc;">Enterprise</span>
+                                    <span style="font-size: 11px; color: #a855f7; font-weight: 700;">295 € / Mtl.</span>
                                 </button>
                             </div>
                         </div>
@@ -2070,10 +2070,15 @@ export default `<!DOCTYPE html>
                                 </label>
                             </div>
 
-                            <!-- Save Button -->
-                            <button type="button" class="btn btn-primary" onclick="confirmSaveHostingData()" style="padding: 11px 16px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
-                                <i class="fa-solid fa-floppy-disk"></i> Hosting & Abo-Daten speichern
-                            </button>
+                            <!-- Save & Delete Buttons in 2 cols -->
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-top: 4px;">
+                                <button type="button" class="btn btn-primary" onclick="confirmSaveHostingData()" style="padding: 11px 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Hosting speichern
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="confirmDeleteHosting()" style="padding: 11px 10px; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Hosting beenden / löschen">
+                                    <i class="fa-solid fa-trash-can"></i> Löschen
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2335,6 +2340,38 @@ export default `<!DOCTYPE html>
                 </button>
 
                 <button type="button" class="btn btn-danger" onclick="closeHostingPriceModal()" style="padding: 8px; font-size: 12px; margin-top: 4px;">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE HOSTING MODAL -->
+    <div class="modal" id="delete-hosting-modal" style="display: none; z-index: 2000;">
+        <div class="modal-content" style="max-width: 480px; width: 90%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 14px; padding: 25px; box-sizing: border-box; text-align: left;">
+            <h3 style="margin-top: 0; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
+                <i class="fa-solid fa-trash-can" style="color: var(--color-red);"></i> Hosting beenden / löschen
+            </h3>
+            
+            <p style="font-size: 14px; color: var(--text-primary); line-height: 1.5; margin-bottom: 14px;" id="delete-hosting-text">
+                Möchtest du das Hosting für diesen Kunden wirklich beenden?
+            </p>
+            
+            <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 14px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.45;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red); margin-right: 4px;"></i>
+                Wähle aus, ob vergangene Einnahmen in den Finanzen erhalten bleiben sollen (nur ab jetzt kein Hosting mehr) oder ob alle vergangenen Einnahmen dieses Kunden komplett aus den Finanzen gelöscht werden sollen.
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button type="button" class="btn btn-primary" onclick="deleteHostingWithMode('future_only')" style="padding: 12px; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-xmark"></i> Nur ab jetzt beenden (Vergangene Einnahmen behalten)
+                </button>
+                
+                <button type="button" class="btn btn-danger" onclick="deleteHostingWithMode('retroactive_all')" style="padding: 12px; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-trash"></i> Auch alle vergangenen Hosting-Einnahmen komplett löschen
+                </button>
+
+                <button type="button" class="btn" onclick="closeDeleteHostingModal()" style="padding: 8px; font-size: 12px; margin-top: 4px; background: rgba(255,255,255,0.06);">
                     Abbrechen
                 </button>
             </div>
@@ -3256,7 +3293,7 @@ export default `<!DOCTYPE html>
             projectModEl.innerText = '-';
         }
 
-        // Render Hosting Status & Form Inputs
+        // Render Hosting Status & Form Inputs with distinct plan styling
         function renderHostingStatus(client) {
             if (!client) return;
             const dateInput = document.getElementById('client-hosting-start-date');
@@ -3268,22 +3305,157 @@ export default `<!DOCTYPE html>
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             if (sepaCb) sepaCb.checked = !!client.sepaActive;
 
+            const price = parseFloat(client.hostingPriceNet) || 0;
+
+            // Highlight Preset Buttons
+            const btn95 = document.getElementById('preset-btn-95');
+            const btn145 = document.getElementById('preset-btn-145');
+            const btn295 = document.getElementById('preset-btn-295');
+
+            if (btn95) {
+                if (price === 95) {
+                    btn95.style.background = 'rgba(16, 185, 129, 0.22)';
+                    btn95.style.borderColor = '#10b981';
+                    btn95.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.35)';
+                } else {
+                    btn95.style.background = 'rgba(16, 185, 129, 0.08)';
+                    btn95.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+                    btn95.style.boxShadow = 'none';
+                }
+            }
+
+            if (btn145) {
+                if (price === 145) {
+                    btn145.style.background = 'rgba(6, 182, 212, 0.22)';
+                    btn145.style.borderColor = '#06b6d4';
+                    btn145.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.35)';
+                } else {
+                    btn145.style.background = 'rgba(6, 182, 212, 0.08)';
+                    btn145.style.borderColor = 'rgba(6, 182, 212, 0.25)';
+                    btn145.style.boxShadow = 'none';
+                }
+            }
+
+            if (btn295) {
+                if (price === 295) {
+                    btn295.style.background = 'rgba(168, 85, 247, 0.22)';
+                    btn295.style.borderColor = '#a855f7';
+                    btn295.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.35)';
+                } else {
+                    btn295.style.background = 'rgba(168, 85, 247, 0.08)';
+                    btn295.style.borderColor = 'rgba(168, 85, 247, 0.25)';
+                    btn295.style.boxShadow = 'none';
+                }
+            }
+
             const badge = document.getElementById('hosting-status-badge');
             if (badge) {
-                const price = parseFloat(client.hostingPriceNet) || 0;
-                if (price > 0) {
+                const sepaLabel = client.sepaActive ? ' <span style="opacity:0.85; font-size:10px;">(SEPA)</span>' : '';
+                if (price === 95) {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(16, 185, 129, 0.1)';
-                    badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-                    badge.style.color = 'var(--color-green)';
-                    badge.innerHTML = '<i class="fa-solid fa-check" style="margin-right: 4px;"></i> ' + price.toFixed(2) + ' €/Mtl.' + (client.sepaActive ? ' (SEPA)' : '');
+                    badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    badge.style.color = '#34d399';
+                    badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Basic: 95 €/Mtl.' + sepaLabel;
+                } else if (price === 145) {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(6, 182, 212, 0.15)';
+                    badge.style.borderColor = 'rgba(6, 182, 212, 0.4)';
+                    badge.style.color = '#38bdf8';
+                    badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Pro: 145 €/Mtl.' + sepaLabel;
+                } else if (price === 295) {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(168, 85, 247, 0.15)';
+                    badge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+                    badge.style.color = '#c084fc';
+                    badge.innerHTML = '<i class="fa-solid fa-crown" style="margin-right: 4px;"></i> Enterprise: 295 €/Mtl.' + sepaLabel;
+                } else if (price > 0) {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(59, 130, 246, 0.15)';
+                    badge.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                    badge.style.color = '#60a5fa';
+                    badge.innerHTML = '<i class="fa-solid fa-bolt" style="margin-right: 4px;"></i> Custom: ' + price.toFixed(2) + ' €/Mtl.' + sepaLabel;
                 } else {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(255, 255, 255, 0.05)';
                     badge.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                     badge.style.color = 'var(--text-secondary)';
-                    badge.innerHTML = '<i class="fa-solid fa-circle-minus" style="margin-right: 4px;"></i> Inaktiv / Inklusiv';
+                    badge.innerHTML = '<i class="fa-solid fa-circle-minus" style="margin-right: 4px;"></i> Kein Hosting';
                 }
+            }
+        }
+
+        function confirmDeleteHosting() {
+            if (!activeClient) return;
+            const textEl = document.getElementById('delete-hosting-text');
+            if (textEl) {
+                textEl.innerHTML = 'Möchtest du das Hosting für <strong>' + activeClient.name + '</strong> wirklich beenden?';
+            }
+            const modal = document.getElementById('delete-hosting-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeDeleteHostingModal() {
+            const modal = document.getElementById('delete-hosting-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function deleteHostingWithMode(mode) {
+            closeDeleteHostingModal();
+            if (!activeClient) return;
+
+            // Reset client hosting properties
+            activeClient.hostingPriceNet = 0;
+            activeClient.hostingStartDate = '';
+            activeClient.sepaActive = false;
+
+            try {
+                // Save customer to KV
+                const clientRes = await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(activeClient)
+                });
+                const clientData = await clientRes.json();
+                if (clientData.success) {
+                    activeClient = clientData.customer;
+                }
+
+                // Update / Delete finance transactions
+                const finRes = await fetch('/api/finanzen');
+                let finList = await finRes.json();
+                if (!Array.isArray(finList)) finList = [];
+
+                const txIdBase = 'hosting_client_' + activeClient.id;
+                const existingTxList = finList.filter(t => t.clientId === activeClient.id || t.id === txIdBase || t.id.startsWith(txIdBase));
+
+                const now = new Date();
+                const prevMonthDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                const prevMonthEnd = prevMonthDate.getFullYear() + '-' + String(prevMonthDate.getMonth() + 1).padStart(2, '0') + '-' + String(prevMonthDate.getDate()).padStart(2, '0');
+
+                if (mode === 'future_only') {
+                    // Set endDate on all active hosting transactions for this client to end of previous month
+                    for (const tx of existingTxList) {
+                        tx.endDate = prevMonthEnd;
+                        await fetch('/api/finanzen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(tx)
+                        });
+                    }
+                } else if (mode === 'retroactive_all') {
+                    // Delete all hosting transactions for this client completely
+                    for (const tx of existingTxList) {
+                        await fetch('/api/finanzen/' + tx.id, { method: 'DELETE' });
+                    }
+                }
+
+                renderHostingStatus(activeClient);
+                await loadClients();
+                if (typeof loadFinances === 'function') await loadFinances();
+            } catch(e) {
+                console.error("Failed to delete hosting", e);
+                alert("Fehler beim Löschen des Hostings.");
             }
         }
 
