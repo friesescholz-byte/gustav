@@ -2030,6 +2030,17 @@ export default `<!DOCTYPE html>
                         <!-- Presets Buttons -->
                         <div style="margin-bottom: 16px;">
                             <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Hosting-Tarif Schnell-Auswahl</label>
+                            
+                            <!-- Top Row: Server Button -->
+                            <button type="button" class="btn hosting-preset-btn" id="preset-btn-25" onclick="applyHostingPreset(25, 'Server')" style="width: 100%; margin-bottom: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; transition: all 0.2s; cursor: pointer;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-hard-drive" style="color: #94a3b8; font-size: 13px;"></i>
+                                    <span style="font-size: 12px; font-weight: 800; color: #e2e8f0;">Nur Server</span>
+                                </div>
+                                <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">25 € / Mtl.</span>
+                            </button>
+
+                            <!-- Bottom Row: Basic, Pro, Enterprise -->
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                                 <button type="button" class="btn hosting-preset-btn" id="preset-btn-95" onclick="applyHostingPreset(95, 'Basic')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; transition: all 0.2s;">
                                     <span style="font-size: 12px; font-weight: 800; color: #34d399;">Basic</span>
@@ -2056,14 +2067,14 @@ export default `<!DOCTYPE html>
                                 </div>
                                 <div>
                                     <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Netto (€ / Mtl.)</label>
-                                    <input type="number" step="0.01" id="client-hosting-price-net" placeholder="z. B. 95" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
+                                    <input type="number" step="0.01" id="client-hosting-price-net" placeholder="z. B. 95" oninput="updateHostingUIFromInputs()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
                                 </div>
                             </div>
 
                             <!-- SEPA Direct Debit Checkbox -->
                             <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px;">
                                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
-                                    <input type="checkbox" id="client-sepa-active-checkbox" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
+                                    <input type="checkbox" id="client-sepa-active-checkbox" onchange="updateHostingUIFromInputs()" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
                                     <span style="font-size: 13px; color: #fff; font-weight: 600;">
                                         <i class="fa-solid fa-building-columns" style="color: var(--color-cyan); margin-right: 4px;"></i> SEPA-Lastschrift aktiv
                                     </span>
@@ -3305,16 +3316,37 @@ export default `<!DOCTYPE html>
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             if (sepaCb) sepaCb.checked = !!client.sepaActive;
 
-            const price = parseFloat(client.hostingPriceNet) || 0;
+            updateHostingUIFromInputs();
+        }
 
-            // Highlight Preset Buttons
+        // Real-time update of button highlight states and top-right status badge
+        function updateHostingUIFromInputs() {
+            const priceInput = document.getElementById('client-hosting-price-net');
+            const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+
+            const sepaCb = document.getElementById('client-sepa-active-checkbox');
+            const sepaActive = sepaCb ? sepaCb.checked : false;
+
+            const btn25 = document.getElementById('preset-btn-25');
             const btn95 = document.getElementById('preset-btn-95');
             const btn145 = document.getElementById('preset-btn-145');
             const btn295 = document.getElementById('preset-btn-295');
 
+            if (btn25) {
+                if (price === 25) {
+                    btn25.style.background = 'rgba(148, 163, 184, 0.25)';
+                    btn25.style.borderColor = '#94a3b8';
+                    btn25.style.boxShadow = '0 0 12px rgba(148, 163, 184, 0.35)';
+                } else {
+                    btn25.style.background = 'rgba(148, 163, 184, 0.08)';
+                    btn25.style.borderColor = 'rgba(148, 163, 184, 0.25)';
+                    btn25.style.boxShadow = 'none';
+                }
+            }
+
             if (btn95) {
                 if (price === 95) {
-                    btn95.style.background = 'rgba(16, 185, 129, 0.22)';
+                    btn95.style.background = 'rgba(16, 185, 129, 0.25)';
                     btn95.style.borderColor = '#10b981';
                     btn95.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.35)';
                 } else {
@@ -3326,7 +3358,7 @@ export default `<!DOCTYPE html>
 
             if (btn145) {
                 if (price === 145) {
-                    btn145.style.background = 'rgba(6, 182, 212, 0.22)';
+                    btn145.style.background = 'rgba(6, 182, 212, 0.25)';
                     btn145.style.borderColor = '#06b6d4';
                     btn145.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.35)';
                 } else {
@@ -3338,7 +3370,7 @@ export default `<!DOCTYPE html>
 
             if (btn295) {
                 if (price === 295) {
-                    btn295.style.background = 'rgba(168, 85, 247, 0.22)';
+                    btn295.style.background = 'rgba(168, 85, 247, 0.25)';
                     btn295.style.borderColor = '#a855f7';
                     btn295.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.35)';
                 } else {
@@ -3350,8 +3382,14 @@ export default `<!DOCTYPE html>
 
             const badge = document.getElementById('hosting-status-badge');
             if (badge) {
-                const sepaLabel = client.sepaActive ? ' <span style="opacity:0.85; font-size:10px;">(SEPA)</span>' : '';
-                if (price === 95) {
+                const sepaLabel = sepaActive ? ' <span style="opacity:0.85; font-size:10px;">(SEPA)</span>' : '';
+                if (price === 25) {
+                    badge.style.display = 'inline-flex';
+                    badge.style.background = 'rgba(148, 163, 184, 0.15)';
+                    badge.style.borderColor = 'rgba(148, 163, 184, 0.4)';
+                    badge.style.color = '#cbd5e1';
+                    badge.innerHTML = '<i class="fa-solid fa-hard-drive" style="margin-right: 4px;"></i> Server: 25 €/Mtl.' + sepaLabel;
+                } else if (price === 95) {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(16, 185, 129, 0.15)';
                     badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
@@ -3383,6 +3421,18 @@ export default `<!DOCTYPE html>
                     badge.innerHTML = '<i class="fa-solid fa-circle-minus" style="margin-right: 4px;"></i> Kein Hosting';
                 }
             }
+        }
+
+        function applyHostingPreset(netPrice, planName) {
+            const priceInput = document.getElementById('client-hosting-price-net');
+            if (priceInput) priceInput.value = netPrice;
+
+            const dateInput = document.getElementById('client-hosting-start-date');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            updateHostingUIFromInputs();
         }
 
         function confirmDeleteHosting() {
