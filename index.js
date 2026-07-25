@@ -507,6 +507,28 @@ export default {
           }
         }
 
+        // Sync custom tasks KV store with completed status of client's todos
+        if (Array.isArray(finalCustomer.todos)) {
+          const rawCustom = await env.KUNDEN_DB.get('tasks:custom');
+          if (rawCustom) {
+            let customList = JSON.parse(rawCustom);
+            let updatedCustom = false;
+            finalCustomer.todos.forEach(td => {
+              customList.forEach(ct => {
+                if (ct.clientId === finalCustomer.id && (ct.id === td.id || ct.title === td.text)) {
+                  if (ct.completed !== td.done) {
+                    ct.completed = td.done;
+                    updatedCustom = true;
+                  }
+                }
+              });
+            });
+            if (updatedCustom) {
+              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(customList));
+            }
+          }
+        }
+
         await env.KUNDEN_DB.put(`kunde:${finalCustomer.id}`, JSON.stringify(finalCustomer));
         return new Response(JSON.stringify({ success: true, customer: finalCustomer }), {
           headers: { 'Content-Type': 'application/json', ...corsHeaders },

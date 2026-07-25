@@ -3332,52 +3332,51 @@ export default `<!DOCTYPE html>
             const btn145 = document.getElementById('preset-btn-145');
             const btn295 = document.getElementById('preset-btn-295');
 
-            if (btn25) {
-                if (price === 25) {
-                    btn25.style.background = 'rgba(148, 163, 184, 0.25)';
-                    btn25.style.borderColor = '#94a3b8';
-                    btn25.style.boxShadow = '0 0 12px rgba(148, 163, 184, 0.35)';
-                } else {
-                    btn25.style.background = 'rgba(148, 163, 184, 0.08)';
-                    btn25.style.borderColor = 'rgba(148, 163, 184, 0.25)';
-                    btn25.style.boxShadow = 'none';
-                }
+            // Reset all buttons to inactive dimmed state
+            const resetBtn = (btn) => {
+                if (!btn) return;
+                btn.style.background = 'rgba(0, 0, 0, 0.3)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                btn.style.boxShadow = 'none';
+                btn.style.opacity = '0.55';
+                btn.style.transform = 'scale(1)';
+            };
+
+            resetBtn(btn25);
+            resetBtn(btn95);
+            resetBtn(btn145);
+            resetBtn(btn295);
+
+            if (btn25 && price === 25) {
+                btn25.style.background = 'rgba(148, 163, 184, 0.28)';
+                btn25.style.borderColor = '#94a3b8';
+                btn25.style.boxShadow = '0 0 16px rgba(148, 163, 184, 0.45)';
+                btn25.style.opacity = '1';
+                btn25.style.transform = 'scale(1.02)';
             }
 
-            if (btn95) {
-                if (price === 95) {
-                    btn95.style.background = 'rgba(16, 185, 129, 0.25)';
-                    btn95.style.borderColor = '#10b981';
-                    btn95.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.35)';
-                } else {
-                    btn95.style.background = 'rgba(16, 185, 129, 0.08)';
-                    btn95.style.borderColor = 'rgba(16, 185, 129, 0.25)';
-                    btn95.style.boxShadow = 'none';
-                }
+            if (btn95 && price === 95) {
+                btn95.style.background = 'rgba(16, 185, 129, 0.28)';
+                btn95.style.borderColor = '#10b981';
+                btn95.style.boxShadow = '0 0 16px rgba(16, 185, 129, 0.45)';
+                btn95.style.opacity = '1';
+                btn95.style.transform = 'scale(1.02)';
             }
 
-            if (btn145) {
-                if (price === 145) {
-                    btn145.style.background = 'rgba(6, 182, 212, 0.25)';
-                    btn145.style.borderColor = '#06b6d4';
-                    btn145.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.35)';
-                } else {
-                    btn145.style.background = 'rgba(6, 182, 212, 0.08)';
-                    btn145.style.borderColor = 'rgba(6, 182, 212, 0.25)';
-                    btn145.style.boxShadow = 'none';
-                }
+            if (btn145 && price === 145) {
+                btn145.style.background = 'rgba(6, 182, 212, 0.28)';
+                btn145.style.borderColor = '#06b6d4';
+                btn145.style.boxShadow = '0 0 16px rgba(6, 182, 212, 0.45)';
+                btn145.style.opacity = '1';
+                btn145.style.transform = 'scale(1.02)';
             }
 
-            if (btn295) {
-                if (price === 295) {
-                    btn295.style.background = 'rgba(168, 85, 247, 0.25)';
-                    btn295.style.borderColor = '#a855f7';
-                    btn295.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.35)';
-                } else {
-                    btn295.style.background = 'rgba(168, 85, 247, 0.08)';
-                    btn295.style.borderColor = 'rgba(168, 85, 247, 0.25)';
-                    btn295.style.boxShadow = 'none';
-                }
+            if (btn295 && price === 295) {
+                btn295.style.background = 'rgba(168, 85, 247, 0.28)';
+                btn295.style.borderColor = '#a855f7';
+                btn295.style.boxShadow = '0 0 16px rgba(168, 85, 247, 0.45)';
+                btn295.style.opacity = '1';
+                btn295.style.transform = 'scale(1.02)';
             }
 
             const badge = document.getElementById('hosting-status-badge');
@@ -3907,13 +3906,26 @@ export default `<!DOCTYPE html>
                     if (idx !== -1) {
                         clients[idx] = data.customer;
                     }
+
+                    // Sync local customTasksData so completed tasks disappear from Dashboard
+                    if (Array.isArray(customTasksData)) {
+                        (data.customer.todos || []).forEach(td => {
+                            customTasksData.forEach(ct => {
+                                if (ct.clientId === client.id && (ct.id === td.id || ct.title === td.text)) {
+                                    ct.completed = td.done;
+                                }
+                            });
+                        });
+                    }
+
                     if (activeClient && activeClient.id === client.id) {
                         activeClient.status = data.customer.status;
                         activeClient.statusReason = data.customer.statusReason;
                         activeClient.todos = data.customer.todos;
-                        selectClient(activeClient);
                     }
-                    await loadClients();
+
+                    updateGlobalStats();
+                    renderClientList();
                 }
             } catch(e) {
                 console.error("Failed to save todos", e);
