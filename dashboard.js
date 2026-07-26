@@ -2146,6 +2146,23 @@ export default `<!DOCTYPE html>
                                 </label>
                             </div>
 
+                            <!-- YTD Hosting Einnahmen Banner -->
+                            <div id="hosting-ytd-banner" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(16, 185, 129, 0.06) 100%); border: 1px solid rgba(6, 182, 212, 0.22); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(6, 182, 212, 0.18); border: 1px solid rgba(6, 182, 212, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <i class="fa-solid fa-chart-line" style="color: #38bdf8; font-size: 14px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 10.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;" id="hosting-ytd-label">Einnahmen 2026 (YTD)</div>
+                                        <div style="font-size: 11px; color: #94a3b8;" id="hosting-ytd-sub">Bisher erhalten im laufenden Jahr</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 15px; font-weight: 800; color: #34d399; letter-spacing: -0.3px;" id="hosting-ytd-amount">0,00 €</div>
+                                    <div style="font-size: 10px; color: #94a3b8;" id="hosting-ytd-netto">(0,00 € Netto)</div>
+                                </div>
+                            </div>
+
                             <!-- Save & Delete Buttons in 2 cols -->
                             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-top: 4px;">
                                 <button type="button" class="btn btn-primary" onclick="confirmSaveHostingData()" style="padding: 11px 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -3204,6 +3221,12 @@ export default `<!DOCTYPE html>
             } catch(e) {
                 console.error("Fehler beim Laden der Aufgaben:", e);
             }
+
+            try {
+                if (typeof loadFinances === 'function') await loadFinances();
+            } catch(e) {
+                console.error("Fehler beim Laden der Finanzen:", e);
+            }
         }
 
         function renderClientList() {
@@ -3385,6 +3408,53 @@ export default `<!DOCTYPE html>
             if (sepaCb) sepaCb.checked = !!client.sepaActive;
 
             updateHostingUIFromInputs();
+            updateClientYTDHostingDisplay(client);
+        }
+
+        function updateClientYTDHostingDisplay(client) {
+            if (!client) return;
+            const ytdBanner = document.getElementById('hosting-ytd-banner');
+            if (!ytdBanner) return;
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth(); // 0-indexed
+
+            const expanded = (typeof getExpandedTransactions === 'function') ? getExpandedTransactions() : [];
+            let totalBrutto = 0;
+            let totalNetto = 0;
+            let monthCount = 0;
+
+            expanded.forEach(tx => {
+                if (tx.type === 'income' && tx.clientId === client.id) {
+                    if (tx.date) {
+                        const parts = tx.date.split('-');
+                        const y = parseInt(parts[0]);
+                        const m = parseInt(parts[1]) - 1;
+                        if (y === currentYear && m <= currentMonth) {
+                            totalBrutto += (tx.brutto || tx.amount || 0);
+                            totalNetto += (tx.netto || tx.amount || 0);
+                            monthCount++;
+                        }
+                    }
+                }
+            });
+
+            const labelEl = document.getElementById('hosting-ytd-label');
+            const subEl = document.getElementById('hosting-ytd-sub');
+            const amtEl = document.getElementById('hosting-ytd-amount');
+            const nettoEl = document.getElementById('hosting-ytd-netto');
+
+            if (labelEl) labelEl.innerText = 'Hosting-Einnahmen ' + currentYear + ' (YTD)';
+            if (subEl) {
+                if (monthCount > 0) {
+                    subEl.innerText = monthCount + ' Monat' + (monthCount > 1 ? 'e' : '') + ' verbucht in ' + currentYear;
+                } else {
+                    subEl.innerText = 'Keine Hosting-Einnahmen in ' + currentYear;
+                }
+            }
+            if (amtEl) amtEl.innerText = totalBrutto.toFixed(2).replace('.', ',') + ' €';
+            if (nettoEl) nettoEl.innerText = '(' + totalNetto.toFixed(2).replace('.', ',') + ' € Netto)';
         }
 
         // Real-time update of button highlight states and top-right status badge
