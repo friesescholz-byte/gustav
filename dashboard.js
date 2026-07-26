@@ -383,62 +383,58 @@ export default `<!DOCTYPE html>
             border-radius: 8px;
             transition: all 0.2s ease;
             box-sizing: border-box;
+            opacity: 0.55;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
         }
 
         .hosting-preset-btn.btn-preset-25 {
-            background: rgba(148, 163, 184, 0.08);
-            border: 1.5px solid rgba(148, 163, 184, 0.25);
             color: #94a3b8;
         }
         .hosting-preset-btn.btn-preset-95 {
-            background: rgba(16, 185, 129, 0.08);
-            border: 1.5px solid rgba(16, 185, 129, 0.25);
-            color: #10b981;
+            color: #34d399;
         }
         .hosting-preset-btn.btn-preset-145 {
-            background: rgba(6, 182, 212, 0.08);
-            border: 1.5px solid rgba(6, 182, 212, 0.25);
-            color: #06b6d4;
+            color: #38bdf8;
         }
         .hosting-preset-btn.btn-preset-295 {
-            background: rgba(168, 85, 247, 0.08);
-            border: 1.5px solid rgba(168, 85, 247, 0.25);
-            color: #a855f7;
+            color: #c084fc;
         }
 
         .hosting-preset-btn:hover {
-            filter: brightness(1.35);
+            opacity: 0.85;
+            filter: brightness(1.25);
             transform: translateY(-1px);
         }
 
-        /* ACTIVE / SELECTED STATES (Dauerhafter Mouse-Over Effekt / Stark Aufgehellt) */
+        /* ACTIVE / SELECTED STATES (SOLID STARK LEUCHTEND WIE EIN DAUER-MOUSE-OVER) */
         .hosting-preset-btn.active-preset {
             opacity: 1 !important;
-            transform: scale(1.03) !important;
+            transform: scale(1.04) !important;
         }
         .hosting-preset-btn.btn-preset-25.active-preset {
-            background: rgba(148, 163, 184, 0.45) !important;
-            border: 2px solid #cbd5e1 !important;
-            box-shadow: 0 0 18px rgba(148, 163, 184, 0.6) !important;
-            color: #ffffff !important;
+            background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%) !important;
+            color: #0f172a !important;
+            border: 2.5px solid #ffffff !important;
+            box-shadow: 0 0 22px rgba(255, 255, 255, 0.65) !important;
         }
         .hosting-preset-btn.btn-preset-95.active-preset {
-            background: rgba(16, 185, 129, 0.45) !important;
-            border: 2px solid #34d399 !important;
-            box-shadow: 0 0 18px rgba(16, 185, 129, 0.6) !important;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
             color: #ffffff !important;
+            border: 2.5px solid #6ee7b7 !important;
+            box-shadow: 0 0 22px rgba(16, 185, 129, 0.65) !important;
         }
         .hosting-preset-btn.btn-preset-145.active-preset {
-            background: rgba(6, 182, 212, 0.45) !important;
-            border: 2px solid #38bdf8 !important;
-            box-shadow: 0 0 18px rgba(6, 182, 212, 0.6) !important;
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%) !important;
             color: #ffffff !important;
+            border: 2.5px solid #67e8f9 !important;
+            box-shadow: 0 0 22px rgba(6, 182, 212, 0.65) !important;
         }
         .hosting-preset-btn.btn-preset-295.active-preset {
-            background: rgba(168, 85, 247, 0.45) !important;
-            border: 2px solid #c084fc !important;
-            box-shadow: 0 0 18px rgba(168, 85, 247, 0.6) !important;
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%) !important;
             color: #ffffff !important;
+            border: 2.5px solid #f0abfc !important;
+            box-shadow: 0 0 22px rgba(168, 85, 247, 0.65) !important;
         }
 
         .client-content {
@@ -3389,7 +3385,8 @@ export default `<!DOCTYPE html>
         // Real-time update of button highlight states and top-right status badge
         function updateHostingUIFromInputs() {
             const priceInput = document.getElementById('client-hosting-price-net');
-            const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+            const priceVal = priceInput ? parseFloat(priceInput.value) : 0;
+            const price = isNaN(priceVal) ? 0 : Math.round(priceVal);
 
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             const sepaActive = sepaCb ? sepaCb.checked : false;
