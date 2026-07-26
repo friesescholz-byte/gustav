@@ -3304,6 +3304,8 @@ export default `<!DOCTYPE html>
             projectModEl.innerText = '-';
         }
 
+        let selectedHostingPlanName = null;
+
         // Render Hosting Status & Form Inputs with distinct plan styling
         function renderHostingStatus(client) {
             if (!client) return;
@@ -3311,10 +3313,18 @@ export default `<!DOCTYPE html>
             if (dateInput) dateInput.value = client.hostingStartDate || '';
 
             const priceInput = document.getElementById('client-hosting-price-net');
-            if (priceInput) priceInput.value = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null) ? client.hostingPriceNet : '';
+            const price = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null) ? parseFloat(client.hostingPriceNet) : 0;
+            if (priceInput) priceInput.value = price > 0 ? price : '';
 
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             if (sepaCb) sepaCb.checked = !!client.sepaActive;
+
+            if (price === 25) selectedHostingPlanName = 'Server';
+            else if (price === 95) selectedHostingPlanName = 'Basic';
+            else if (price === 145) selectedHostingPlanName = 'Pro';
+            else if (price === 295) selectedHostingPlanName = 'Enterprise';
+            else if (price > 0) selectedHostingPlanName = 'Custom';
+            else selectedHostingPlanName = null;
 
             updateHostingUIFromInputs();
         }
@@ -3327,88 +3337,119 @@ export default `<!DOCTYPE html>
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             const sepaActive = sepaCb ? sepaCb.checked : false;
 
+            // Match plan by price if not explicitly selected
+            let activePlan = selectedHostingPlanName;
+            if (price === 25) activePlan = 'Server';
+            else if (price === 95) activePlan = 'Basic';
+            else if (price === 145) activePlan = 'Pro';
+            else if (price === 295) activePlan = 'Enterprise';
+            else if (price > 0 && activePlan !== 'Custom') activePlan = 'Custom';
+            else if (price === 0) activePlan = null;
+
             const btn25 = document.getElementById('preset-btn-25');
             const btn95 = document.getElementById('preset-btn-95');
             const btn145 = document.getElementById('preset-btn-145');
             const btn295 = document.getElementById('preset-btn-295');
 
-            // Reset all buttons to inactive dimmed state
-            const resetBtn = (btn) => {
+            // Reset all buttons to dim inactive state
+            const setInactive = (btn, label, priceText, iconClass, colorHex) => {
                 if (!btn) return;
-                btn.style.background = 'rgba(0, 0, 0, 0.3)';
+                btn.style.background = 'rgba(15, 23, 42, 0.6)';
                 btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
                 btn.style.boxShadow = 'none';
-                btn.style.opacity = '0.55';
+                btn.style.opacity = '0.45';
                 btn.style.transform = 'scale(1)';
+                if (btn.id === 'preset-btn-25') {
+                    btn.innerHTML = '<div style="display: flex; align-items: center; gap: 8px;">' +
+                        '<i class="' + iconClass + '" style="color: ' + colorHex + '; font-size: 13px;"></i>' +
+                        '<span style="font-size: 12px; font-weight: 800; color: #94a3b8;">' + label + '</span>' +
+                    '</div>' +
+                    '<span style="font-size: 11px; color: #64748b; font-weight: 700;">' + priceText + '</span>';
+                } else {
+                    btn.innerHTML = '<span style="font-size: 12px; font-weight: 800; color: #94a3b8;">' + label + '</span>' +
+                    '<span style="font-size: 11px; color: #64748b; font-weight: 700;">' + priceText + '</span>';
+                }
             };
 
-            resetBtn(btn25);
-            resetBtn(btn95);
-            resetBtn(btn145);
-            resetBtn(btn295);
+            setInactive(btn25, 'Nur Server', '25 € / Mtl.', 'fa-solid fa-hard-drive', '#94a3b8');
+            setInactive(btn95, 'Basic', '95 € / Mtl.', 'fa-solid fa-server', '#10b981');
+            setInactive(btn145, 'Pro', '145 € / Mtl.', 'fa-solid fa-server', '#06b6d4');
+            setInactive(btn295, 'Enterprise', '295 € / Mtl.', 'fa-solid fa-crown', '#a855f7');
 
-            if (btn25 && price === 25) {
-                btn25.style.background = 'rgba(148, 163, 184, 0.28)';
-                btn25.style.borderColor = '#94a3b8';
-                btn25.style.boxShadow = '0 0 16px rgba(148, 163, 184, 0.45)';
+            // Apply vibrant active highlight to the selected plan button
+            if (btn25 && activePlan === 'Server') {
+                btn25.style.background = 'linear-gradient(135deg, rgba(148, 163, 184, 0.35) 0%, rgba(148, 163, 184, 0.15) 100%)';
+                btn25.style.borderColor = '#cbd5e1';
+                btn25.style.boxShadow = '0 0 18px rgba(148, 163, 184, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.15)';
                 btn25.style.opacity = '1';
                 btn25.style.transform = 'scale(1.02)';
+                btn25.innerHTML = '<div style="display: flex; align-items: center; gap: 8px;">' +
+                    '<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 14px;"></i>' +
+                    '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff;">Nur Server</span>' +
+                '</div>' +
+                '<span style="font-size: 11px; color: #cbd5e1; font-weight: 800; background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">25 € / Mtl. ✓</span>';
             }
 
-            if (btn95 && price === 95) {
-                btn95.style.background = 'rgba(16, 185, 129, 0.28)';
-                btn95.style.borderColor = '#10b981';
-                btn95.style.boxShadow = '0 0 16px rgba(16, 185, 129, 0.45)';
+            if (btn95 && activePlan === 'Basic') {
+                btn95.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.2) 100%)';
+                btn95.style.borderColor = '#34d399';
+                btn95.style.boxShadow = '0 0 18px rgba(16, 185, 129, 0.5), inset 0 0 10px rgba(52, 211, 153, 0.2)';
                 btn95.style.opacity = '1';
-                btn95.style.transform = 'scale(1.02)';
+                btn95.style.transform = 'scale(1.03)';
+                btn95.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #34d399;"></i> Basic</span>' +
+                '<span style="font-size: 11px; color: #34d399; font-weight: 800;">95 € / Mtl. ✓</span>';
             }
 
-            if (btn145 && price === 145) {
-                btn145.style.background = 'rgba(6, 182, 212, 0.28)';
-                btn145.style.borderColor = '#06b6d4';
-                btn145.style.boxShadow = '0 0 16px rgba(6, 182, 212, 0.45)';
+            if (btn145 && activePlan === 'Pro') {
+                btn145.style.background = 'linear-gradient(135deg, rgba(6, 182, 212, 0.4) 0%, rgba(6, 182, 212, 0.2) 100%)';
+                btn145.style.borderColor = '#38bdf8';
+                btn145.style.boxShadow = '0 0 18px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(56, 189, 248, 0.2)';
                 btn145.style.opacity = '1';
-                btn145.style.transform = 'scale(1.02)';
+                btn145.style.transform = 'scale(1.03)';
+                btn145.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #38bdf8;"></i> Pro</span>' +
+                '<span style="font-size: 11px; color: #38bdf8; font-weight: 800;">145 € / Mtl. ✓</span>';
             }
 
-            if (btn295 && price === 295) {
-                btn295.style.background = 'rgba(168, 85, 247, 0.28)';
-                btn295.style.borderColor = '#a855f7';
-                btn295.style.boxShadow = '0 0 16px rgba(168, 85, 247, 0.45)';
+            if (btn295 && activePlan === 'Enterprise') {
+                btn295.style.background = 'linear-gradient(135deg, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0.2) 100%)';
+                btn295.style.borderColor = '#c084fc';
+                btn295.style.boxShadow = '0 0 18px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(192, 132, 252, 0.2)';
                 btn295.style.opacity = '1';
-                btn295.style.transform = 'scale(1.02)';
+                btn295.style.transform = 'scale(1.03)';
+                btn295.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #c084fc;"></i> Enterprise</span>' +
+                '<span style="font-size: 11px; color: #c084fc; font-weight: 800;">295 € / Mtl. ✓</span>';
             }
 
             const badge = document.getElementById('hosting-status-badge');
             if (badge) {
                 const sepaLabel = sepaActive ? ' <span style="opacity:0.85; font-size:10px;">(SEPA)</span>' : '';
-                if (price === 25) {
+                if (price === 25 || activePlan === 'Server') {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(148, 163, 184, 0.15)';
+                    badge.style.background = 'rgba(148, 163, 184, 0.18)';
                     badge.style.borderColor = 'rgba(148, 163, 184, 0.4)';
                     badge.style.color = '#cbd5e1';
                     badge.innerHTML = '<i class="fa-solid fa-hard-drive" style="margin-right: 4px;"></i> Server: 25 €/Mtl.' + sepaLabel;
-                } else if (price === 95) {
+                } else if (price === 95 || activePlan === 'Basic') {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    badge.style.background = 'rgba(16, 185, 129, 0.18)';
                     badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
                     badge.style.color = '#34d399';
                     badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Basic: 95 €/Mtl.' + sepaLabel;
-                } else if (price === 145) {
+                } else if (price === 145 || activePlan === 'Pro') {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(6, 182, 212, 0.15)';
+                    badge.style.background = 'rgba(6, 182, 212, 0.18)';
                     badge.style.borderColor = 'rgba(6, 182, 212, 0.4)';
                     badge.style.color = '#38bdf8';
                     badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Pro: 145 €/Mtl.' + sepaLabel;
-                } else if (price === 295) {
+                } else if (price === 295 || activePlan === 'Enterprise') {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(168, 85, 247, 0.15)';
+                    badge.style.background = 'rgba(168, 85, 247, 0.18)';
                     badge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
                     badge.style.color = '#c084fc';
                     badge.innerHTML = '<i class="fa-solid fa-crown" style="margin-right: 4px;"></i> Enterprise: 295 €/Mtl.' + sepaLabel;
                 } else if (price > 0) {
                     badge.style.display = 'inline-flex';
-                    badge.style.background = 'rgba(59, 130, 246, 0.15)';
+                    badge.style.background = 'rgba(59, 130, 246, 0.18)';
                     badge.style.borderColor = 'rgba(59, 130, 246, 0.4)';
                     badge.style.color = '#60a5fa';
                     badge.innerHTML = '<i class="fa-solid fa-bolt" style="margin-right: 4px;"></i> Custom: ' + price.toFixed(2) + ' €/Mtl.' + sepaLabel;
@@ -3423,6 +3464,7 @@ export default `<!DOCTYPE html>
         }
 
         function applyHostingPreset(netPrice, planName) {
+            selectedHostingPlanName = planName;
             const priceInput = document.getElementById('client-hosting-price-net');
             if (priceInput) priceInput.value = netPrice;
 
