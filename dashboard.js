@@ -377,6 +377,70 @@ export default `<!DOCTYPE html>
             color: var(--text-primary);
         }
 
+        /* --- HOSTING PRESET BUTTONS --- */
+        .hosting-preset-btn {
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .hosting-preset-btn.btn-preset-25 {
+            background: rgba(148, 163, 184, 0.08);
+            border: 1.5px solid rgba(148, 163, 184, 0.25);
+            color: #94a3b8;
+        }
+        .hosting-preset-btn.btn-preset-95 {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1.5px solid rgba(16, 185, 129, 0.25);
+            color: #10b981;
+        }
+        .hosting-preset-btn.btn-preset-145 {
+            background: rgba(6, 182, 212, 0.08);
+            border: 1.5px solid rgba(6, 182, 212, 0.25);
+            color: #06b6d4;
+        }
+        .hosting-preset-btn.btn-preset-295 {
+            background: rgba(168, 85, 247, 0.08);
+            border: 1.5px solid rgba(168, 85, 247, 0.25);
+            color: #a855f7;
+        }
+
+        .hosting-preset-btn:hover {
+            filter: brightness(1.35);
+            transform: translateY(-1px);
+        }
+
+        /* ACTIVE / SELECTED STATES (Dauerhafter Mouse-Over Effekt / Stark Aufgehellt) */
+        .hosting-preset-btn.active-preset {
+            opacity: 1 !important;
+            transform: scale(1.03) !important;
+        }
+        .hosting-preset-btn.btn-preset-25.active-preset {
+            background: rgba(148, 163, 184, 0.45) !important;
+            border: 2px solid #cbd5e1 !important;
+            box-shadow: 0 0 18px rgba(148, 163, 184, 0.6) !important;
+            color: #ffffff !important;
+        }
+        .hosting-preset-btn.btn-preset-95.active-preset {
+            background: rgba(16, 185, 129, 0.45) !important;
+            border: 2px solid #34d399 !important;
+            box-shadow: 0 0 18px rgba(16, 185, 129, 0.6) !important;
+            color: #ffffff !important;
+        }
+        .hosting-preset-btn.btn-preset-145.active-preset {
+            background: rgba(6, 182, 212, 0.45) !important;
+            border: 2px solid #38bdf8 !important;
+            box-shadow: 0 0 18px rgba(6, 182, 212, 0.6) !important;
+            color: #ffffff !important;
+        }
+        .hosting-preset-btn.btn-preset-295.active-preset {
+            background: rgba(168, 85, 247, 0.45) !important;
+            border: 2px solid #c084fc !important;
+            box-shadow: 0 0 18px rgba(168, 85, 247, 0.6) !important;
+            color: #ffffff !important;
+        }
+
         .client-content {
             flex-grow: 1;
             padding: 30px 40px;
@@ -2032,27 +2096,27 @@ export default `<!DOCTYPE html>
                             <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Hosting-Tarif Schnell-Auswahl</label>
                             
                             <!-- Top Row: Server Button -->
-                            <button type="button" class="btn hosting-preset-btn" id="preset-btn-25" onclick="applyHostingPreset(25, 'Server')" style="width: 100%; margin-bottom: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; transition: all 0.2s; cursor: pointer;">
+                            <button type="button" class="hosting-preset-btn btn-preset-25" id="preset-btn-25" onclick="applyHostingPreset(25, 'Server')" style="width: 100%; margin-bottom: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fa-solid fa-hard-drive" style="color: #94a3b8; font-size: 13px;"></i>
-                                    <span style="font-size: 12px; font-weight: 800; color: #e2e8f0;">Nur Server</span>
+                                    <i class="fa-solid fa-hard-drive" style="font-size: 13px;"></i>
+                                    <strong style="font-size: 13px; font-weight: 800;">Nur Server</strong>
                                 </div>
-                                <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">25 € / Mtl.</span>
+                                <span style="font-size: 12px; font-weight: 700;">25 € / Mtl.</span>
                             </button>
 
                             <!-- Bottom Row: Basic, Pro, Enterprise -->
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-95" onclick="applyHostingPreset(95, 'Basic')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; transition: all 0.2s;">
-                                    <span style="font-size: 12px; font-weight: 800; color: #34d399;">Basic</span>
-                                    <span style="font-size: 11px; color: #10b981; font-weight: 700;">95 € / Mtl.</span>
+                                <button type="button" class="hosting-preset-btn btn-preset-95" id="preset-btn-95" onclick="applyHostingPreset(95, 'Basic')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    <strong style="font-size: 12px; font-weight: 800;">Basic</strong>
+                                    <span style="font-size: 11px; font-weight: 700;">95 € / Mtl.</span>
                                 </button>
-                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-145" onclick="applyHostingPreset(145, 'Pro')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 8px; transition: all 0.2s;">
-                                    <span style="font-size: 12px; font-weight: 800; color: #38bdf8;">Pro</span>
-                                    <span style="font-size: 11px; color: #06b6d4; font-weight: 700;">145 € / Mtl.</span>
+                                <button type="button" class="hosting-preset-btn btn-preset-145" id="preset-btn-145" onclick="applyHostingPreset(145, 'Pro')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    <strong style="font-size: 12px; font-weight: 800;">Pro</strong>
+                                    <span style="font-size: 11px; font-weight: 700;">145 € / Mtl.</span>
                                 </button>
-                                <button type="button" class="btn hosting-preset-btn" id="preset-btn-295" onclick="applyHostingPreset(295, 'Enterprise')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; transition: all 0.2s;">
-                                    <span style="font-size: 12px; font-weight: 800; color: #c084fc;">Enterprise</span>
-                                    <span style="font-size: 11px; color: #a855f7; font-weight: 700;">295 € / Mtl.</span>
+                                <button type="button" class="hosting-preset-btn btn-preset-295" id="preset-btn-295" onclick="applyHostingPreset(295, 'Enterprise')" style="padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    <strong style="font-size: 12px; font-weight: 800;">Enterprise</strong>
+                                    <span style="font-size: 11px; font-weight: 700;">295 € / Mtl.</span>
                                 </button>
                             </div>
                         </div>
@@ -3319,13 +3383,6 @@ export default `<!DOCTYPE html>
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             if (sepaCb) sepaCb.checked = !!client.sepaActive;
 
-            if (price === 25) selectedHostingPlanName = 'Server';
-            else if (price === 95) selectedHostingPlanName = 'Basic';
-            else if (price === 145) selectedHostingPlanName = 'Pro';
-            else if (price === 295) selectedHostingPlanName = 'Enterprise';
-            else if (price > 0) selectedHostingPlanName = 'Custom';
-            else selectedHostingPlanName = null;
-
             updateHostingUIFromInputs();
         }
 
@@ -3337,111 +3394,45 @@ export default `<!DOCTYPE html>
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             const sepaActive = sepaCb ? sepaCb.checked : false;
 
-            // Match plan by price if not explicitly selected
-            let activePlan = selectedHostingPlanName;
-            if (price === 25) activePlan = 'Server';
-            else if (price === 95) activePlan = 'Basic';
-            else if (price === 145) activePlan = 'Pro';
-            else if (price === 295) activePlan = 'Enterprise';
-            else if (price > 0 && activePlan !== 'Custom') activePlan = 'Custom';
-            else if (price === 0) activePlan = null;
-
             const btn25 = document.getElementById('preset-btn-25');
             const btn95 = document.getElementById('preset-btn-95');
             const btn145 = document.getElementById('preset-btn-145');
             const btn295 = document.getElementById('preset-btn-295');
 
-            // Reset all buttons to dim inactive state
-            const setInactive = (btn, label, priceText, iconClass, colorHex) => {
-                if (!btn) return;
-                btn.style.background = 'rgba(15, 23, 42, 0.6)';
-                btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                btn.style.boxShadow = 'none';
-                btn.style.opacity = '0.45';
-                btn.style.transform = 'scale(1)';
-                if (btn.id === 'preset-btn-25') {
-                    btn.innerHTML = '<div style="display: flex; align-items: center; gap: 8px;">' +
-                        '<i class="' + iconClass + '" style="color: ' + colorHex + '; font-size: 13px;"></i>' +
-                        '<span style="font-size: 12px; font-weight: 800; color: #94a3b8;">' + label + '</span>' +
-                    '</div>' +
-                    '<span style="font-size: 11px; color: #64748b; font-weight: 700;">' + priceText + '</span>';
-                } else {
-                    btn.innerHTML = '<span style="font-size: 12px; font-weight: 800; color: #94a3b8;">' + label + '</span>' +
-                    '<span style="font-size: 11px; color: #64748b; font-weight: 700;">' + priceText + '</span>';
-                }
-            };
+            // Remove active-preset class from all
+            [btn25, btn95, btn145, btn295].forEach(btn => {
+                if (btn) btn.classList.remove('active-preset');
+            });
 
-            setInactive(btn25, 'Nur Server', '25 € / Mtl.', 'fa-solid fa-hard-drive', '#94a3b8');
-            setInactive(btn95, 'Basic', '95 € / Mtl.', 'fa-solid fa-server', '#10b981');
-            setInactive(btn145, 'Pro', '145 € / Mtl.', 'fa-solid fa-server', '#06b6d4');
-            setInactive(btn295, 'Enterprise', '295 € / Mtl.', 'fa-solid fa-crown', '#a855f7');
+            // Add active-preset class to the selected button
+            if (price === 25 && btn25) btn25.classList.add('active-preset');
+            else if (price === 95 && btn95) btn95.classList.add('active-preset');
+            else if (price === 145 && btn145) btn145.classList.add('active-preset');
+            else if (price === 295 && btn295) btn295.classList.add('active-preset');
 
-            // Apply vibrant active highlight to the selected plan button
-            if (btn25 && activePlan === 'Server') {
-                btn25.style.background = 'linear-gradient(135deg, rgba(148, 163, 184, 0.35) 0%, rgba(148, 163, 184, 0.15) 100%)';
-                btn25.style.borderColor = '#cbd5e1';
-                btn25.style.boxShadow = '0 0 18px rgba(148, 163, 184, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.15)';
-                btn25.style.opacity = '1';
-                btn25.style.transform = 'scale(1.02)';
-                btn25.innerHTML = '<div style="display: flex; align-items: center; gap: 8px;">' +
-                    '<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 14px;"></i>' +
-                    '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff;">Nur Server</span>' +
-                '</div>' +
-                '<span style="font-size: 11px; color: #cbd5e1; font-weight: 800; background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">25 € / Mtl. ✓</span>';
-            }
-
-            if (btn95 && activePlan === 'Basic') {
-                btn95.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.2) 100%)';
-                btn95.style.borderColor = '#34d399';
-                btn95.style.boxShadow = '0 0 18px rgba(16, 185, 129, 0.5), inset 0 0 10px rgba(52, 211, 153, 0.2)';
-                btn95.style.opacity = '1';
-                btn95.style.transform = 'scale(1.03)';
-                btn95.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #34d399;"></i> Basic</span>' +
-                '<span style="font-size: 11px; color: #34d399; font-weight: 800;">95 € / Mtl. ✓</span>';
-            }
-
-            if (btn145 && activePlan === 'Pro') {
-                btn145.style.background = 'linear-gradient(135deg, rgba(6, 182, 212, 0.4) 0%, rgba(6, 182, 212, 0.2) 100%)';
-                btn145.style.borderColor = '#38bdf8';
-                btn145.style.boxShadow = '0 0 18px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(56, 189, 248, 0.2)';
-                btn145.style.opacity = '1';
-                btn145.style.transform = 'scale(1.03)';
-                btn145.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #38bdf8;"></i> Pro</span>' +
-                '<span style="font-size: 11px; color: #38bdf8; font-weight: 800;">145 € / Mtl. ✓</span>';
-            }
-
-            if (btn295 && activePlan === 'Enterprise') {
-                btn295.style.background = 'linear-gradient(135deg, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0.2) 100%)';
-                btn295.style.borderColor = '#c084fc';
-                btn295.style.boxShadow = '0 0 18px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(192, 132, 252, 0.2)';
-                btn295.style.opacity = '1';
-                btn295.style.transform = 'scale(1.03)';
-                btn295.innerHTML = '<span style="font-size: 12.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check" style="color: #c084fc;"></i> Enterprise</span>' +
-                '<span style="font-size: 11px; color: #c084fc; font-weight: 800;">295 € / Mtl. ✓</span>';
-            }
-
+            // Update top-right badge
             const badge = document.getElementById('hosting-status-badge');
             if (badge) {
                 const sepaLabel = sepaActive ? ' <span style="opacity:0.85; font-size:10px;">(SEPA)</span>' : '';
-                if (price === 25 || activePlan === 'Server') {
+                if (price === 25) {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(148, 163, 184, 0.18)';
                     badge.style.borderColor = 'rgba(148, 163, 184, 0.4)';
                     badge.style.color = '#cbd5e1';
                     badge.innerHTML = '<i class="fa-solid fa-hard-drive" style="margin-right: 4px;"></i> Server: 25 €/Mtl.' + sepaLabel;
-                } else if (price === 95 || activePlan === 'Basic') {
+                } else if (price === 95) {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(16, 185, 129, 0.18)';
                     badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
                     badge.style.color = '#34d399';
                     badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Basic: 95 €/Mtl.' + sepaLabel;
-                } else if (price === 145 || activePlan === 'Pro') {
+                } else if (price === 145) {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(6, 182, 212, 0.18)';
                     badge.style.borderColor = 'rgba(6, 182, 212, 0.4)';
                     badge.style.color = '#38bdf8';
                     badge.innerHTML = '<i class="fa-solid fa-server" style="margin-right: 4px;"></i> Pro: 145 €/Mtl.' + sepaLabel;
-                } else if (price === 295 || activePlan === 'Enterprise') {
+                } else if (price === 295) {
                     badge.style.display = 'inline-flex';
                     badge.style.background = 'rgba(168, 85, 247, 0.18)';
                     badge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
@@ -3464,7 +3455,6 @@ export default `<!DOCTYPE html>
         }
 
         function applyHostingPreset(netPrice, planName) {
-            selectedHostingPlanName = planName;
             const priceInput = document.getElementById('client-hosting-price-net');
             if (priceInput) priceInput.value = netPrice;
 
