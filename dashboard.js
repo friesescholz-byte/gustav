@@ -2126,7 +2126,12 @@ export default `<!DOCTYPE html>
                                     <input type="date" id="client-hosting-start-date" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
                                 </div>
                                 <div>
-                                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Netto (€ / Mtl.)</label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Netto (€ / Mtl.)</label>
+                                        <span id="client-hosting-brutto-display" style="font-size: 11px; color: #34d399; font-weight: 700; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="fa-solid fa-calculator" style="font-size: 9px;"></i> Brutto: 0,00 €
+                                        </span>
+                                    </div>
                                     <input type="number" step="0.01" id="client-hosting-price-net" placeholder="z. B. 95" oninput="updateHostingUIFromInputs()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 9px 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
                                 </div>
                             </div>
@@ -3385,8 +3390,26 @@ export default `<!DOCTYPE html>
         // Real-time update of button highlight states and top-right status badge
         function updateHostingUIFromInputs() {
             const priceInput = document.getElementById('client-hosting-price-net');
-            const priceVal = priceInput ? parseFloat(priceInput.value) : 0;
-            const price = isNaN(priceVal) ? 0 : Math.round(priceVal);
+            const rawPrice = priceInput ? parseFloat(priceInput.value) : 0;
+            const priceVal = isNaN(rawPrice) ? 0 : rawPrice;
+            const price = Math.round(priceVal);
+
+            // Real-time Brutto (+19% MwSt.) badge update
+            const bruttoDisplay = document.getElementById('client-hosting-brutto-display');
+            if (bruttoDisplay) {
+                if (priceVal > 0) {
+                    const bruttoVal = priceVal * 1.19;
+                    bruttoDisplay.innerHTML = '<i class="fa-solid fa-calculator" style="font-size: 9px;"></i> Brutto: ' + bruttoVal.toFixed(2).replace('.', ',') + ' € <span style="opacity:0.75; font-size:9.5px;">(+19%)</span>';
+                    bruttoDisplay.style.color = '#34d399';
+                    bruttoDisplay.style.background = 'rgba(16, 185, 129, 0.14)';
+                    bruttoDisplay.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                } else {
+                    bruttoDisplay.innerHTML = '<i class="fa-solid fa-calculator" style="font-size: 9px;"></i> Brutto: 0,00 €';
+                    bruttoDisplay.style.color = 'var(--text-secondary)';
+                    bruttoDisplay.style.background = 'rgba(255, 255, 255, 0.05)';
+                    bruttoDisplay.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+            }
 
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
             const sepaActive = sepaCb ? sepaCb.checked : false;
@@ -3613,6 +3636,7 @@ export default `<!DOCTYPE html>
                 const prevMonthEnd = prevMonthDate.getFullYear() + '-' + String(prevMonthDate.getMonth() + 1).padStart(2, '0') + '-' + String(prevMonthDate.getDate()).padStart(2, '0');
 
                 if (newPrice > 0) {
+                    const grossPrice = Math.round(newPrice * 1.19 * 100) / 100;
                     if (mode === 'future_only' && existingTx) {
                         // End old transaction at previous month
                         existingTx.endDate = prevMonthEnd;
@@ -3622,7 +3646,7 @@ export default `<!DOCTYPE html>
                             body: JSON.stringify(existingTx)
                         });
 
-                        // Create new transaction for current month onwards
+                        // Create new transaction for current month onwards (BRUTTO)
                         const newTx = {
                             id: txIdBase + '_' + Date.now(),
                             clientId: activeClient.id,
@@ -3631,8 +3655,8 @@ export default `<!DOCTYPE html>
                             type: 'income',
                             interval: 'monthly',
                             date: currentMonthStart,
-                            amount: newPrice,
-                            vatIncluded: false, // Netto price
+                            amount: grossPrice,
+                            vatIncluded: true,
                             sepaActive: sepaActive
                         };
                         await fetch('/api/finanzen', {
@@ -3641,7 +3665,7 @@ export default `<!DOCTYPE html>
                             body: JSON.stringify(newTx)
                         });
                     } else {
-                        // Retroactive update or new hosting: single transaction starting from startDate
+                        // Retroactive update or new hosting: single transaction starting from startDate (BRUTTO)
                         const tx = {
                             id: existingTx ? existingTx.id : txIdBase,
                             clientId: activeClient.id,
@@ -3650,8 +3674,8 @@ export default `<!DOCTYPE html>
                             type: 'income',
                             interval: 'monthly',
                             date: startDate || currentMonthStart,
-                            amount: newPrice,
-                            vatIncluded: false, // Netto price
+                            amount: grossPrice,
+                            vatIncluded: true,
                             sepaActive: sepaActive,
                             endDate: null // clear any prior endDate
                         };
