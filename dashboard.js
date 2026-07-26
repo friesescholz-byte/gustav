@@ -3537,15 +3537,7 @@ export default `<!DOCTYPE html>
             }
         }
 
-        function applyHostingPreset(netPrice, planName) {
-            const priceInput = document.getElementById('client-hosting-price-net');
-            if (priceInput) priceInput.value = netPrice;
 
-            const dateInput = document.getElementById('client-hosting-start-date');
-            if (dateInput && !dateInput.value) {
-                dateInput.value = new Date().toISOString().split('T')[0];
-            }
-        }
 
         let pendingHostingData = null;
 
