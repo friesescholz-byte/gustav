@@ -2006,12 +2006,32 @@ export default `<!DOCTYPE html>
 
         <!-- Client Active Details -->
         <div id="client-view" style="display: none; height: 100%; flex-direction: column;">
-            <div class="client-header">
-                <div class="client-title-area">
-                    <h2 class="client-title" id="active-client-name">Kundenname</h2>
-                    <div class="status-pill" id="active-client-status">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Status</span>
+            <div class="client-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div class="client-title-area">
+                        <h2 class="client-title" id="active-client-name">Kundenname</h2>
+                        <div class="status-pill" id="active-client-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Status</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Sleek, compact & clean contact info bar -->
+                    <div id="active-client-contact-bar" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">
+                        <span id="header-contact-email-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-regular fa-envelope" style="color: var(--color-cyan); font-size: 13px;"></i>
+                            <a href="#" id="header-email-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
+                        </span>
+                        <span id="header-contact-person-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
+                            <i class="fa-regular fa-user" style="color: #c084fc; font-size: 13px;"></i>
+                            <span id="header-contact-person-text" style="color: #e2e8f0; font-weight: 600;">-</span>
+                        </span>
+                        <span id="header-contact-phone-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
+                            <i class="fa-solid fa-phone" style="color: #34d399; font-size: 12px;"></i>
+                            <a href="#" id="header-phone-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
+                        </span>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -2279,6 +2299,17 @@ export default `<!DOCTYPE html>
                 <div class="form-group">
                     <label>Kunden-E-Mail *</label>
                     <input type="email" id="modal-client-email" required placeholder="Z.B. info@weymann.de">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Ansprechpartner (optional)</label>
+                        <input type="text" id="modal-client-contact" placeholder="Z.B. Max Mustermann">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefonnummer (optional)</label>
+                        <input type="text" id="modal-client-phone" placeholder="Z.B. 0511 1234567">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -3283,6 +3314,36 @@ export default `<!DOCTYPE html>
             statusPill.className = 'status-pill ' + client.status;
             statusPill.querySelector('.status-text').innerText = client.status === 'green' ? 'Alles OK' : 'Aktion erforderlich';
 
+            // Populate contact info bar in header
+            const emailLink = document.getElementById('header-email-link');
+            if (emailLink) {
+                emailLink.innerText = client.email || 'Keine E-Mail';
+                emailLink.href = client.email ? 'mailto:' + client.email : '#';
+            }
+
+            const personText = document.getElementById('header-contact-person-text');
+            const personWrapper = document.getElementById('header-contact-person-wrapper');
+            if (personText && personWrapper) {
+                if (client.contactPerson && client.contactPerson.trim()) {
+                    personText.innerText = client.contactPerson.trim();
+                    personWrapper.style.display = 'inline-flex';
+                } else {
+                    personWrapper.style.display = 'none';
+                }
+            }
+
+            const phoneLink = document.getElementById('header-phone-link');
+            const phoneWrapper = document.getElementById('header-contact-phone-wrapper');
+            if (phoneLink && phoneWrapper) {
+                if (client.phone && client.phone.trim()) {
+                    phoneLink.innerText = client.phone.trim();
+                    phoneLink.href = 'tel:' + client.phone.trim().replace(/\s+/g, '');
+                    phoneWrapper.style.display = 'inline-flex';
+                } else {
+                    phoneWrapper.style.display = 'none';
+                }
+            }
+
             // Warning Banner for outstanding tasks
             const actionBanner = document.getElementById('client-action-banner');
             if (client.status === 'red') {
@@ -4220,6 +4281,10 @@ export default `<!DOCTYPE html>
             document.getElementById('modal-title').innerText = "Kunde hinzufügen";
             document.getElementById('modal-client-id').value = "";
             document.getElementById('client-form').reset();
+            const contactInput = document.getElementById('modal-client-contact');
+            if (contactInput) contactInput.value = "";
+            const phoneInput = document.getElementById('modal-client-phone');
+            if (phoneInput) phoneInput.value = "";
             document.getElementById('client-modal').style.display = 'flex';
         }
 
@@ -4229,6 +4294,10 @@ export default `<!DOCTYPE html>
             document.getElementById('modal-client-id').value = activeClient.id;
             document.getElementById('modal-client-name').value = activeClient.name;
             document.getElementById('modal-client-email').value = activeClient.email || '';
+            const contactInput = document.getElementById('modal-client-contact');
+            if (contactInput) contactInput.value = activeClient.contactPerson || '';
+            const phoneInput = document.getElementById('modal-client-phone');
+            if (phoneInput) phoneInput.value = activeClient.phone || '';
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
             document.getElementById('modal-client-domain').value = activeClient.customDomain || '';
             document.getElementById('client-modal').style.display = 'flex';
@@ -4243,10 +4312,14 @@ export default `<!DOCTYPE html>
             const id = document.getElementById('modal-client-id').value;
             const name = document.getElementById('modal-client-name').value;
             const email = document.getElementById('modal-client-email').value;
+            const contactInput = document.getElementById('modal-client-contact');
+            const contactPerson = contactInput ? contactInput.value.trim() : '';
+            const phoneInput = document.getElementById('modal-client-phone');
+            const phone = phoneInput ? phoneInput.value.trim() : '';
             const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
             const customDomain = document.getElementById('modal-client-domain').value.trim();
 
-            const payload = { name, email, linkedCloudflareProject, customDomain };
+            const payload = { name, email, contactPerson, phone, linkedCloudflareProject, customDomain };
             if (id) payload.id = id;
 
             try {
