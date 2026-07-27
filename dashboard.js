@@ -4340,8 +4340,8 @@ export default `<!DOCTYPE html>
                 if (data.success) {
                     closeClientModal();
                     await loadClients();
-                    if (!id) {
-                        selectClient(data.customer); // Autoselect newly created
+                    if (data.customer) {
+                        selectClient(data.customer); // Autoselect and update UI instantly
                     }
                 }
             } catch(e) {
