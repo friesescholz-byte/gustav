@@ -370,11 +370,12 @@ export default {
               await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
             }
 
-            // Check draft logic (must have project AND custom domain that is not a default workers/pages dev domain):
-            const hasProject = customer.linkedCloudflareProject && customer.linkedCloudflareProject.trim();
-            const hasDomain = customer.customDomain && customer.customDomain.trim() && !customer.customDomain.includes('.workers.dev') && !customer.customDomain.includes('.pages.dev');
+            // Check draft logic (no longer draft if EITHER a project OR a custom domain is linked):
+            const hasProject = (customer.linkedCloudflareProject && customer.linkedCloudflareProject.trim()) || (customer.cfProjectName && customer.cfProjectName.trim());
+            const hasDomain = (customer.customDomain && customer.customDomain.trim() && !customer.customDomain.includes('.workers.dev') && !customer.customDomain.includes('.pages.dev')) ||
+                              (customer.liveUrl && customer.liveUrl.trim() && !customer.liveUrl.includes('.workers.dev') && !customer.liveUrl.includes('.pages.dev'));
             
-            customer.isDraft = !hasProject || !hasDomain;
+            customer.isDraft = !(hasProject || hasDomain);
 
             if (customer.manualOverride) {
               // Respect manual override in GET
@@ -467,10 +468,11 @@ export default {
         finalCustomer.createdAt = finalCustomer.createdAt || new Date().toISOString();
 
         // Apply draft checks on save:
-        const hasProject = finalCustomer.linkedCloudflareProject && finalCustomer.linkedCloudflareProject.trim();
-        const hasDomain = finalCustomer.customDomain && finalCustomer.customDomain.trim() && !finalCustomer.customDomain.includes('.workers.dev') && !finalCustomer.customDomain.includes('.pages.dev');
+        const hasProject = (finalCustomer.linkedCloudflareProject && finalCustomer.linkedCloudflareProject.trim()) || (finalCustomer.cfProjectName && finalCustomer.cfProjectName.trim());
+        const hasDomain = (finalCustomer.customDomain && finalCustomer.customDomain.trim() && !finalCustomer.customDomain.includes('.workers.dev') && !finalCustomer.customDomain.includes('.pages.dev')) ||
+                          (finalCustomer.liveUrl && finalCustomer.liveUrl.trim() && !finalCustomer.liveUrl.includes('.workers.dev') && !finalCustomer.liveUrl.includes('.pages.dev'));
 
-        finalCustomer.isDraft = !hasProject || !hasDomain;
+        finalCustomer.isDraft = !(hasProject || hasDomain);
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
         // Fetch emails to check if any unresolved incoming mail exists

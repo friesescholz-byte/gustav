@@ -2006,47 +2006,49 @@ export default `<!DOCTYPE html>
 
         <!-- Client Active Details -->
         <div id="client-view" style="display: none; height: 100%; flex-direction: column;">
-            <div class="client-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <div class="client-title-area">
-                        <h2 class="client-title" id="active-client-name">Kundenname</h2>
-                        <div class="status-pill" id="active-client-status">
+            <div class="client-header" style="padding: 22px 36px 18px 36px; border-bottom: 1px solid var(--border-color); background: rgba(13, 18, 32, 0.6); backdrop-filter: blur(12px); display: flex; flex-direction: column; gap: 14px;">
+                <!-- Top Row: Title + Status Pill + Actions -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    <div class="client-title-area" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                        <h2 class="client-title" id="active-client-name" style="font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.4px; margin: 0;">Kundenname</h2>
+                        <div class="status-pill" id="active-client-status" style="margin-left: 2px;">
                             <span class="status-dot"></span>
                             <span class="status-text">Status</span>
                         </div>
                     </div>
                     
-                    <!-- Sleek, compact & clean contact info bar -->
-                    <div id="active-client-contact-bar" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">
-                        <span id="header-contact-email-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
-                            <i class="fa-regular fa-envelope" style="color: var(--color-cyan); font-size: 13px;"></i>
-                            <a href="#" id="header-email-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
-                        </span>
-                        <span id="header-contact-person-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
-                            <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
-                            <i class="fa-regular fa-user" style="color: #c084fc; font-size: 13px;"></i>
-                            <span id="header-contact-person-text" style="color: #e2e8f0; font-weight: 600;">-</span>
-                        </span>
-                        <span id="header-contact-phone-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
-                            <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
-                            <i class="fa-solid fa-phone" style="color: #34d399; font-size: 12px;"></i>
-                            <a href="#" id="header-phone-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
-                        </span>
+                    <div class="header-actions" style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="openMailWithClient()" style="padding: 9px 15px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 7px; border-radius: 8px;">
+                            <i class="fa-solid fa-paper-plane" style="font-size: 12px;"></i> E-Mail schreiben
+                        </button>
+                        <button class="btn" onclick="toggleManualStatus()" style="padding: 9px 13px; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;">
+                            <i class="fa-solid fa-rotate" style="font-size: 12px; color: var(--color-cyan);"></i> Status umstellen
+                        </button>
+                        <button class="btn" onclick="openEditClientModal()" style="padding: 9px 13px; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;">
+                            <i class="fa-solid fa-pen-to-square" style="font-size: 12px; color: var(--color-purple);"></i> Bearbeiten
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteClient()" style="padding: 9px 12px; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;" title="Kunde löschen">
+                            <i class="fa-solid fa-trash-can" style="font-size: 13px;"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="header-actions">
-                    <button class="btn" onclick="toggleManualStatus()">
-                        <i class="fa-solid fa-rotate"></i> Status umstellen
-                    </button>
-                    <button class="btn btn-primary" onclick="openMailWithClient()">
-                        <i class="fa-solid fa-paper-plane"></i> E-Mail schreiben
-                    </button>
-                    <button class="btn" onclick="openEditClientModal()">
-                        <i class="fa-solid fa-pen-to-square"></i> Bearbeiten
-                    </button>
-                    <button class="btn btn-danger" onclick="deleteClient()">
-                        <i class="fa-solid fa-trash"></i> Löschen
-                    </button>
+
+                <!-- Bottom Row: Sleek Glass Contact Bar -->
+                <div id="active-client-contact-bar" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 8px 14px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary);">
+                    <span id="header-contact-email-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-regular fa-envelope" style="color: var(--color-cyan); font-size: 13px;"></i>
+                        <a href="#" id="header-email-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
+                    </span>
+                    <span id="header-contact-person-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
+                        <i class="fa-regular fa-user" style="color: #c084fc; font-size: 13px;"></i>
+                        <span id="header-contact-person-text" style="color: #e2e8f0; font-weight: 600;">-</span>
+                    </span>
+                    <span id="header-contact-phone-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="opacity: 0.35; color: var(--text-secondary);">•</span>
+                        <i class="fa-solid fa-phone" style="color: #34d399; font-size: 12px;"></i>
+                        <a href="#" id="header-phone-link" style="color: #e2e8f0; text-decoration: none; font-weight: 500;">-</a>
+                    </span>
                 </div>
             </div>
             
@@ -3430,6 +3432,12 @@ export default `<!DOCTYPE html>
                 if (customDomain) {
                     projectUrlEl.innerText = customDomain.hostname;
                     projectUrlEl.href = 'https://' + customDomain.hostname;
+                    // If custom domain is active, customer is no longer a draft!
+                    if (client.isDraft) {
+                        client.isDraft = false;
+                        const nameEl = document.getElementById('active-client-name');
+                        if (nameEl) nameEl.innerHTML = client.name;
+                    }
                 } else if (cfProjects.workersSubdomain) {
                     // Fallback to default workers.dev subdomain link
                     const devUrl = workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev';
