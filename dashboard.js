@@ -3429,10 +3429,10 @@ export default `<!DOCTYPE html>
                 
                 // Find custom domain for this worker service if available
                 const customDomain = (cfProjects.workerDomains || []).find(d => d.service === cfName);
-                if (customDomain) {
+                if (customDomain && customDomain.hostname && !customDomain.hostname.includes('workers.dev') && !customDomain.hostname.includes('pages.dev')) {
                     projectUrlEl.innerText = customDomain.hostname;
                     projectUrlEl.href = 'https://' + customDomain.hostname;
-                    // If custom domain is active, customer is no longer a draft!
+                    // If a real custom domain is active, customer is no longer a draft!
                     if (client.isDraft) {
                         client.isDraft = false;
                         const nameEl = document.getElementById('active-client-name');

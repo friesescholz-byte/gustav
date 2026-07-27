@@ -370,12 +370,11 @@ export default {
               await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
             }
 
-            // Check draft logic (no longer draft if EITHER a project OR a custom domain is linked):
-            const hasProject = (customer.linkedCloudflareProject && customer.linkedCloudflareProject.trim()) || (customer.cfProjectName && customer.cfProjectName.trim());
-            const hasDomain = (customer.customDomain && customer.customDomain.trim() && !customer.customDomain.includes('.workers.dev') && !customer.customDomain.includes('.pages.dev')) ||
-                              (customer.liveUrl && customer.liveUrl.trim() && !customer.liveUrl.includes('.workers.dev') && !customer.liveUrl.includes('.pages.dev'));
+            // Check draft logic: Only marked as non-draft if a real custom domain (not *.workers.dev or *.pages.dev) is connected
+            const isRealDomain = (d) => d && typeof d === 'string' && d.trim() && !d.includes('workers.dev') && !d.includes('pages.dev');
+            const hasRealDomain = isRealDomain(customer.customDomain) || isRealDomain(customer.liveUrl);
             
-            customer.isDraft = !(hasProject || hasDomain);
+            customer.isDraft = !hasRealDomain;
 
             if (customer.manualOverride) {
               // Respect manual override in GET
@@ -467,12 +466,11 @@ export default {
         // Keep or create createdAt timestamp
         finalCustomer.createdAt = finalCustomer.createdAt || new Date().toISOString();
 
-        // Apply draft checks on save:
-        const hasProject = (finalCustomer.linkedCloudflareProject && finalCustomer.linkedCloudflareProject.trim()) || (finalCustomer.cfProjectName && finalCustomer.cfProjectName.trim());
-        const hasDomain = (finalCustomer.customDomain && finalCustomer.customDomain.trim() && !finalCustomer.customDomain.includes('.workers.dev') && !finalCustomer.customDomain.includes('.pages.dev')) ||
-                          (finalCustomer.liveUrl && finalCustomer.liveUrl.trim() && !finalCustomer.liveUrl.includes('.workers.dev') && !finalCustomer.liveUrl.includes('.pages.dev'));
+        // Apply draft checks on save (requires real custom domain, not *.workers.dev or *.pages.dev):
+        const isRealDomain = (d) => d && typeof d === 'string' && d.trim() && !d.includes('workers.dev') && !d.includes('pages.dev');
+        const hasRealDomain = isRealDomain(finalCustomer.customDomain) || isRealDomain(finalCustomer.liveUrl);
 
-        finalCustomer.isDraft = !(hasProject || hasDomain);
+        finalCustomer.isDraft = !hasRealDomain;
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
         // Fetch emails to check if any unresolved incoming mail exists
