@@ -1583,12 +1583,26 @@ export default `<!DOCTYPE html>
                 <div style="display: flex; flex-direction: column; gap: 30px; box-sizing: border-box;">
                     <!-- Card: Active alerts / Mail Action Center -->
                     <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 24px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
                             <h3 class="card-title" style="margin: 0;"><i class="fa-solid fa-bell" style="color: var(--color-red);"></i> Aktivitäts- & Alarm-Zentrale</h3>
                             <button type="button" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;" onclick="openCustomTaskModal()">
                                 <i class="fa-solid fa-plus"></i> Aufgabe hinzufügen
                             </button>
                         </div>
+
+                        <!-- Filter Pill Bar for Tasks: Alle | Adrian | Basti -->
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;" id="command-center-task-filters">
+                            <button type="button" class="btn" id="task-filter-all" onclick="setCommandCenterTaskFilter('all')" style="padding: 5px 11px; font-size: 11.5px; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.4); color: #fff;">
+                                <i class="fa-solid fa-layer-group" style="font-size: 10.5px; color: #60a5fa;"></i> Alle <span id="task-count-all" style="opacity: 0.85; font-size: 10.5px;">(0)</span>
+                            </button>
+                            <button type="button" class="btn" id="task-filter-adrian" onclick="setCommandCenterTaskFilter('adrian')" style="padding: 5px 11px; font-size: 11.5px; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary);">
+                                <i class="fa-regular fa-user" style="font-size: 10.5px; color: #60a5fa;"></i> Adrian <span id="task-count-adrian" style="opacity: 0.85; font-size: 10.5px;">(0)</span>
+                            </button>
+                            <button type="button" class="btn" id="task-filter-basti" onclick="setCommandCenterTaskFilter('basti')" style="padding: 5px 11px; font-size: 11.5px; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary);">
+                                <i class="fa-regular fa-user" style="font-size: 10.5px; color: #f472b6;"></i> Basti <span id="task-count-basti" style="opacity: 0.85; font-size: 10.5px;">(0)</span>
+                            </button>
+                        </div>
+
                         <div id="alerts-center-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex-grow: 1; max-height: 380px; padding-right: 4px;">
                             <!-- Dynamische Liste von Kunden-Alarms & Aufgaben -->
                         </div>
@@ -5192,6 +5206,55 @@ export default `<!DOCTYPE html>
         }
 
         // --- GLOBAL STATS ---
+        let commandCenterTaskFilter = 'all';
+
+        function taskMatchesFilter(text, assignee, filter) {
+            if (!filter || filter === 'all') return true;
+            const str = ((text || '') + ' ' + (assignee || '')).toLowerCase();
+            if (filter === 'adrian') {
+                return str.includes('adrian');
+            }
+            if (filter === 'basti') {
+                return str.includes('basti') || str.includes('bastian');
+            }
+            return true;
+        }
+
+        function setCommandCenterTaskFilter(filter) {
+            commandCenterTaskFilter = filter;
+            
+            const btnAll = document.getElementById('task-filter-all');
+            const btnAdrian = document.getElementById('task-filter-adrian');
+            const btnBasti = document.getElementById('task-filter-basti');
+
+            [btnAll, btnAdrian, btnBasti].forEach(btn => {
+                if (btn) {
+                    btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    btn.style.boxShadow = 'none';
+                    btn.style.color = 'var(--text-secondary)';
+                }
+            });
+
+            if (filter === 'all' && btnAll) {
+                btnAll.style.background = 'rgba(59, 130, 246, 0.18)';
+                btnAll.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                btnAll.style.color = '#fff';
+            } else if (filter === 'adrian' && btnAdrian) {
+                btnAdrian.style.background = 'rgba(59, 130, 246, 0.25)';
+                btnAdrian.style.borderColor = '#3b82f6';
+                btnAdrian.style.color = '#60a5fa';
+                btnAdrian.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.3)';
+            } else if (filter === 'basti' && btnBasti) {
+                btnBasti.style.background = 'rgba(236, 72, 153, 0.25)';
+                btnBasti.style.borderColor = '#ec4899';
+                btnBasti.style.color = '#f472b6';
+                btnBasti.style.boxShadow = '0 0 12px rgba(236, 72, 153, 0.3)';
+            }
+
+            updateGlobalStats();
+        }
+
         function updateGlobalStats() {
             const okCount = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'green').length;
             const redCount = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'red').length;
@@ -5216,6 +5279,48 @@ export default `<!DOCTYPE html>
             const openCustomTasks = (Array.isArray(customTasksData) ? customTasksData : []).filter(t => t && !t.completed);
             const redClients = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'red');
             const totalAlertsCount = redClients.length + openCustomTasks.length;
+
+            // Calculate Task Counts per Filter for Pills (All, Adrian, Basti)
+            let countAll = 0;
+            let countAdrian = 0;
+            let countBasti = 0;
+
+            const generalTasks = openCustomTasks.filter(t => !t.clientId);
+            generalTasks.forEach(t => {
+                countAll++;
+                if (taskMatchesFilter(t.title, t.assignee, 'adrian')) countAdrian++;
+                if (taskMatchesFilter(t.title, t.assignee, 'basti')) countBasti++;
+            });
+
+            redClients.forEach(c => {
+                const openClientTodos = (c.todos || []).filter(td => !td.done);
+                const openClientCustom = (customTasksData || []).filter(t => t.clientId === c.id && !t.completed);
+                let allOpenTasks = [...openClientTodos.map(td => ({ text: td.text, assignee: td.assignee }))];
+                openClientCustom.forEach(ct => {
+                    if (!allOpenTasks.some(ot => ot.text === ct.title)) {
+                        allOpenTasks.push({ text: ct.title, assignee: ct.assignee });
+                    }
+                });
+
+                if (allOpenTasks.length > 0) {
+                    allOpenTasks.forEach(ot => {
+                        countAll++;
+                        if (taskMatchesFilter(ot.text, ot.assignee, 'adrian')) countAdrian++;
+                        if (taskMatchesFilter(ot.text, ot.assignee, 'basti')) countBasti++;
+                    });
+                } else {
+                    countAll++;
+                    if (taskMatchesFilter(c.statusReason || '', '', 'adrian')) countAdrian++;
+                    if (taskMatchesFilter(c.statusReason || '', '', 'basti')) countBasti++;
+                }
+            });
+
+            const cntAllEl = document.getElementById('task-count-all');
+            const cntAdrianEl = document.getElementById('task-count-adrian');
+            const cntBastiEl = document.getElementById('task-count-basti');
+            if (cntAllEl) cntAllEl.innerText = '(' + countAll + ')';
+            if (cntAdrianEl) cntAdrianEl.innerText = '(' + countAdrian + ')';
+            if (cntBastiEl) cntBastiEl.innerText = '(' + countBasti + ')';
 
             if (ringEl && ringIcon && statusTitle && statusDesc) {
                 if (totalAlertsCount > 0) {
@@ -5242,17 +5347,38 @@ export default `<!DOCTYPE html>
             if (alertsList) {
                 alertsList.innerHTML = '';
                 
-                // Only render general custom tasks (without clientId) as separate task cards
-                const generalTasks = openCustomTasks.filter(t => !t.clientId);
+                // Filter general custom tasks
+                const filteredGeneralTasks = generalTasks.filter(t => taskMatchesFilter(t.title, t.assignee, commandCenterTaskFilter));
 
-                if (redClients.length === 0 && generalTasks.length === 0) {
+                // Filter red clients
+                const filteredRedClients = redClients.filter(c => {
+                    if (commandCenterTaskFilter === 'all') return true;
+                    const openClientTodos = (c.todos || []).filter(td => !td.done);
+                    const openClientCustom = (customTasksData || []).filter(t => t.clientId === c.id && !t.completed);
+                    let allOpenTasks = [...openClientTodos.map(td => ({ text: td.text, assignee: td.assignee }))];
+                    openClientCustom.forEach(ct => {
+                        if (!allOpenTasks.some(ot => ot.text === ct.title)) {
+                            allOpenTasks.push({ text: ct.title, assignee: ct.assignee });
+                        }
+                    });
+
+                    if (allOpenTasks.length > 0) {
+                        return allOpenTasks.some(ot => taskMatchesFilter(ot.text, ot.assignee, commandCenterTaskFilter));
+                    }
+                    return taskMatchesFilter(c.statusReason || '', '', commandCenterTaskFilter);
+                });
+
+                if (filteredRedClients.length === 0 && filteredGeneralTasks.length === 0) {
+                    const noTasksMsg = commandCenterTaskFilter === 'all' 
+                        ? 'Keine ausstehenden Alarme oder Aufgaben. Großartige Arbeit!' 
+                        : 'Keine ausstehenden Aufgaben für ' + (commandCenterTaskFilter === 'adrian' ? 'Adrian' : 'Basti') + '.';
                     alertsList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">' +
                         '<i class="fa-solid fa-circle-check" style="color: var(--color-green);"></i>' +
-                        'Keine ausstehenden Alarme oder Aufgaben. Großartige Arbeit!' +
+                        noTasksMsg +
                     '</div>';
                 } else {
-                    // Render general custom tasks first
-                    generalTasks.forEach(t => {
+                    // Render filtered general custom tasks
+                    filteredGeneralTasks.forEach(t => {
                         const taskItem = document.createElement('div');
                         taskItem.className = 'drive-item';
                         
@@ -5262,12 +5388,10 @@ export default `<!DOCTYPE html>
                         let assigneeText = t.assignee === 'adrian' ? 'Adrian' : (t.assignee === 'basti' ? 'Basti' : null);
 
                         if (t.assignee === 'basti') {
-                            // General task for Basti -> PINK
                             bgColor = 'rgba(236, 72, 153, 0.08)';
                             borderColor = 'rgba(244, 114, 182, 0.3)';
                             iconHtml = '<i class="fa-solid fa-list-check" style="color: #f472b6;"></i>';
                         } else if (t.assignee === 'adrian') {
-                            // General task for Adrian -> BLUE
                             bgColor = 'rgba(59, 130, 246, 0.08)';
                             borderColor = 'rgba(59, 130, 246, 0.25)';
                             iconHtml = '<i class="fa-solid fa-list-check" style="color: #60a5fa;"></i>';
@@ -5302,8 +5426,8 @@ export default `<!DOCTYPE html>
                         alertsList.appendChild(taskItem);
                     });
 
-                    // Render red clients
-                    redClients.forEach(c => {
+                    // Render filtered red clients
+                    filteredRedClients.forEach(c => {
                         const alertItem = document.createElement('div');
                         alertItem.className = 'drive-item';
                         alertItem.style.background = 'rgba(239, 68, 68, 0.05)';
@@ -5316,7 +5440,7 @@ export default `<!DOCTYPE html>
                         alertItem.style.marginBottom = '8px';
                         alertItem.onclick = () => selectClient(c);
                         
-                        // Gather all open tasks for this client
+                        // Gather all open tasks for this client that match the filter
                         const openClientTodos = (c.todos || []).filter(td => !td.done);
                         const openClientCustom = (customTasksData || []).filter(t => t.clientId === c.id && !t.completed);
                         
@@ -5327,9 +5451,11 @@ export default `<!DOCTYPE html>
                             }
                         });
 
+                        const matchingTasks = allOpenTasks.filter(ot => taskMatchesFilter(ot.text, ot.assignee, commandCenterTaskFilter));
+
                         let reasonHtml = '';
-                        if (allOpenTasks.length > 0) {
-                            reasonHtml = allOpenTasks.map(ot => {
+                        if (matchingTasks.length > 0) {
+                            reasonHtml = matchingTasks.map(ot => {
                                 const assigneeTag = ot.assignee === 'adrian' 
                                     ? ' <span style="color: #60a5fa; font-weight: 600;">(Adrian)</span>' 
                                     : (ot.assignee === 'basti' 
