@@ -655,9 +655,112 @@ export default {
         customer.contracts = (customer.contracts || []).filter(c => c.r2Path !== r2Path);
         await env.KUNDEN_DB.put(`kunde:${clientId}`, JSON.stringify(customer));
 
-        return new Response(JSON.stringify({ success: true, customer }), {
+      }
+
+      // 5.5 API: Get Company Files
+      if (url.pathname === '/api/company-files' && method === 'GET') {
+        const raw = await env.KUNDEN_DB.get('company:files');
+        const files = raw ? JSON.parse(raw) : [];
+        return new Response(JSON.stringify({ success: true, files }), {
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
+      }
+
+      // 5.6 API: Upload Company File to R2
+      if (url.pathname === '/api/company-files/upload' && method === 'POST') {
+        try {
+          const formData = await request.formData();
+          const file = formData.get('file');
+
+          if (!file || !(file instanceof File)) {
+            return new Response(JSON.stringify({ error: 'Missing file input' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            });
+          }
+
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const fileId = `cfile_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const r2Path = `gustav/company_files/${Date.now()}_${safeName}`;
+
+          // Put file into R2 BUCKET
+          await env.BUCKET.put(r2Path, file.stream(), {
+            httpMetadata: { contentType: file.type || 'application/octet-stream' },
+          });
+
+          const downloadUrl = `/api/company-files/download?path=${encodeURIComponent(r2Path)}`;
+          const newFile = {
+            id: fileId,
+            name: file.name,
+            r2Path: r2Path,
+            url: downloadUrl,
+            uploadedAt: new Date().toISOString(),
+            size: file.size,
+            type: file.type || 'application/octet-stream'
+          };
+
+          const raw = await env.KUNDEN_DB.get('company:files');
+          let companyFiles = raw ? JSON.parse(raw) : [];
+          companyFiles.unshift(newFile); // newest first
+          await env.KUNDEN_DB.put('company:files', JSON.stringify(companyFiles));
+
+          return new Response(JSON.stringify({ success: true, file: newFile, files: companyFiles }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 5.7 API: Download/View Company File from R2
+      if (url.pathname === '/api/company-files/download' && method === 'GET') {
+        const path = url.searchParams.get('path');
+        if (!path) {
+          return new Response('Missing path parameter', { status: 400 });
+        }
+
+        const object = await env.BUCKET.get(path);
+        if (!object) {
+          return new Response('Datei nicht gefunden', { status: 404 });
+        }
+
+        const headers = new Headers();
+        object.writeHttpMetadata(headers);
+        headers.set('etag', object.httpEtag);
+        headers.set('Content-Disposition', `inline; filename="${path.split('/').pop()}"`);
+        headers.set('Access-Control-Allow-Origin', '*');
+
+        return new Response(object.body, { headers });
+      }
+
+      // 5.8 API: Delete Company File from R2 and KV
+      if (url.pathname === '/api/company-files/delete' && method === 'POST') {
+        try {
+          const { id, r2Path } = await request.json();
+          if (!id || !r2Path) {
+            return new Response(JSON.stringify({ error: 'Missing id or r2Path' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            });
+          }
+
+          try {
+            await env.BUCKET.delete(r2Path);
+          } catch (e) {
+            console.error('Failed to delete company file from R2:', e);
+          }
+
+          const raw = await env.KUNDEN_DB.get('company:files');
+          let companyFiles = raw ? JSON.parse(raw) : [];
+          companyFiles = companyFiles.filter(f => f.id !== id && f.r2Path !== r2Path);
+          await env.KUNDEN_DB.put('company:files', JSON.stringify(companyFiles));
+
+          return new Response(JSON.stringify({ success: true, files: companyFiles }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
       }
 
       // 6. API: Get Email Logs for Client
