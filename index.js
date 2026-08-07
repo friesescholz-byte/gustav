@@ -1346,6 +1346,133 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         }
       }
 
+      // 8.39 API: Send Task Email Notification / Completion via Resend
+      if (url.pathname === '/api/tasks/send-email' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          const { recipients, taskTitle, clientName, assignee, type } = payload;
+          
+          if (!recipients || !Array.isArray(recipients) || recipients.length === 0 || !taskTitle) {
+            return new Response(JSON.stringify({ error: 'Empfänger und Aufgaben-Titel sind erforderlich.' }), { status: 400, headers: corsHeaders });
+          }
+
+          const resendApiKey = env.RESEND_API_KEY;
+          if (!resendApiKey) {
+            return new Response(JSON.stringify({ error: 'Resend API-Schlüssel nicht in den Umgebungsvariablen hinterlegt.' }), { status: 500, headers: corsHeaders });
+          }
+
+          const emailMap = {
+            adrian: 'info@scholz-friese-webdesign.de',
+            basti: 'bastianscholz@scholz-friese-webdesign.de'
+          };
+
+          const targetEmails = [];
+          recipients.forEach(r => {
+            const key = String(r).toLowerCase().trim();
+            if (emailMap[key] && !targetEmails.includes(emailMap[key])) {
+              targetEmails.push(emailMap[key]);
+            } else if (key.includes('@') && !targetEmails.includes(key)) {
+              targetEmails.push(key);
+            }
+          });
+
+          if (targetEmails.length === 0) {
+            return new Response(JSON.stringify({ error: 'Gültige Empfänger-E-Mail-Adresse erforderlich.' }), { status: 400, headers: corsHeaders });
+          }
+
+          const isCompletion = type === 'completion';
+          const subject = isCompletion 
+            ? `✅ Erledigt: ${taskTitle}` 
+            : `📌 Aufgaben-Benachrichtigung: ${taskTitle}`;
+
+          const formattedAssignee = assignee === 'adrian' ? 'Adrian' : (assignee === 'basti' ? 'Basti' : 'Team');
+          const clientInfoHtml = clientName ? `<tr><td style="padding:6px 0; color:#9ca3af; font-size:13px;">Kunde:</td><td style="padding:6px 0; color:#ffffff; font-weight:700; font-size:13px; text-align:right;">${clientName}</td></tr>` : '';
+          const assigneeInfoHtml = assignee ? `<tr><td style="padding:6px 0; color:#9ca3af; font-size:13px;">Zuständig:</td><td style="padding:6px 0; color:#38bdf8; font-weight:700; font-size:13px; text-align:right;">${formattedAssignee}</td></tr>` : '';
+
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"></head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f17; color: #e2e8f0; margin: 0; padding: 24px;">
+              <div style="max-width: 560px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <div style="background: linear-gradient(135deg, ${isCompletion ? '#059669 0%, #10b981 100%' : '#1d4ed8 0%, #3b82f6 100%'}); padding: 20px 24px; text-align: left;">
+                  <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 4px;">Scholz & Friese • Gustav Assistant</div>
+                  <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">
+                    ${isCompletion ? '🎉 Aufgabe erfolgreich erledigt!' : '📌 Aufgaben-Benachrichtigung'}
+                  </h1>
+                </div>
+                <div style="padding: 24px;">
+                  <p style="font-size: 14.5px; color: #cbd5e1; line-height: 1.6; margin-top: 0;">
+                    ${isCompletion 
+                      ? 'Hallo! Folgende Aufgabe wurde soeben im Agentur-System als <strong>erledigt</strong> markiert 🎉:' 
+                      : 'Hallo! Du hast eine Benachrichtigung zu folgender Aufgabe im Gustav Agentur-System erhalten:'}
+                  </p>
+                  
+                  <div style="background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 16px; margin: 18px 0;">
+                    <div style="font-size: 15px; font-weight: 700; color: #ffffff; line-height: 1.4; margin-bottom: 12px;">
+                      ${taskTitle}
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; border-top: 1px dashed #374151; margin-top: 10px; padding-top: 10px;">
+                      ${clientInfoHtml}
+                      ${assigneeInfoHtml}
+                      <tr>
+                        <td style="padding:6px 0; color:#9ca3af; font-size:13px;">Status:</td>
+                        <td style="padding:6px 0; font-weight:700; font-size:13px; text-align:right; color:${isCompletion ? '#34d399' : '#fbbf24'};">
+                          ${isCompletion ? '✔ Erledigt' : '⏳ Offen'}
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 0;">
+                    Beste Grüße,<br>
+                    <strong>Gustav Assistant</strong> &bull; Scholz & Friese Webdesign
+                  </p>
+                </div>
+
+                <div style="background: #0d131f; border-top: 1px solid #1f2937; padding: 14px 24px; text-align: center; font-size: 11px; color: #6b7280;">
+                  Automatisierte System-E-Mail von &lt;noreply@scholz-friese-webdesign.de&gt;
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
+
+          const sendPromises = targetEmails.map(async (toEmail) => {
+            const resendBody = {
+              from: 'Gustav Assistant <noreply@scholz-friese-webdesign.de>',
+              to: [toEmail],
+              subject: subject,
+              html: htmlContent
+            };
+
+            const response = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${resendApiKey}`
+              },
+              body: JSON.stringify(resendBody)
+            });
+
+            const result = await response.json();
+            return { email: toEmail, success: response.ok, data: result };
+          });
+
+          const results = await Promise.all(sendPromises);
+          const failed = results.filter(r => !r.success);
+
+          if (failed.length > 0) {
+            return new Response(JSON.stringify({ success: false, results, error: 'Einige E-Mails konnten nicht zugestellt werden.' }), { status: 500, headers: corsHeaders });
+          }
+
+          return new Response(JSON.stringify({ success: true, results, message: 'Aufgaben-E-Mail erfolgreich versendet!' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       // 8.4 API: Cloudflare Domain List (Zones)
       if (url.pathname === '/api/cloudflare/domains' && method === 'GET') {
         const apiToken = env.CLOUDFLARE_API_TOKEN;

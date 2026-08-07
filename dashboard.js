@@ -2300,6 +2300,60 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- TASK EMAIL MODAL -->
+    <div class="modal" id="task-email-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 440px; background: rgba(17, 24, 39, 0.95); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; backdrop-filter: blur(16px); padding: 24px; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <h3 class="modal-title" id="task-email-modal-title" style="margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-paper-plane" style="color: var(--color-cyan);"></i> <span>Aufgabe per E-Mail senden</span>
+                </h3>
+                <button type="button" onclick="closeTaskEmailModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px;" title="Schließen">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Task Info Preview Box -->
+            <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; margin-bottom: 18px;">
+                <div id="task-email-modal-task-title" style="font-size: 13.5px; font-weight: 700; color: #fff; line-height: 1.4; word-break: break-word;">-</div>
+                <div id="task-email-modal-task-sub" style="font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">-</div>
+            </div>
+
+            <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 10px;">
+                Empfänger auswählen:
+            </label>
+
+            <!-- Recipient Selection Pills (Adrian / Basti) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <label id="label-recipient-adrian" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="checkbox" id="chk-recipient-adrian" style="accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #60a5fa;">Adrian</div>
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: 500;">info@...</div>
+                    </div>
+                </label>
+
+                <label id="label-recipient-basti" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(244, 114, 182, 0.3); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="checkbox" id="chk-recipient-basti" style="accent-color: #ec4899; width: 16px; height: 16px; cursor: pointer;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #f472b6;">Basti</div>
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: 500;">bastianscholz@...</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;" id="task-email-modal-actions">
+                <button type="button" class="btn" id="btn-no-task-email" onclick="skipEmailAndCompleteTask()" style="padding: 9px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; display: none;">
+                    Nein (Nur erledigen)
+                </button>
+                <button type="button" class="btn" onclick="closeTaskEmailModal()" style="padding: 9px 12px; font-size: 12.5px;">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-submit-task-email" onclick="submitTaskEmailModal()" style="padding: 9px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-paper-plane"></i> <span>E-Mail versenden</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ADD/EDIT CLIENT MODAL -->
     <div class="modal" id="client-modal">
         <div class="modal-content">
@@ -3101,6 +3155,140 @@ export default `<!DOCTYPE html>
                 }
             } catch(e) {
                 console.error('Error deleting custom task:', e);
+            }
+        }
+
+        // --- TASK EMAIL NOTIFICATION & COMPLETION HANDLERS ---
+        let currentTaskEmailData = null;
+
+        function openTaskEmailModal(title, clientName, assignee, options = {}) {
+            currentTaskEmailData = {
+                title: title,
+                clientName: clientName || null,
+                assignee: assignee || null,
+                isCompletion: !!options.isCompletion,
+                taskId: options.taskId || null,
+                todoId: options.todoId || null,
+                clientId: options.clientId || null
+            };
+
+            const modal = document.getElementById('task-email-modal');
+            const titleEl = document.getElementById('task-email-modal-title');
+            const taskTitleEl = document.getElementById('task-email-modal-task-title');
+            const taskSubEl = document.getElementById('task-email-modal-task-sub');
+            const btnSubmit = document.getElementById('btn-submit-task-email');
+            const noMailBtn = document.getElementById('btn-no-task-email');
+
+            if (taskTitleEl) taskTitleEl.innerText = title;
+            if (taskSubEl) {
+                let sub = clientName ? 'Kunde: ' + clientName : 'Allgemeine Aufgabe';
+                if (assignee) sub += ' • Bearbeiter: ' + (assignee === 'adrian' ? 'Adrian' : (assignee === 'basti' ? 'Basti' : assignee));
+                taskSubEl.innerText = sub;
+            }
+
+            // Preselect Adrian / Basti based on assignee
+            const chkAdrian = document.getElementById('chk-recipient-adrian');
+            const chkBasti = document.getElementById('chk-recipient-basti');
+            if (chkAdrian) chkAdrian.checked = (assignee === 'adrian' || !assignee);
+            if (chkBasti) chkBasti.checked = (assignee === 'basti' || !assignee);
+
+            if (options.isCompletion) {
+                if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color: var(--color-green);"></i> <span>Aufgabe erledigt! E-Mail senden?</span>';
+                if (btnSubmit) btnSubmit.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Erledigen & E-Mail senden</span>';
+                if (noMailBtn) noMailBtn.style.display = 'inline-flex';
+            } else {
+                if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-paper-plane" style="color: var(--color-cyan);"></i> <span>Aufgabe per E-Mail senden</span>';
+                if (btnSubmit) btnSubmit.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>E-Mail versenden</span>';
+                if (noMailBtn) noMailBtn.style.display = 'none';
+            }
+
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function openTaskCompleteEmailModal(taskIdOrTodoId, title, clientName, assignee, clientId, todoId) {
+            let options = { isCompletion: true };
+            if (clientId && todoId) {
+                options.clientId = clientId;
+                options.todoId = todoId;
+            } else {
+                options.taskId = taskIdOrTodoId;
+            }
+            openTaskEmailModal(title, clientName, assignee, options);
+        }
+
+        function closeTaskEmailModal() {
+            const modal = document.getElementById('task-email-modal');
+            if (modal) modal.style.display = 'none';
+            currentTaskEmailData = null;
+        }
+
+        async function skipEmailAndCompleteTask() {
+            if (!currentTaskEmailData) return;
+            const data = { ...currentTaskEmailData };
+            closeTaskEmailModal();
+
+            if (data.taskId) {
+                await toggleCustomTask(data.taskId);
+            } else if (data.todoId && data.clientId) {
+                await toggleTodo(data.clientId, data.todoId, true);
+            }
+        }
+
+        async function submitTaskEmailModal() {
+            if (!currentTaskEmailData) return;
+            const chkAdrian = document.getElementById('chk-recipient-adrian');
+            const chkBasti = document.getElementById('chk-recipient-basti');
+            
+            const recipients = [];
+            if (chkAdrian && chkAdrian.checked) recipients.push('adrian');
+            if (chkBasti && chkBasti.checked) recipients.push('basti');
+
+            if (recipients.length === 0) {
+                alert('Bitte wähle mindestens einen Empfänger (Adrian oder Basti) aus.');
+                return;
+            }
+
+            const data = { ...currentTaskEmailData };
+            const btnSubmit = document.getElementById('btn-submit-task-email');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Senden...';
+            }
+
+            try {
+                const res = await fetch('/api/tasks/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipients: recipients,
+                        taskTitle: data.title,
+                        clientName: data.clientName,
+                        assignee: data.assignee,
+                        type: data.isCompletion ? 'completion' : 'notification'
+                    })
+                });
+
+                const result = await res.json();
+                if (!res.ok || !result.success) {
+                    alert('Fehler beim Senden der E-Mail: ' + (result.error || 'Unbekannter Fehler'));
+                }
+            } catch(e) {
+                console.error('Task email error:', e);
+                alert('Fehler beim Senden der E-Mail.');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>E-Mail versenden</span>';
+                }
+                closeTaskEmailModal();
+
+                if (data.isCompletion) {
+                    if (data.taskId) {
+                        await toggleCustomTask(data.taskId);
+                    } else if (data.todoId && data.clientId) {
+                        await toggleTodo(data.clientId, data.todoId, true);
+                    }
+                }
             }
         }
 
@@ -4030,19 +4218,27 @@ export default `<!DOCTYPE html>
                         ? '<span style="font-size:10px; background:rgba(236, 72, 153, 0.15); border:1px solid rgba(244, 114, 182, 0.3); color:#f472b6; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:6px;">Basti</span>'
                         : '');
 
+                const escapedText = (t.text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedClientName = (client.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
                 item.innerHTML = \`
                     <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                        <div style="display:flex; align-items:center; gap:12px; flex:1; text-align: left;">
+                        <div style="display:flex; align-items:center; gap:12px; flex:1; text-align: left; min-width: 0;">
                             \${t.done 
                                 ? \`<button onclick="toggleTodo('\${client.id}', '\${t.id}', false)" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:600;" title="Aufgabe wiedereröffnen"><i class="fa-solid fa-circle-check"></i> Erledigt</button>\`
-                                : \`<button onclick="toggleTodo('\${client.id}', '\${t.id}', true)" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
+                                : \`<button onclick="openTaskCompleteEmailModal('\${t.id}', '\${escapedText}', '\${escapedClientName}', '\${t.assignee || ''}', '\${client.id}', '\${t.id}')" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
                             }
                             <span style="\${t.done ? 'text-decoration:line-through; color:var(--text-secondary);' : 'color:#fff;'}">\${t.text}</span>
                             \${assigneeBadge}
                         </div>
-                        <button onclick="deleteTodo('\${client.id}', '\${t.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:2px; opacity:0.8; display:inline-flex; align-items:center; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            <button onclick="openTaskEmailModal('\${escapedText}', '\${escapedClientName}', '\${t.assignee || ''}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 10px; display: inline-flex; align-items: center;" title="Per E-Mail senden">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                            <button onclick="deleteTodo('\${client.id}', '\${t.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:2px; opacity:0.8; display:inline-flex; align-items:center; margin-left:4px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" title="Löschen">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
                     </div>
 \`;
                 list.appendChild(item);
@@ -5408,6 +5604,10 @@ export default `<!DOCTYPE html>
                         let metaText = 'Allgemeine Aufgabe';
                         if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
 
+                        const escapedTaskTitle = (t.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const taskClientName = t.clientName || '';
+                        const escapedTaskClientName = taskClientName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
                         taskItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
                             '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
                             '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
@@ -5416,8 +5616,11 @@ export default `<!DOCTYPE html>
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; align-self: center;">' +
-                            '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Erledigt" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                            '<button type="button" class="btn" onclick="openTaskCompleteEmailModal(&quot;' + t.id + '&quot;, &quot;' + escapedTaskTitle + '&quot;, &quot;' + escapedTaskClientName + '&quot;, &quot;' + (t.assignee || '') + '&quot;)" title="Erledigt" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i>' +
+                            '</button>' +
+                            '<button type="button" class="btn" onclick="openTaskEmailModal(&quot;' + escapedTaskTitle + '&quot;, &quot;' + escapedTaskClientName + '&quot;, &quot;' + (t.assignee || '') + '&quot;)" title="Per E-Mail senden" style="padding: 5px 8px; font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;">' +
+                                '<i class="fa-solid fa-paper-plane"></i>' +
                             '</button>' +
                             '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i>' +
