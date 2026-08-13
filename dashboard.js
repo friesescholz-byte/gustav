@@ -1607,6 +1607,26 @@ export default `<!DOCTYPE html>
                             <!-- Dynamische Liste von Kunden-Alarms & Aufgaben -->
                         </div>
                     </div>
+
+                    <!-- Card: Wichtige Unternehmens-Dateien -->
+                    <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 24px; box-sizing: border-box; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                            <h3 class="card-title" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-folder-open" style="color: var(--color-cyan);"></i> Wichtige Unternehmens-Dateien
+                            </h3>
+                            <div>
+                                <label for="company-file-input" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; cursor: pointer;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Datei hochladen
+                                </label>
+                                <input type="file" id="company-file-input" style="display: none;" multiple onchange="uploadCompanyFile(event)">
+                            </div>
+                        </div>
+
+                        <!-- Company Files List -->
+                        <div id="company-files-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Dynamische Liste von Unternehmens-Dateien -->
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -3292,6 +3312,135 @@ export default `<!DOCTYPE html>
             }
         }
 
+        // --- COMPANY FILES HANDLERS ---
+        let companyFilesData = [];
+
+        async function loadCompanyFiles() {
+            try {
+                const res = await fetch('/api/company-files');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.files)) {
+                        companyFilesData = data.files;
+                        renderCompanyFiles();
+                    }
+                }
+            } catch(e) {
+                console.error('Error loading company files:', e);
+            }
+        }
+
+        function renderCompanyFiles() {
+            const container = document.getElementById('company-files-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!companyFilesData || companyFilesData.length === 0) {
+                container.innerHTML = '<div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-color); padding: 14px; border-radius: 8px; width: 100%; box-sizing: border-box;">' +
+                    '<i class="fa-solid fa-info-circle" style="color: var(--color-cyan);"></i>' +
+                    'Keine Unternehmens-Dateien hochgeladen. Klicke oben auf <strong>Datei hochladen</strong>, um Verträge, Vorlagen oder Dokumente abzulegen.' +
+                '</div>';
+                return;
+            }
+
+            companyFilesData.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'drive-item';
+                item.style.background = 'rgba(255, 255, 255, 0.03)';
+                item.style.borderColor = 'var(--border-color)';
+                item.style.padding = '10px 14px';
+                item.style.borderRadius = '8px';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.justifyContent = 'space-between';
+                item.style.marginBottom = '6px';
+
+                const sizeKb = file.size ? (file.size / 1024).toFixed(0) : 0;
+                const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+                const dateStr = file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString('de-DE') : '';
+
+                let iconClass = 'fa-file';
+                let iconColor = 'var(--text-secondary)';
+                const nameLower = (file.name || '').toLowerCase();
+                if (nameLower.endsWith('.pdf')) {
+                    iconClass = 'fa-file-pdf';
+                    iconColor = '#ef4444';
+                } else if (nameLower.endsWith('.png') || nameLower.endsWith('.jpg') || nameLower.endsWith('.jpeg') || nameLower.endsWith('.webp')) {
+                    iconClass = 'fa-file-image';
+                    iconColor = '#3b82f6';
+                } else if (nameLower.endsWith('.zip') || nameLower.endsWith('.rar')) {
+                    iconClass = 'fa-file-zipper';
+                    iconColor = '#f59e0b';
+                } else if (nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) {
+                    iconClass = 'fa-file-word';
+                    iconColor = '#2563eb';
+                }
+
+                item.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex-grow: 1; margin-right: 8px;">' +
+                    '<i class="fa-solid ' + iconClass + '" style="color: ' + iconColor + '; font-size: 16px; flex-shrink: 0;"></i>' +
+                    '<div style="min-width: 0; flex-grow: 1; overflow: hidden;">' +
+                        '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + file.name + '</strong>' +
+                        '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">' + sizeStr + ' &bull; ' + dateStr + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
+                    '<a href="' + file.url + '" target="_blank" class="btn" title="Ansehen / Öffnen" style="padding: 5px 8px; font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">' +
+                        '<i class="fa-solid fa-arrow-up-right-from-square"></i>' +
+                    '</a>' +
+                    '<button type="button" class="btn" onclick="deleteCompanyFile(&quot;' + file.id + '&quot;, &quot;' + file.r2Path.replace(/'/g, "\\'") + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                        '<i class="fa-solid fa-trash"></i>' +
+                    '</button>' +
+                '</div>';
+                container.appendChild(item);
+            });
+        }
+
+        async function uploadCompanyFile(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', files[i]);
+
+                try {
+                    const res = await fetch('/api/company-files/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.files)) {
+                        companyFilesData = data.files;
+                        renderCompanyFiles();
+                    } else {
+                        alert('Fehler beim Upload von ' + files[i].name + ': ' + (data.error || 'Unbekannter Fehler'));
+                    }
+                } catch(e) {
+                    console.error('Company file upload error:', e);
+                    alert('Fehler beim Upload von ' + files[i].name);
+                }
+            }
+            event.target.value = '';
+        }
+
+        async function deleteCompanyFile(id, r2Path) {
+            if (!confirm('Möchtest du diese Unternehmens-Datei wirklich löschen?')) return;
+            try {
+                const res = await fetch('/api/company-files/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, r2Path })
+                });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.files)) {
+                    companyFilesData = data.files;
+                    renderCompanyFiles();
+                }
+            } catch(e) {
+                console.error('Error deleting company file:', e);
+            }
+        }
+
         async function sendMail() {
             if (selectedMailRecipients.length === 0) {
                 alert('Bitte wähle mindestens einen Empfänger aus.');
@@ -3398,6 +3547,7 @@ export default `<!DOCTYPE html>
 
             try { await loadCloudflareProjects(); } catch(e) { console.error('CF projects init error:', e); }
             try { await loadClients(); } catch(e) { console.error('Clients init error:', e); }
+            try { await loadCompanyFiles(); } catch(e) { console.error('Company files init error:', e); }
             try { await loadCloudflareDomains(); } catch(e) { console.error('CF domains init error:', e); }
             try { updateGlobalStats(); } catch(e) { console.error('Global stats init error:', e); }
             try { initDragAndDrop(); } catch(e) { console.error('Drag drop init error:', e); }
