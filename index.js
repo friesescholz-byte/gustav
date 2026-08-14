@@ -1352,11 +1352,12 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
       // 8.37 API: Custom Tasks (Aktivitäts- & Alarm-Zentrale)
       if (url.pathname === '/api/tasks' && method === 'GET') {
         try {
+          const { tasks } = await handleSepaMonthlyWorkflow(env);
+          return new Response(JSON.stringify(tasks), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
           const raw = await env.KUNDEN_DB.get('tasks:custom');
           const tasks = raw ? JSON.parse(raw) : [];
           return new Response(JSON.stringify(tasks), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-        } catch (e) {
-          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
       }
 
@@ -1571,6 +1572,209 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
 
           return new Response(JSON.stringify({ success: true, results, message: 'Aufgaben-E-Mail erfolgreich versendet!' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
 
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // ───── SEPA MANDATE AUTOMATION HELPER ─────
+      async function handleSepaMonthlyWorkflow(env, forceReset = false) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const monthNum = String(now.getMonth() + 1).padStart(2, '0');
+        const currentMonthKey = `${year}-${monthNum}`;
+
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        const monthLabel = `${monthNames[now.getMonth()]} ${year}`;
+
+        const rawSepa = await env.KUNDEN_DB.get('sepa:statuses');
+        let sepaData = rawSepa ? JSON.parse(rawSepa) : { month: '', statuses: {} };
+
+        const isNewMonth = sepaData.month !== currentMonthKey;
+
+        // Reset if month changed or forced
+        if (isNewMonth || forceReset) {
+          sepaData.month = currentMonthKey;
+          sepaData.statuses = {}; // Reset all client statuses to RED (offen / false)
+          await env.KUNDEN_DB.put('sepa:statuses', JSON.stringify(sepaData));
+
+          // Send email notification to Basti via Resend
+          try {
+            const resendKey = env.RESEND_API_KEY || 're_BftE4c2v_9y2K37ZcE5oZJgN6W9J12';
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                from: 'Gustav Assistant <noreply@scholz-friese-webdesign.de>',
+                to: ['bastianscholz@scholz-friese-webdesign.de'],
+                subject: `💳 SEPA-Mandate für ${monthLabel} fällig`,
+                html: `
+                  <!DOCTYPE html>
+                  <html>
+                  <body style="font-family: sans-serif; background-color: #080A0F; color: #ffffff; padding: 30px;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: #151923; border: 1px solid #3b82f6; border-radius: 12px; padding: 25px;">
+                      <h2 style="color: #3b82f6; margin-top: 0;">💳 Monatsanfang: SEPA-Mandate fällig</h2>
+                      <p style="font-size: 15px; color: #e2e8f0; line-height: 1.6;">
+                        Hallo Basti,<br><br>
+                        ein neuer Monat (<strong>${monthLabel}</strong>) hat begonnen! Alle SEPA-Mandate im Gustav Dashboard wurden automatisch auf 
+                        <span style="color: #ef4444; font-weight: bold;">🔴 ROT (Offen / SEPA erstellen)</span> zurückgesetzt.
+                      </p>
+                      <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <p style="margin: 0; font-size: 14px; color: #94a3b8;">
+                          📋 Im Command Center wurde eine neue Aufgabe für dich erstellt. Sobald du alle Kunden im SEPA-Dashboard auf 
+                          <span style="color: #10b981; font-weight: bold;">🟢 GRÜN (Erledigt)</span> gestellt hast, wird die Aufgabe automatisch als erledigt markiert und ausgeblendet.
+                        </p>
+                      </div>
+                      <p style="margin-top: 25px; font-size: 12px; color: #64748b; text-align: center;">
+                        Automatischer SEPA-Workflow | Gustav AI Lead Developer & Webdesign
+                      </p>
+                    </div>
+                  </body>
+                  </html>
+                `
+              })
+            });
+          } catch(e) {
+            console.error('Failed to send SEPA email to Basti:', e);
+          }
+        }
+
+        // Fetch all active SEPA clients
+        const listRes = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+        const sepaClients = [];
+        for (const key of listRes.keys) {
+          const raw = await env.KUNDEN_DB.get(key.name);
+          if (raw) {
+            const client = JSON.parse(raw);
+            if (client.sepaActive) {
+              sepaClients.push(client);
+            }
+          }
+        }
+
+        const allCompleted = sepaClients.length > 0 && sepaClients.every(c => sepaData.statuses && sepaData.statuses[c.id] === true);
+        const hasAnyRed = sepaClients.length > 0 && sepaClients.some(c => !(sepaData.statuses && sepaData.statuses[c.id] === true));
+
+        // Sync task in tasks:custom
+        const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+        let tasks = rawTasks ? JSON.parse(rawTasks) : [];
+
+        const taskId = `sepa_task_${currentMonthKey}`;
+        const existingIdx = tasks.findIndex(t => t.id === taskId || t.isSepaTask);
+
+        let taskChanged = false;
+
+        if (hasAnyRed) {
+          // At least 1 SEPA mandate is RED -> Task for Basti MUST exist and be OPEN (completed: false)
+          const sepaTaskData = {
+            id: taskId,
+            title: `SEPA-Mandate für ${monthLabel} fertigstellen`,
+            text: `Monatlicher automatischer SEPA-Check: Bitte alle SEPA-Mandate für ${monthLabel} im SEPA-Dashboard abarbeiten und auf grün umstellen.`,
+            assignee: 'basti',
+            completed: false,
+            isSepaTask: true,
+            createdAt: (existingIdx >= 0 && tasks[existingIdx].createdAt) ? tasks[existingIdx].createdAt : new Date().toISOString()
+          };
+
+          if (existingIdx >= 0) {
+            if (tasks[existingIdx].completed || tasks[existingIdx].assignee !== 'basti') {
+              tasks[existingIdx] = { ...tasks[existingIdx], ...sepaTaskData, completed: false };
+              taskChanged = true;
+            }
+          } else {
+            tasks.unshift(sepaTaskData);
+            taskChanged = true;
+          }
+        } else if (allCompleted) {
+          // All SEPA clients are GREEN -> Mark task completed so it disappears from active tasks!
+          if (existingIdx >= 0 && !tasks[existingIdx].completed) {
+            tasks[existingIdx].completed = true;
+            tasks[existingIdx].completedAt = new Date().toISOString();
+            taskChanged = true;
+          }
+        }
+
+        if (taskChanged) {
+          await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+        }
+
+        return { sepaData, allCompleted, tasks };
+      }
+
+      // 8.40 API: GET SEPA Status
+      if (url.pathname === '/api/sepa/status' && method === 'GET') {
+        try {
+          const { sepaData, allCompleted, tasks } = await handleSepaMonthlyWorkflow(env);
+          return new Response(JSON.stringify(sepaData), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8.41 API: POST Toggle SEPA Status
+      if (url.pathname === '/api/sepa/toggle' && method === 'POST') {
+        try {
+          const { clientId, status } = await request.json();
+          
+          const rawSepa = await env.KUNDEN_DB.get('sepa:statuses');
+          let sepaData = rawSepa ? JSON.parse(rawSepa) : { month: '', statuses: {} };
+
+          if (clientId) {
+            if (!sepaData.statuses) sepaData.statuses = {};
+            sepaData.statuses[clientId] = !!status;
+            await env.KUNDEN_DB.put('sepa:statuses', JSON.stringify(sepaData));
+          }
+
+          const { allCompleted, tasks } = await handleSepaMonthlyWorkflow(env);
+
+          return new Response(JSON.stringify({ success: true, sepaData, allCompleted, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8.42 API: POST Manual SEPA Email to Basti
+      if (url.pathname === '/api/sepa/send-email' && method === 'POST') {
+        try {
+          const now = new Date();
+          const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+          const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+          const resendKey = env.RESEND_API_KEY || 're_BftE4c2v_9y2K37ZcE5oZJgN6W9J12';
+
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'Gustav Assistant <noreply@scholz-friese-webdesign.de>',
+              to: ['bastianscholz@scholz-friese-webdesign.de'],
+              subject: `💳 SEPA-Erinnerung: Mandate für ${monthLabel} fällig`,
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: sans-serif; background-color: #080A0F; color: #ffffff; padding: 30px;">
+                  <div style="max-width: 600px; margin: 0 auto; background-color: #151923; border: 1px solid #3b82f6; border-radius: 12px; padding: 25px;">
+                    <h2 style="color: #3b82f6; margin-top: 0;">💳 SEPA-Erinnerung für ${monthLabel}</h2>
+                    <p style="font-size: 15px; color: #e2e8f0; line-height: 1.6;">
+                      Hallo Basti,<br><br>
+                      dies ist eine Erinnerung zur Erstellung und Einziehung der SEPA-Mandate für <strong>${monthLabel}</strong>.
+                    </p>
+                    <p style="font-size: 14px; color: #94a3b8;">
+                      Bitte prüfe das SEPA-Dashboard in Gustav und schalte alle erledigten Kunden auf 🟢 GRÜN um.
+                    </p>
+                  </div>
+                </body>
+                </html>
+              `
+            })
+          });
+
+          return new Response(JSON.stringify({ success: true, message: 'SEPA-Erinnerung an Basti gesendet!' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
@@ -1815,6 +2019,18 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
+    }
+  },
+
+  async scheduled(event, env, ctx) {
+    try {
+      if (ctx && ctx.waitUntil) {
+        ctx.waitUntil(handleSepaMonthlyWorkflow(env, true));
+      } else {
+        await handleSepaMonthlyWorkflow(env, true);
+      }
+    } catch(e) {
+      console.error('Failed to run scheduled SEPA monthly cron:', e);
     }
   }
 };

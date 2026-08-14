@@ -1024,6 +1024,45 @@ export default `<!DOCTYPE html>
             }
         }
 
+        .routing-tab-btn {
+            background: none;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .routing-tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .routing-tab-btn.active {
+            color: #fff;
+            background: rgba(6, 182, 212, 0.12);
+            border-color: rgba(6, 182, 212, 0.35);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.15);
+        }
+        .routing-frame-container {
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+            flex-grow: 1;
+            height: calc(100vh - 190px);
+            min-height: 560px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #080A0F;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            position: relative;
+        }
+
         .mail-tab-btn {
             background: none;
             border: none;
@@ -1151,11 +1190,15 @@ export default `<!DOCTYPE html>
             }
         }
 
-        /* --- MOBILE & RESPONSIVE DESIGN (PRO MAX) --- */
+        /* ========================================================= */
+        /* --- PRO MAX MOBILE & RESPONSIVE DESIGN SYSTEM --- */
+        /* ========================================================= */
+        
         .mobile-header {
             display: none;
-            height: 56px;
-            background-color: var(--bg-sidebar);
+            height: 54px;
+            background: rgba(13, 18, 32, 0.95);
+            backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-color);
             padding: 0 16px;
             align-items: center;
@@ -1166,17 +1209,22 @@ export default `<!DOCTYPE html>
         }
 
         .mobile-toggle-btn {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             width: 38px;
             height: 38px;
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .mobile-toggle-btn:active {
+            transform: scale(0.95);
+            background: rgba(59, 130, 246, 0.2);
         }
 
         .mobile-bottom-nav {
@@ -1184,12 +1232,14 @@ export default `<!DOCTYPE html>
             position: fixed;
             bottom: 0; left: 0; right: 0;
             height: 60px;
-            background: #0d1220;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            background: rgba(13, 18, 32, 0.96);
             border-top: 1px solid var(--border-color);
             z-index: 900;
             align-items: center;
             justify-content: space-around;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
         }
 
         .mobile-nav-item {
@@ -1204,9 +1254,10 @@ export default `<!DOCTYPE html>
             font-size: 10px;
             font-weight: 600;
             cursor: pointer;
-            padding: 6px 10px;
+            padding: 6px 8px;
             border-radius: 8px;
             transition: var(--transition-smooth);
+            min-width: 48px;
         }
 
         .mobile-nav-item i {
@@ -1214,17 +1265,21 @@ export default `<!DOCTYPE html>
         }
 
         .mobile-nav-item.active {
-            color: var(--color-primary);
-            background: rgba(59, 130, 246, 0.1);
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
         }
 
         .mobile-backdrop {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(5px);
             z-index: 940;
+        }
+        .mobile-backdrop.active {
+            display: block;
         }
 
         .fin-header-container {
@@ -1250,57 +1305,14 @@ export default `<!DOCTYPE html>
             padding-right: 20px;
         }
 
-        .mobile-backdrop.active {
-            display: block;
-        }
-
         @media (max-width: 992px) {
-            .fin-header-container {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-                gap: 16px !important;
-                padding-bottom: 14px !important;
-                padding-left: 14px !important;
-                padding-right: 14px !important;
-            }
-            .fin-header-actions {
-                flex-wrap: wrap !important;
-                width: 100% !important;
-                gap: 8px !important;
-            }
-            .fin-header-actions button {
-                flex-grow: 1 !important;
-                font-size: 11px !important;
-                padding: 8px 10px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-            }
-            .fin-container-wrapper {
-                padding-left: 14px !important;
-                padding-right: 14px !important;
-            }
-
-            .fin-kpis-grid {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 12px !important;
-            }
-            @media (max-width: 480px) {
-                .fin-kpis-grid {
-                    grid-template-columns: 1fr !important;
-                }
-            }
-            .fin-top-grid, .fin-bottom-grid {
-                grid-template-columns: 1fr !important;
-                gap: 16px !important;
-            }
-
             body {
                 flex-direction: column;
-                height: 100vh;
-                padding-top: 56px;
-                padding-bottom: 60px;
+                height: 100dvh;
+                padding-top: 54px;
+                padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
                 box-sizing: border-box;
+                overflow: hidden;
             }
 
             .mobile-header {
@@ -1314,13 +1326,13 @@ export default `<!DOCTYPE html>
             /* Sidebar Drawer */
             .sidebar {
                 position: fixed;
-                top: 56px;
-                bottom: 60px;
+                top: 54px;
+                bottom: calc(60px + env(safe-area-inset-bottom, 0px));
                 left: -330px;
                 width: 300px;
                 z-index: 950;
                 transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-                box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.6);
             }
 
             .sidebar.mobile-open {
@@ -1329,89 +1341,291 @@ export default `<!DOCTYPE html>
 
             /* Main Panel */
             .main-panel {
-                width: 100%;
-                height: calc(100vh - 116px);
-                overflow-y: auto;
+                width: 100% !important;
+                height: calc(100dvh - 54px - 60px - env(safe-area-inset-bottom, 0px)) !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
             }
 
             /* Chat Panel Drawer */
             .chat-panel {
                 position: fixed;
-                top: 56px;
-                bottom: 60px;
+                top: 54px;
+                bottom: calc(60px + env(safe-area-inset-bottom, 0px));
                 right: -370px;
                 width: 340px;
+                max-width: 90vw;
                 z-index: 950;
                 transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-                box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+                box-shadow: -10px 0 30px rgba(0,0,0,0.6);
             }
 
             .chat-panel.mobile-open {
                 transform: translateX(-370px);
             }
 
-            /* Spacing adjustments for Mobile Screens */
-            .welcome-screen {
-                padding: 16px !important;
+            /* --- 1. GLOBAL SCREEN WRAPPERS --- */
+            .welcome-screen, #routing-screen, #mail-screen, #finanzen-screen, #sepa-screen {
+                padding: 14px 14px 40px 14px !important;
+                box-sizing: border-box !important;
+                width: 100% !important;
             }
 
-            #finanzen-screen, #domains-screen {
-                padding: 16px !important;
+            .welcome-screen h1, #routing-screen h1, #mail-screen h1, #finanzen-screen h1, #sepa-screen h1 {
+                font-size: 20px !important;
+                line-height: 1.25 !important;
             }
 
-            .welcome-screen h1, #finanzen-screen h1, #domains-screen h1 {
-                font-size: 22px !important;
+            /* Top Header Bars across all screens */
+            .welcome-screen > div:first-child,
+            #routing-screen > div:first-child,
+            #mail-screen > div:first-child,
+            #sepa-screen > div:first-child,
+            .fin-header-container {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                margin-bottom: 18px !important;
+                padding-bottom: 12px !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
             }
 
-            /* Grid Layout adjustments for Mobile */
-            div[style*="grid-template-columns: 1.2fr 1.8fr"] {
-                grid-template-columns: 1fr !important;
+            .welcome-screen > div:first-child > div:last-child,
+            #routing-screen > div:first-child > div:last-child,
+            #mail-screen > div:first-child > div:last-child,
+            #sepa-screen > div:first-child > div:last-child {
+                text-align: left !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 10px !important;
+            }
+
+            /* Live clock in dashboard */
+            #live-clock {
+                font-size: 20px !important;
+            }
+            #live-date {
+                font-size: 11px !important;
+            }
+
+            /* --- 2. COMMAND CENTER / DASHBOARD GRID --- */
+            #welcome-screen > div[style*="grid-template-columns: 1.2fr 1.8fr"] {
+                display: flex !important;
+                flex-direction: column !important;
                 gap: 16px !important;
             }
 
+            /* System Checklist */
+            div[style*="grid-template-columns: 1fr 1fr; gap: 12px"] {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                font-size: 11px !important;
+            }
+
+            /* Quick Action Buttons in Hub */
             div[style*="grid-template-columns: repeat(4, 1fr)"] {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+
+            /* --- 3. SEPA SCREEN MOBILE OPTIMIZATION --- */
+            #sepa-screen {
+                padding: 14px 14px 40px 14px !important;
+            }
+
+            #sepa-screen .card {
+                padding: 14px !important;
+            }
+
+            #sepa-screen div[style*="repeat(auto-fit, minmax(240px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+
+            #sepa-screen div[style*="repeat(auto-fill, minmax(340px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            #sepa-search {
+                width: 100% !important;
+                min-width: unset !important;
+            }
+
+            .sepa-filter-btn {
+                flex: 1 !important;
+                font-size: 11px !important;
+                padding: 8px 6px !important;
+                text-align: center !important;
+                justify-content: center !important;
+            }
+
+            /* --- 4. ROUTING & MASTER HUB MOBILE OPTIMIZATION --- */
+            .routing-frame-container {
+                height: calc(100dvh - 200px) !important;
+                min-height: 520px !important;
+            }
+
+            .routing-tab-btn {
+                flex: 1 !important;
+                font-size: 11.5px !important;
+                padding: 8px 8px !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+
+            /* --- 5. FINANZEN SCREEN MOBILE OPTIMIZATION --- */
+            .fin-header-actions {
+                flex-wrap: wrap !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+
+            .fin-header-actions button {
+                flex-grow: 1 !important;
+                font-size: 11.5px !important;
+                padding: 8px 10px !important;
+                justify-content: center !important;
+            }
+
+            .fin-kpis-grid {
                 grid-template-columns: 1fr 1fr !important;
                 gap: 10px !important;
             }
 
-            div[style*="grid-template-columns: 1fr 1fr"] {
+            .fin-top-grid, .fin-bottom-grid {
                 grid-template-columns: 1fr !important;
-                gap: 16px !important;
+                gap: 14px !important;
             }
 
-            div[style*="grid-template-columns: 1fr 1.5fr"] {
-                grid-template-columns: 1fr !important;
-                gap: 20px !important;
+            .fin-card {
+                padding: 16px !important;
             }
 
-            /* Client Header Mobile */
+            /* --- 6. MAIL SCREEN MOBILE OPTIMIZATION --- */
+            .mail-header-bar {
+                flex-direction: column !important;
+                gap: 12px !important;
+                align-items: stretch !important;
+            }
+
+            .mail-tab-btn {
+                flex: 1 !important;
+                font-size: 12px !important;
+                padding: 8px 10px !important;
+                justify-content: center !important;
+            }
+
+            .mail-form-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            .mail-form-card {
+                padding: 16px !important;
+                gap: 14px !important;
+            }
+
+            #mail-body {
+                height: 180px !important;
+            }
+
+            .mail-send-bar {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            #btn-send-mail {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+            /* --- 7. CLIENT VIEW MOBILE OPTIMIZATION --- */
             .client-header {
-                padding: 16px;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
+                padding: 14px !important;
+                gap: 12px !important;
+            }
+
+            .client-title-area {
+                width: 100% !important;
+                justify-content: space-between !important;
+            }
+
+            .client-title {
+                font-size: 20px !important;
             }
 
             .header-actions {
-                width: 100%;
-                flex-wrap: wrap;
+                width: 100% !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+
+            .header-actions button {
+                justify-content: center !important;
+                padding: 9px 10px !important;
+                font-size: 12px !important;
+            }
+
+            #active-client-contact-bar {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+                padding: 10px 12px !important;
+            }
+
+            #active-client-contact-bar span {
+                width: 100% !important;
             }
 
             .client-content {
                 grid-template-columns: 1fr !important;
-                padding: 16px;
-                gap: 20px;
+                padding: 14px !important;
+                gap: 16px !important;
+            }
+
+            /* Hosting preset buttons inside client view */
+            div[style*="repeat(3, 1fr)"] {
+                grid-template-columns: 1fr 1fr 1fr !important;
+                gap: 6px !important;
+            }
+
+            .hosting-preset-btn {
+                padding: 8px 4px !important;
+            }
+
+            /* --- 8. MODALS MOBILE OPTIMIZATION --- */
+            .modal-content {
+                width: 94vw !important;
+                max-width: 480px !important;
+                max-height: 85dvh !important;
+                padding: 18px !important;
+                border-radius: 14px !important;
+                margin: auto !important;
+                box-sizing: border-box !important;
+            }
+
+            .modal-actions {
+                flex-direction: column-reverse !important;
+                gap: 8px !important;
+            }
+
+            .modal-actions button {
+                width: 100% !important;
+                justify-content: center !important;
             }
         }
 
-        @media (max-width: 600px) {
-            div[style*="grid-template-columns: 1fr 1fr"] {
+        @media (max-width: 480px) {
+            .fin-kpis-grid {
                 grid-template-columns: 1fr !important;
             }
-            
-            .modal-content {
-                width: 95% !important;
-                padding: 18px !important;
+            div[style*="grid-template-columns: repeat(4, 1fr)"] {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
@@ -1454,11 +1668,14 @@ export default `<!DOCTYPE html>
             <button class="nav-item active" id="nav-btn-hub" onclick="showView('hub')">
                 <i class="fa-solid fa-chart-line"></i> Command Center
             </button>
-            <button class="nav-item" id="nav-btn-domains" onclick="showView('domains')">
-                <i class="fa-solid fa-cloud"></i> Cloudflare Domains
+            <button class="nav-item" id="nav-btn-routing" onclick="showView('routing')">
+                <i class="fa-solid fa-route" style="color: var(--color-cyan);"></i> E-Mail Verteiler & Hub
             </button>
             <button class="nav-item" id="nav-btn-finanzen" onclick="showView('finanzen')">
                 <i class="fa-solid fa-wallet"></i> Finanzen
+            </button>
+            <button class="nav-item" id="nav-btn-sepa" onclick="showView('sepa')">
+                <i class="fa-solid fa-building-columns" style="color: var(--color-cyan);"></i> SEPA-Mandate <span id="sepa-pending-badge" class="badge-count" style="display:none; background: var(--color-red); color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:auto;"></span>
             </button>
             <button class="nav-item" id="nav-btn-mail" onclick="showView('mail')">
                 <i class="fa-solid fa-paper-plane"></i> E-Mail verfassen
@@ -1632,42 +1849,45 @@ export default `<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- NEW: Cloudflare Domains Screen -->
-        <div class="welcome-screen" id="domains-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 40px; box-sizing: border-box; width: 100%; height: 100%;">
+        <!-- E-MAIL VERTEILER & MASTER HUB SCREEN -->
+        <div class="welcome-screen" id="routing-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 32px; box-sizing: border-box; width: 100%; height: 100%;">
             <!-- Header-Leiste -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1200px; margin: 0 auto 30px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1300px; margin: 0 auto 20px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 18px; box-sizing: border-box; flex-wrap: wrap; gap: 16px;">
                 <div style="text-align: left;">
-                    <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #f38020; text-shadow: 0 0 10px rgba(243,128,32,0.2); display: block; margin-bottom: 8px;">
-                        <i class="fa-solid fa-cloud"></i> Cloudflare Network
+                    <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-cyan); text-shadow: 0 0 10px rgba(6,182,212,0.3); display: block; margin-bottom: 6px;">
+                        <i class="fa-solid fa-route"></i> Scholz & Friese Routing Network
                     </span>
-                    <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 32px; background: linear-gradient(135deg, var(--text-primary) 30%, #f38020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        Domain Portfolio
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 28px; background: linear-gradient(135deg, #fff 30%, var(--color-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        E-Mail Verteiler & Master Hub
                     </h1>
                 </div>
-                <div style="text-align: right; display: flex; align-items: center; gap: 15px;">
-                    <input type="text" id="domain-search" placeholder="Domain filtern..." oninput="filterDomains()" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); font-size: 13px; outline: none; width: 200px; transition: var(--transition-smooth);">
-                    <span style="font-size: 13px; color: #f38020; font-weight: 600; background: rgba(243, 128, 32, 0.1); border: 1px solid rgba(243, 128, 32, 0.2); padding: 6px 12px; border-radius: 8px;" id="domains-page-count">0 Zonen</span>
+                
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <!-- Tab Switcher -->
+                    <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); padding: 4px; border-radius: 10px; display: flex; gap: 4px;">
+                        <button class="routing-tab-btn active" id="tab-btn-verteiler" onclick="switchRoutingTab('verteiler')">
+                            <i class="fa-solid fa-envelope-circle-check" style="color: var(--color-cyan);"></i> E-Mail Verteiler
+                        </button>
+                        <button class="routing-tab-btn" id="tab-btn-masterhub" onclick="switchRoutingTab('masterhub')">
+                            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Master Hub & Routen
+                        </button>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <button class="btn btn-secondary" onclick="reloadCurrentRoutingIframe()" style="padding: 9px 13px; font-size: 13px;" title="Aktuelle Ansicht neu laden">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button class="btn btn-primary" onclick="openCurrentRoutingInNewTab()" style="padding: 9px 14px; font-size: 13px; display: flex; align-items: center; gap: 6px;" title="In neuem Tab öffnen">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <span>Tab öffnen</span>
+                    </button>
                 </div>
             </div>
-            
-            <!-- Table Wrapper -->
-            <div style="width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box;">
-                <div class="card" style="background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02);">
-                                <th style="padding: 16px 24px; color: var(--text-secondary); font-weight: 600;">Domain</th>
-                                <th style="padding: 16px 24px; color: var(--text-secondary); font-weight: 600;">Status</th>
-                                <th style="padding: 16px 24px; color: var(--text-secondary); font-weight: 600;">Typ</th>
-                                <th style="padding: 16px 24px; color: var(--text-secondary); font-weight: 600;">Nameserver</th>
-                                <th style="padding: 16px 24px; color: var(--text-secondary); font-weight: 600; text-align: right;">Aktion</th>
-                            </tr>
-                        </thead>
-                        <tbody id="domains-table-body">
-                            <!-- Dynamic Rows -->
-                        </tbody>
-                    </table>
-                </div>
+
+            <!-- Iframe Container -->
+            <div class="routing-frame-container">
+                <iframe id="routing-iframe-verteiler" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: block;" allow="clipboard-read; clipboard-write"></iframe>
+                <iframe id="routing-iframe-masterhub" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: none;" allow="clipboard-read; clipboard-write"></iframe>
             </div>
         </div>
 
@@ -2035,6 +2255,79 @@ export default `<!DOCTYPE html>
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- SEPA MANDATE SCREEN -->
+        <div id="sepa-screen" style="display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 32px; background-color: var(--bg-dark);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-cyan); display: block; margin-bottom: 6px;">
+                        <i class="fa-solid fa-building-columns"></i> SEPA-Mandate & Lastschriften
+                    </span>
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 28px; background: linear-gradient(135deg, #fff 30%, var(--color-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        Monatliche SEPA-Verwaltung
+                    </h1>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-secondary" onclick="triggerSepaEmailManual()" style="padding: 9px 14px; font-size: 13px;" title="Erinnerungs-Mail an Basti senden">
+                        <i class="fa-solid fa-paper-plane" style="color: var(--color-cyan);"></i> Mail an Basti
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadSepaView()" style="padding: 9px 14px; font-size: 13px;">
+                        <i class="fa-solid fa-rotate"></i> Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Cards Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="card" style="padding: 20px; border-left: 4px solid var(--color-red); background: rgba(255,255,255,0.02);">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 700; margin-bottom: 8px;">
+                        🔴 Offene SEPA-Mandate
+                    </div>
+                    <div id="sepa-kpi-pending" style="font-size: 32px; font-weight: 800; color: var(--color-red);">0</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Fällig für diesen Monat</div>
+                </div>
+
+                <div class="card" style="padding: 20px; border-left: 4px solid var(--color-green); background: rgba(255,255,255,0.02);">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 700; margin-bottom: 8px;">
+                        🟢 Erledigte Mandate
+                    </div>
+                    <div id="sepa-kpi-completed" style="font-size: 32px; font-weight: 800; color: var(--color-green);">0</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Bereits eingezogen</div>
+                </div>
+
+                <div class="card" style="padding: 20px; border-left: 4px solid var(--color-cyan); background: rgba(255,255,255,0.02);">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 700; margin-bottom: 8px;">
+                        📅 Aktueller Monat & Status
+                    </div>
+                    <div id="sepa-kpi-month" style="font-size: 20px; font-weight: 800; color: #fff;">-</div>
+                    <div id="sepa-kpi-status-text" style="font-size: 12px; color: var(--color-cyan); margin-top: 4px;">Aufgabe für Basti im Command Center</div>
+                </div>
+            </div>
+
+            <!-- Celebration Banner if all done -->
+            <div id="sepa-all-done-banner" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; align-items: center; gap: 14px;">
+                <div style="font-size: 28px;">🎉</div>
+                <div>
+                    <div style="font-weight: 700; color: var(--color-green); font-size: 15px;">Alle SEPA-Mandate für diesen Monat abgeschlossen!</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Die automatische SEPA-Aufgabe im Command Center wurde automatisch als erledigt markiert und blendet sich aus. Am 1. des nächsten Monats springen alle Kunden automatisch wieder auf rot.</div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary sepa-filter-btn active" id="sepa-filter-all" onclick="setSepaFilter('all')">Alle SEPA-Kunden (<span id="sepa-count-all">0</span>)</button>
+                    <button class="btn btn-secondary sepa-filter-btn" id="sepa-filter-red" onclick="setSepaFilter('red')">🔴 Nur Offene (<span id="sepa-count-red">0</span>)</button>
+                    <button class="btn btn-secondary sepa-filter-btn" id="sepa-filter-green" onclick="setSepaFilter('green')">🟢 Erledigt (<span id="sepa-count-green">0</span>)</button>
+                </div>
+                <input type="text" id="sepa-search" placeholder="SEPA-Kunde suchen..." oninput="filterSepaCards()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; color: #fff; font-size: 13px; min-width: 220px;">
+            </div>
+
+            <!-- SEPA Cards List / Grid -->
+            <div id="sepa-clients-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 30px;">
+                <!-- Dynamic SEPA Cards -->
             </div>
         </div>
 
@@ -2656,9 +2949,13 @@ export default `<!DOCTYPE html>
             <i class="fa-solid fa-coins"></i>
             <span>Finanzen</span>
         </button>
-        <button class="mobile-nav-item" id="mob-nav-domains" onclick="showView('domains'); updateMobileBottomNav('domains');">
-            <i class="fa-solid fa-cloud"></i>
-            <span>Domains</span>
+        <button class="mobile-nav-item" id="mob-nav-sepa" onclick="showView('sepa'); updateMobileBottomNav('sepa');">
+            <i class="fa-solid fa-building-columns"></i>
+            <span>SEPA</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-routing" onclick="showView('routing'); updateMobileBottomNav('routing');">
+            <i class="fa-solid fa-route"></i>
+            <span>Verteiler</span>
         </button>
         <button class="mobile-nav-item" id="mob-nav-chat" onclick="toggleMobileChat();">
             <i class="fa-solid fa-robot"></i>
@@ -3548,7 +3845,6 @@ export default `<!DOCTYPE html>
             try { await loadCloudflareProjects(); } catch(e) { console.error('CF projects init error:', e); }
             try { await loadClients(); } catch(e) { console.error('Clients init error:', e); }
             try { await loadCompanyFiles(); } catch(e) { console.error('Company files init error:', e); }
-            try { await loadCloudflareDomains(); } catch(e) { console.error('CF domains init error:', e); }
             try { updateGlobalStats(); } catch(e) { console.error('Global stats init error:', e); }
             try { initDragAndDrop(); } catch(e) { console.error('Drag drop init error:', e); }
             try { await loadImapSettings(); } catch(e) { console.error('IMAP settings init error:', e); }
@@ -3612,6 +3908,12 @@ export default `<!DOCTYPE html>
             } catch(e) {
                 console.error("Fehler beim Laden der Finanzen:", e);
             }
+
+            try {
+                if (typeof updateGlobalStats === 'function') updateGlobalStats();
+            } catch(e) {
+                console.error("Fehler beim Aktualisieren der Dashboard-Stats:", e);
+            }
         }
 
         function renderClientList() {
@@ -3647,19 +3949,30 @@ export default `<!DOCTYPE html>
 
         // Select client
         async function selectClient(client) {
+            if (typeof client === 'string') {
+                const found = clients.find(c => c.id === client) || (typeof sepaClientsCache !== 'undefined' && sepaClientsCache.find(c => c.id === client));
+                if (found) client = found;
+                else client = { id: client, name: 'Kunde' };
+            }
             activeClient = client;
             closeMobileDrawers();
 
             document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById('client-item-' + client.id);
-            if (activeEl) activeEl.classList.add('active');
+            if (activeEl) {
+                activeEl.classList.add('active');
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'flex';
-            document.getElementById('domains-screen').style.display = 'none';
+            const routingS = document.getElementById('routing-screen');
+            if (routingS) routingS.style.display = 'none';
             document.getElementById('mail-screen').style.display = 'none';
             const finS = document.getElementById('finanzen-screen');
             if (finS) finS.style.display = 'none';
+            const sepaS = document.getElementById('sepa-screen');
+            if (sepaS) sepaS.style.display = 'none';
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
 
             // Update title & status
@@ -4803,30 +5116,340 @@ export default `<!DOCTYPE html>
 
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('client-view').style.display = 'none';
-            document.getElementById('domains-screen').style.display = 'none';
+            const routingScreen = document.getElementById('routing-screen');
+            if (routingScreen) routingScreen.style.display = 'none';
             document.getElementById('mail-screen').style.display = 'none';
             const finScreen = document.getElementById('finanzen-screen');
             if (finScreen) finScreen.style.display = 'none';
+            const sepaScreen = document.getElementById('sepa-screen');
+            if (sepaScreen) sepaScreen.style.display = 'none';
             
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             
             if (viewName === 'hub') {
                 document.getElementById('welcome-screen').style.display = 'flex';
                 document.getElementById('nav-btn-hub').classList.add('active');
-            } else if (viewName === 'domains') {
-                document.getElementById('domains-screen').style.display = 'flex';
-                document.getElementById('nav-btn-domains').classList.add('active');
-                loadCloudflareDomains();
+            } else if (viewName === 'routing') {
+                if (routingScreen) routingScreen.style.display = 'flex';
+                const routingBtn = document.getElementById('nav-btn-routing');
+                if (routingBtn) routingBtn.classList.add('active');
+                loadRoutingView();
             } else if (viewName === 'finanzen') {
                 if (finScreen) finScreen.style.display = 'flex';
                 const finBtn = document.getElementById('nav-btn-finanzen');
                 if (finBtn) finBtn.classList.add('active');
                 loadFinances();
+            } else if (viewName === 'sepa') {
+                if (sepaScreen) sepaScreen.style.display = 'flex';
+                const sepaBtn = document.getElementById('nav-btn-sepa');
+                if (sepaBtn) sepaBtn.classList.add('active');
+                loadSepaView();
             } else if (viewName === 'mail') {
                 document.getElementById('mail-screen').style.display = 'flex';
                 const mailBtn = document.getElementById('nav-btn-mail');
                 if (mailBtn) mailBtn.classList.add('active');
                 initMailScreen();
+            }
+        }
+
+        // --- E-MAIL VERTEILER & MASTER HUB LOGIC ---
+        let currentRoutingTab = 'verteiler';
+        const ROUTING_URLS = {
+            verteiler: 'https://friesescholzwebdesign.pages.dev/admin',
+            masterhub: 'https://dashboard.friese-scholz.workers.dev/'
+        };
+
+        function switchRoutingTab(tabName) {
+            currentRoutingTab = tabName;
+            document.querySelectorAll('.routing-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const activeBtn = document.getElementById('tab-btn-' + tabName);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const iframeVerteiler = document.getElementById('routing-iframe-verteiler');
+            const iframeMasterhub = document.getElementById('routing-iframe-masterhub');
+
+            if (tabName === 'verteiler') {
+                if (iframeVerteiler) {
+                    if (iframeVerteiler.src === 'about:blank' || !iframeVerteiler.src) {
+                        iframeVerteiler.src = ROUTING_URLS.verteiler;
+                    }
+                    iframeVerteiler.style.display = 'block';
+                }
+                if (iframeMasterhub) iframeMasterhub.style.display = 'none';
+            } else if (tabName === 'masterhub') {
+                if (iframeMasterhub) {
+                    if (iframeMasterhub.src === 'about:blank' || !iframeMasterhub.src) {
+                        iframeMasterhub.src = ROUTING_URLS.masterhub;
+                    }
+                    iframeMasterhub.style.display = 'block';
+                }
+                if (iframeVerteiler) iframeVerteiler.style.display = 'none';
+            }
+        }
+
+        function reloadCurrentRoutingIframe() {
+            const iframeId = currentRoutingTab === 'verteiler' ? 'routing-iframe-verteiler' : 'routing-iframe-masterhub';
+            const iframe = document.getElementById(iframeId);
+            if (iframe) {
+                iframe.src = ROUTING_URLS[currentRoutingTab];
+            }
+        }
+
+        function openCurrentRoutingInNewTab() {
+            const targetUrl = ROUTING_URLS[currentRoutingTab] || ROUTING_URLS.verteiler;
+            window.open(targetUrl, '_blank');
+        }
+
+        function loadRoutingView() {
+            switchRoutingTab(currentRoutingTab);
+        }
+
+        // --- SEPA MANDATES LOGIC ---
+        let sepaDataState = { month: '', statuses: {} };
+        let sepaClientsCache = [];
+        let sepaFilterMode = 'all';
+
+        async function loadSepaView() {
+            try {
+                // If clients are already in memory, render immediately
+                if (clients && clients.length > 0) {
+                    sepaClientsCache = clients;
+                    renderSepaDashboard(sepaClientsCache);
+                }
+
+                const [sepaRes, clientsRes] = await Promise.all([
+                    fetch('/api/sepa/status'),
+                    fetch('/api/kunden')
+                ]);
+                sepaDataState = await sepaRes.json();
+                sepaClientsCache = await clientsRes.json();
+                
+                renderSepaDashboard(sepaClientsCache);
+            } catch(e) {
+                console.error("Failed to load SEPA data:", e);
+            }
+        }
+
+        function openClientFromSepa(clientId) {
+            const listToSearch = (sepaClientsCache && sepaClientsCache.length > 0) ? sepaClientsCache : clients;
+            const targetClient = listToSearch.find(c => c.id === clientId);
+            if (targetClient) {
+                selectClient(targetClient);
+            } else {
+                selectClient(clientId);
+            }
+        }
+
+        function renderSepaDashboard(clientsList) {
+            const grid = document.getElementById('sepa-clients-grid');
+            if (!grid) return;
+
+            const allList = (clientsList && clientsList.length > 0) ? clientsList : (sepaClientsCache && sepaClientsCache.length > 0 ? sepaClientsCache : clients);
+
+            // Filter clients with SEPA active
+            const sepaClients = allList.filter(c => c.sepaActive);
+
+            let pendingCount = 0;
+            let completedCount = 0;
+
+            sepaClients.forEach(c => {
+                const isGreen = !!(sepaDataState && sepaDataState.statuses && sepaDataState.statuses[c.id]);
+                if (isGreen) completedCount++;
+                else pendingCount++;
+            });
+
+            // Update KPI cards
+            const pendingEl = document.getElementById('sepa-kpi-pending');
+            if (pendingEl) pendingEl.innerText = pendingCount;
+            const completedEl = document.getElementById('sepa-kpi-completed');
+            if (completedEl) completedEl.innerText = completedCount;
+
+            const [y, m] = ((sepaDataState && sepaDataState.month) || '').split('-');
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+            const monthText = (m && monthNames[parseInt(m) - 1]) ? (monthNames[parseInt(m) - 1] + ' ' + y) : 'Aktueller Monat';
+            const monthEl = document.getElementById('sepa-kpi-month');
+            if (monthEl) monthEl.innerText = monthText;
+
+            const isAllDone = sepaClients.length > 0 && pendingCount === 0;
+            const bannerEl = document.getElementById('sepa-all-done-banner');
+            if (bannerEl) bannerEl.style.display = isAllDone ? 'flex' : 'none';
+            const statusTextEl = document.getElementById('sepa-kpi-status-text');
+            if (statusTextEl) statusTextEl.innerText = isAllDone ? '🎉 Alle Mandate eingezogen' : 'Aufgabe für Basti aktiv';
+
+            // Sidebar Badge Counter
+            const badge = document.getElementById('sepa-pending-badge');
+            if (badge) {
+                if (pendingCount > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = pendingCount;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            // Update filter counters
+            const countAllEl = document.getElementById('sepa-count-all');
+            if (countAllEl) countAllEl.innerText = sepaClients.length;
+            const countRedEl = document.getElementById('sepa-count-red');
+            if (countRedEl) countRedEl.innerText = pendingCount;
+            const countGreenEl = document.getElementById('sepa-count-green');
+            if (countGreenEl) countGreenEl.innerText = completedCount;
+
+            if (sepaClients.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1 / -1; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center;">' +
+                    '<i class="fa-solid fa-building-columns" style="font-size: 36px; color: var(--text-secondary); margin-bottom: 12px;"></i>' +
+                    '<h3 style="margin: 0 0 6px 0; color: #fff;">Keine Kunden mit aktivem SEPA-Mandat</h3>' +
+                    '<p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Aktiviere bei deinen Kunden unter Hosting das Häkchen <strong>"SEPA-Lastschrift aktiv"</strong>, damit sie hier automatisch aufgelistet werden.</p>' +
+                    '</div>';
+                return;
+            }
+
+            const searchVal = (document.getElementById('sepa-search')?.value || '').toLowerCase().trim();
+
+            grid.innerHTML = sepaClients.map(client => {
+                const isGreen = !!(sepaDataState && sepaDataState.statuses && sepaDataState.statuses[client.id]);
+
+                // Filter check
+                if (sepaFilterMode === 'red' && isGreen) return '';
+                if (sepaFilterMode === 'green' && !isGreen) return '';
+                if (searchVal && !client.name.toLowerCase().includes(searchVal) && !(client.company && client.company.toLowerCase().includes(searchVal))) return '';
+
+                const monthlyNetto = client.hostingPrice || 95;
+                const monthlyBrutto = (monthlyNetto * 1.19).toFixed(2).replace('.', ',');
+
+                const borderStyle = isGreen ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+                const bgStyle = isGreen ? 'rgba(16,185,129,0.03)' : 'rgba(239,68,68,0.03)';
+                const badgeBg = isGreen ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+                const badgeColor = isGreen ? 'var(--color-green)' : 'var(--color-red)';
+                const btnStyle = isGreen ? 'background: rgba(16,185,129,0.15); color: var(--color-green); border: 1px solid rgba(16,185,129,0.4);' : 'background: rgba(239,68,68,0.15); color: var(--color-red); border: 1px solid rgba(239,68,68,0.4);';
+                const iconClass = isGreen ? 'fa-circle-check' : 'fa-circle-dot';
+                const btnText = isGreen ? '🟢 Erledigt (SEPA gezogen)' : '🔴 Offen (SEPA fällig)';
+                const toggleNext = !isGreen;
+
+                const companyHtml = client.company ? ('<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">' + client.company + '</div>') : '';
+
+                return '<div class="card sepa-card" data-client-id="' + client.id + '" style="padding: 20px; border: 1px solid ' + borderStyle + '; background: ' + bgStyle + '; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; transition: all 0.2s ease;">' +
+                    '<div>' +
+                        '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">' +
+                            '<div>' +
+                                '<h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fff;">' + client.name + '</h3>' +
+                                companyHtml +
+                            '</div>' +
+                            '<span style="font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; background: ' + badgeBg + '; color: ' + badgeColor + ';">' +
+                                (isGreen ? 'Erledigt' : 'Offen') +
+                            '</span>' +
+                        '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 12px; margin-top: 12px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px;">' +
+                            '<div>' +
+                                '<div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600;">Hosting Paket</div>' +
+                                '<div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px;">' +
+                                    monthlyNetto + ' € / Mtl. <span style="font-weight: 400; color: var(--text-secondary); font-size: 11px;">(' + monthlyBrutto + ' € Brutto)</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">' +
+                        '<button class="btn" onclick="toggleSepaStatus(&quot;' + client.id + '&quot;, ' + toggleNext + ')" style="flex: 1; padding: 9px 12px; font-size: 13px; font-weight: 700; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.15s ease; ' + btnStyle + '">' +
+                            '<i class="fa-solid ' + iconClass + '"></i>' +
+                            '<span>' + btnText + '</span>' +
+                        '</button>' +
+                        '<button class="btn btn-secondary" onclick="openClientFromSepa(&quot;' + client.id + '&quot;);" style="padding: 9px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 8px;" title="Kunde öffnen">' +
+                            '<i class="fa-solid fa-arrow-up-right-from-square"></i>' +
+                            '<span>Kunde</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        async function toggleSepaStatus(clientId, newStatus) {
+            try {
+                // 1. Instant optimistic UI update (0ms switch from red to green or vice versa!)
+                if (!sepaDataState) sepaDataState = { month: '', statuses: {} };
+                if (!sepaDataState.statuses) sepaDataState.statuses = {};
+                sepaDataState.statuses[clientId] = !!newStatus;
+                
+                const currentList = (sepaClientsCache && sepaClientsCache.length > 0) ? sepaClientsCache : clients;
+                renderSepaDashboard(currentList);
+
+                // Optimistically sync Command Center tasks
+                const sepaClients = currentList.filter(c => c.sepaActive);
+                const allGreen = sepaClients.length > 0 && sepaClients.every(c => sepaDataState.statuses && sepaDataState.statuses[c.id] === true);
+
+                if (Array.isArray(customTasksData)) {
+                    if (allGreen) {
+                        customTasksData.forEach(t => {
+                            if (t.isSepaTask || (t.id && t.id.startsWith('sepa_task_'))) {
+                                t.completed = true;
+                            }
+                        });
+                    } else {
+                        const existingTask = customTasksData.find(t => t.isSepaTask || (t.id && t.id.startsWith('sepa_task_')));
+                        if (existingTask) {
+                            existingTask.completed = false;
+                        }
+                    }
+                    if (typeof updateGlobalStats === 'function') {
+                        updateGlobalStats();
+                    }
+                }
+
+                // 2. Background sync to backend
+                const res = await fetch('/api/sepa/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId, status: !!newStatus })
+                });
+
+                const result = await res.json();
+                if (result && result.success) {
+                    sepaDataState = result.sepaData;
+                    if (Array.isArray(result.tasks)) {
+                        customTasksData = result.tasks;
+                    }
+                    if (typeof updateGlobalStats === 'function') {
+                        updateGlobalStats();
+                    }
+                }
+            } catch(e) {
+                console.error("Failed to toggle SEPA status:", e);
+                // Rollback on error
+                if (sepaDataState && sepaDataState.statuses) {
+                    sepaDataState.statuses[clientId] = !newStatus;
+                    const currentList = (sepaClientsCache && sepaClientsCache.length > 0) ? sepaClientsCache : clients;
+                    renderSepaDashboard(currentList);
+                    if (typeof updateGlobalStats === 'function') {
+                        updateGlobalStats();
+                    }
+                }
+            }
+        }
+
+        function setSepaFilter(mode) {
+            sepaFilterMode = mode;
+            document.querySelectorAll('.sepa-filter-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('sepa-filter-' + mode);
+            if (activeBtn) activeBtn.classList.add('active');
+            loadSepaView();
+        }
+
+        function filterSepaCards() {
+            loadSepaView();
+        }
+
+        async function triggerSepaEmailManual() {
+            if (!confirm("Möchtest du eine SEPA-Erinnerungs-E-Mail manuell an Basti (bastianscholz@scholz-friese-webdesign.de) senden?")) return;
+            try {
+                const res = await fetch('/api/sepa/send-email', { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    alert("✅ SEPA-Erinnerung erfolgreich an Basti gesendet!");
+                } else {
+                    alert("❌ Fehler beim Senden: " + result.error);
+                }
+            } catch(e) {
+                alert("❌ Fehler beim Senden der E-Mail");
             }
         }
 
