@@ -1650,7 +1650,11 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const raw = await env.KUNDEN_DB.get(key.name);
           if (raw) {
             const client = JSON.parse(raw);
-            if (client.sepaActive) {
+            if (
+              client.sepaActive === true || client.sepaActive === 'true' || client.sepaActive === 1 ||
+              client.sepaMandate === true || client.sepaMandate === 'true' || client.sepaMandate === 1 ||
+              client.hasSepa === true || client.sepa === true
+            ) {
               sepaClients.push(client);
             }
           }

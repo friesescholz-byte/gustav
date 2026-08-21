@@ -1305,14 +1305,21 @@ export default `<!DOCTYPE html>
             padding-right: 20px;
         }
 
-        @media (max-width: 992px) {
-            body {
+        @media (max-width: 1080px) {
+            html, body {
                 flex-direction: column;
                 height: 100dvh;
+                max-width: 100vw !important;
+                width: 100% !important;
                 padding-top: 54px;
                 padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
                 box-sizing: border-box;
-                overflow: hidden;
+                overflow-x: hidden !important;
+                overflow-y: hidden !important;
+            }
+
+            * {
+                box-sizing: border-box !important;
             }
 
             .mobile-header {
@@ -1342,9 +1349,12 @@ export default `<!DOCTYPE html>
             /* Main Panel */
             .main-panel {
                 width: 100% !important;
+                max-width: 100vw !important;
                 height: calc(100dvh - 54px - 60px - env(safe-area-inset-bottom, 0px)) !important;
+                overflow-x: hidden !important;
                 overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
+                box-sizing: border-box !important;
             }
 
             /* Chat Panel Drawer */
@@ -1365,15 +1375,25 @@ export default `<!DOCTYPE html>
             }
 
             /* --- 1. GLOBAL SCREEN WRAPPERS --- */
-            .welcome-screen, #routing-screen, #mail-screen, #finanzen-screen, #sepa-screen {
-                padding: 14px 14px 40px 14px !important;
+            .welcome-screen, #routing-screen, #mail-screen, #finanzen-screen, #sepa-screen, #client-view {
+                padding: 12px 10px 40px 10px !important;
                 box-sizing: border-box !important;
                 width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
             }
 
             .welcome-screen h1, #routing-screen h1, #mail-screen h1, #finanzen-screen h1, #sepa-screen h1 {
-                font-size: 20px !important;
+                font-size: 19px !important;
                 line-height: 1.25 !important;
+            }
+
+            /* All cards on mobile */
+            .card {
+                padding: 16px 14px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             /* Top Header Bars across all screens */
@@ -1385,10 +1405,13 @@ export default `<!DOCTYPE html>
                 flex-direction: column !important;
                 align-items: stretch !important;
                 gap: 12px !important;
-                margin-bottom: 18px !important;
+                margin-bottom: 16px !important;
                 padding-bottom: 12px !important;
                 padding-left: 0 !important;
                 padding-right: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             .welcome-screen > div:first-child > div:last-child,
@@ -1401,6 +1424,7 @@ export default `<!DOCTYPE html>
                 align-items: center !important;
                 justify-content: flex-start !important;
                 gap: 10px !important;
+                width: 100% !important;
             }
 
             /* Live clock in dashboard */
@@ -1412,10 +1436,44 @@ export default `<!DOCTYPE html>
             }
 
             /* --- 2. COMMAND CENTER / DASHBOARD GRID --- */
-            #welcome-screen > div[style*="grid-template-columns: 1.2fr 1.8fr"] {
+            #welcome-screen > div[style*="grid-template-columns"] {
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 16px !important;
+                gap: 14px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            #welcome-screen > div[style*="grid-template-columns"] > div {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Filter Pill Bar for Tasks */
+            #command-center-task-filters {
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+            }
+            #command-center-task-filters button {
+                flex: 1 !important;
+                justify-content: center !important;
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+            }
+
+            /* Alerts center task items */
+            #alerts-center-list {
+                max-height: 420px !important;
+                width: 100% !important;
+            }
+            #alerts-center-list .drive-item {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 12px 10px !important;
+                gap: 8px !important;
             }
 
             /* System Checklist */
@@ -1425,29 +1483,26 @@ export default `<!DOCTYPE html>
                 font-size: 11px !important;
             }
 
-            /* Quick Action Buttons in Hub */
-            div[style*="grid-template-columns: repeat(4, 1fr)"] {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 8px !important;
-            }
-
             /* --- 3. SEPA SCREEN MOBILE OPTIMIZATION --- */
             #sepa-screen {
-                padding: 14px 14px 40px 14px !important;
-            }
-
-            #sepa-screen .card {
-                padding: 14px !important;
+                padding: 12px 10px 40px 10px !important;
             }
 
             #sepa-screen div[style*="repeat(auto-fit, minmax(240px, 1fr))"] {
                 grid-template-columns: 1fr !important;
                 gap: 10px !important;
+                width: 100% !important;
             }
 
             #sepa-screen div[style*="repeat(auto-fill, minmax(340px, 1fr))"] {
                 grid-template-columns: 1fr !important;
                 gap: 12px !important;
+                width: 100% !important;
+            }
+
+            .sepa-card {
+                padding: 16px 14px !important;
+                width: 100% !important;
             }
 
             #sepa-search {
@@ -1467,6 +1522,7 @@ export default `<!DOCTYPE html>
             .routing-frame-container {
                 height: calc(100dvh - 200px) !important;
                 min-height: 520px !important;
+                width: 100% !important;
             }
 
             .routing-tab-btn {
@@ -1543,55 +1599,110 @@ export default `<!DOCTYPE html>
                 justify-content: center !important;
             }
 
-            /* --- 7. CLIENT VIEW MOBILE OPTIMIZATION --- */
+            /* --- 7. CLIENT VIEW MOBILE OPTIMIZATION (100% FULL-WIDTH STACK) --- */
+            #client-view {
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+
             .client-header {
-                padding: 14px !important;
-                gap: 12px !important;
+                padding: 12px 10px !important;
+                gap: 10px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             .client-title-area {
                 width: 100% !important;
                 justify-content: space-between !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
             }
 
             .client-title {
-                font-size: 20px !important;
+                font-size: 18px !important;
+                line-height: 1.2 !important;
+                word-break: break-word !important;
             }
 
             .header-actions {
                 width: 100% !important;
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
-                gap: 8px !important;
+                gap: 6px !important;
+                box-sizing: border-box !important;
             }
 
             .header-actions button {
+                width: 100% !important;
                 justify-content: center !important;
-                padding: 9px 10px !important;
-                font-size: 12px !important;
+                padding: 8px 6px !important;
+                font-size: 11.5px !important;
+                box-sizing: border-box !important;
             }
 
             #active-client-contact-bar {
                 flex-direction: column !important;
                 align-items: flex-start !important;
-                gap: 8px !important;
-                padding: 10px 12px !important;
+                gap: 6px !important;
+                padding: 8px 10px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             #active-client-contact-bar span {
                 width: 100% !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
             }
 
+            /* FORCE 1-COLUMN FULL WIDTH ON MOBILE */
             .client-content {
+                display: flex !important;
+                flex-direction: column !important;
                 grid-template-columns: 1fr !important;
-                padding: 14px !important;
-                gap: 16px !important;
+                padding: 12px 10px 40px 10px !important;
+                gap: 14px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .client-content > div {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 14px !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Todo Input in Client View */
+            .todo-input-area {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                width: 100% !important;
+            }
+            #new-todo-input {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: none !important;
+            }
+            #new-todo-assignee {
+                flex: 1 !important;
+                min-width: 100px !important;
             }
 
             /* Hosting preset buttons inside client view */
             div[style*="repeat(3, 1fr)"] {
                 grid-template-columns: 1fr 1fr 1fr !important;
                 gap: 6px !important;
+                width: 100% !important;
             }
 
             .hosting-preset-btn {
@@ -2488,7 +2599,7 @@ export default `<!DOCTYPE html>
                             <!-- SEPA Direct Debit Checkbox -->
                             <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px;">
                                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
-                                    <input type="checkbox" id="client-sepa-active-checkbox" onchange="updateHostingUIFromInputs()" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
+                                    <input type="checkbox" id="client-sepa-active-checkbox" onchange="toggleClientSepaDirectly()" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
                                     <span style="font-size: 13px; color: #fff; font-weight: 600;">
                                         <i class="fa-solid fa-building-columns" style="color: var(--color-cyan); margin-right: 4px;"></i> SEPA-Lastschrift aktiv
                                     </span>
@@ -2703,6 +2814,27 @@ export default `<!DOCTYPE html>
                 <div class="form-group">
                     <label>Echte Domain (Custom Domain)</label>
                     <input type="text" id="modal-client-domain" placeholder="Z.B. weymann-gebaeudetechnik.de">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Hosting-Tarif</label>
+                        <select id="modal-client-hosting-plan" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px;">
+                            <option value="0">Kein Hosting</option>
+                            <option value="25">Nur Server (25 € / Mtl.)</option>
+                            <option value="95">Basic (95 € / Mtl.)</option>
+                            <option value="145">Pro (145 € / Mtl.)</option>
+                            <option value="295">Enterprise (295 € / Mtl.)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; margin: 0; box-sizing: border-box;">
+                            <input type="checkbox" id="modal-client-sepa-active" style="width: 16px; height: 16px; accent-color: var(--color-cyan); cursor: pointer;">
+                            <span style="font-size: 12.5px; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-building-columns" style="color: var(--color-cyan);"></i> SEPA aktiv
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="modal-actions">
@@ -4134,12 +4266,13 @@ export default `<!DOCTYPE html>
             const dateInput = document.getElementById('client-hosting-start-date');
             if (dateInput) dateInput.value = client.hostingStartDate || '';
 
-            const priceInput = document.getElementById('client-hosting-price-net');
-            const price = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null) ? parseFloat(client.hostingPriceNet) : 0;
+            const price = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null && client.hostingPriceNet !== '') 
+                ? parseFloat(client.hostingPriceNet) 
+                : (client.hostingPrice ? parseFloat(client.hostingPrice) : 0);
             if (priceInput) priceInput.value = price > 0 ? price : '';
 
             const sepaCb = document.getElementById('client-sepa-active-checkbox');
-            if (sepaCb) sepaCb.checked = !!client.sepaActive;
+            if (sepaCb) sepaCb.checked = !!(client.sepaActive || client.sepaMandate || client.hasSepa);
 
             updateHostingUIFromInputs();
             updateClientYTDHostingDisplay(client);
@@ -4410,7 +4543,9 @@ export default `<!DOCTYPE html>
             // 1. Update client object
             activeClient.hostingStartDate = startDate;
             activeClient.hostingPriceNet = newPrice;
-            activeClient.sepaActive = sepaActive;
+            activeClient.hostingPrice = newPrice;
+            activeClient.sepaActive = !!sepaActive;
+            activeClient.sepaMandate = !!sepaActive;
 
             try {
                 // Save customer to KV
@@ -4957,7 +5092,42 @@ export default `<!DOCTYPE html>
             return bubble;
         }
 
-        // --- CLIENT FORM MODAL ---
+        // --- CLIENT FORM MODAL & SEPA DIRECT TOGGLE ---
+        async function toggleClientSepaDirectly() {
+            if (!activeClient) return;
+            const sepaCb = document.getElementById('client-sepa-active-checkbox');
+            const isChecked = sepaCb ? sepaCb.checked : false;
+            activeClient.sepaActive = isChecked;
+            activeClient.sepaMandate = isChecked;
+            
+            updateHostingUIFromInputs();
+
+            try {
+                await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(activeClient)
+                });
+
+                // Update in memory arrays
+                const idx = clients.findIndex(c => c.id === activeClient.id);
+                if (idx !== -1) {
+                    clients[idx].sepaActive = isChecked;
+                    clients[idx].sepaMandate = isChecked;
+                }
+                if (typeof sepaClientsCache !== 'undefined' && Array.isArray(sepaClientsCache)) {
+                    const sIdx = sepaClientsCache.findIndex(c => c.id === activeClient.id);
+                    if (sIdx !== -1) sepaClientsCache[sIdx].sepaActive = isChecked;
+                    else if (isChecked) sepaClientsCache.push(activeClient);
+                }
+                if (typeof renderSepaDashboard === 'function') {
+                    renderSepaDashboard(clients);
+                }
+            } catch(e) {
+                console.error("Failed to auto-sync SEPA state:", e);
+            }
+        }
+
         function openAddClientModal() {
             document.getElementById('modal-title').innerText = "Kunde hinzufügen";
             document.getElementById('modal-client-id').value = "";
@@ -4966,6 +5136,10 @@ export default `<!DOCTYPE html>
             if (contactInput) contactInput.value = "";
             const phoneInput = document.getElementById('modal-client-phone');
             if (phoneInput) phoneInput.value = "";
+            const planSelect = document.getElementById('modal-client-hosting-plan');
+            if (planSelect) planSelect.value = "95";
+            const sepaCb = document.getElementById('modal-client-sepa-active');
+            if (sepaCb) sepaCb.checked = false;
             document.getElementById('client-modal').style.display = 'flex';
         }
 
@@ -4981,6 +5155,17 @@ export default `<!DOCTYPE html>
             if (phoneInput) phoneInput.value = activeClient.phone || '';
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
             document.getElementById('modal-client-domain').value = activeClient.customDomain || '';
+
+            const planSelect = document.getElementById('modal-client-hosting-plan');
+            if (planSelect) {
+                const currentPrice = (activeClient.hostingPriceNet !== undefined && activeClient.hostingPriceNet !== null) ? parseFloat(activeClient.hostingPriceNet) : (activeClient.hostingPrice ? parseFloat(activeClient.hostingPrice) : 0);
+                planSelect.value = String(currentPrice);
+            }
+            const sepaCb = document.getElementById('modal-client-sepa-active');
+            if (sepaCb) {
+                sepaCb.checked = !!(activeClient.sepaActive || activeClient.sepaMandate || activeClient.hasSepa);
+            }
+
             document.getElementById('client-modal').style.display = 'flex';
         }
 
@@ -5000,7 +5185,23 @@ export default `<!DOCTYPE html>
             const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
             const customDomain = document.getElementById('modal-client-domain').value.trim();
 
-            const payload = { name, email, contactPerson, phone, linkedCloudflareProject, customDomain };
+            const planSelect = document.getElementById('modal-client-hosting-plan');
+            const hostingPriceNet = planSelect ? parseFloat(planSelect.value) : (activeClient ? (parseFloat(activeClient.hostingPriceNet) || 0) : 0);
+            const sepaCb = document.getElementById('modal-client-sepa-active');
+            const sepaActive = sepaCb ? sepaCb.checked : false;
+
+            const payload = { 
+                name, 
+                email, 
+                contactPerson, 
+                phone, 
+                linkedCloudflareProject, 
+                customDomain,
+                hostingPriceNet: hostingPriceNet,
+                hostingPrice: hostingPriceNet,
+                sepaActive: sepaActive,
+                sepaMandate: sepaActive
+            };
             if (id) payload.id = id;
 
             try {
@@ -5247,8 +5448,13 @@ export default `<!DOCTYPE html>
 
             const allList = (clientsList && clientsList.length > 0) ? clientsList : (sepaClientsCache && sepaClientsCache.length > 0 ? sepaClientsCache : clients);
 
-            // Filter clients with SEPA active
-            const sepaClients = allList.filter(c => c.sepaActive);
+            // Filter clients with SEPA active (robust check across all flag variants)
+            const isClientSepaActive = (c) => c && (
+                c.sepaActive === true || c.sepaActive === 'true' || c.sepaActive === 1 || 
+                c.sepaMandate === true || c.sepaMandate === 'true' || c.sepaMandate === 1 || 
+                c.hasSepa === true || c.sepa === true
+            );
+            const sepaClients = allList.filter(isClientSepaActive);
 
             let pendingCount = 0;
             let completedCount = 0;
@@ -5315,7 +5521,35 @@ export default `<!DOCTYPE html>
                 if (sepaFilterMode === 'green' && !isGreen) return '';
                 if (searchVal && !client.name.toLowerCase().includes(searchVal) && !(client.company && client.company.toLowerCase().includes(searchVal))) return '';
 
-                const monthlyNetto = client.hostingPrice || 95;
+                let monthlyNetto = 0;
+                if (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null && client.hostingPriceNet !== '') {
+                    monthlyNetto = parseFloat(client.hostingPriceNet);
+                } else if (client.hostingPrice !== undefined && client.hostingPrice !== null && client.hostingPrice !== '') {
+                    monthlyNetto = parseFloat(client.hostingPrice);
+                }
+
+                let packageName = 'Basic';
+                let packageBadgeColor = 'var(--color-cyan)';
+                if (monthlyNetto === 25) {
+                    packageName = 'Nur Server';
+                    packageBadgeColor = '#94a3b8';
+                } else if (monthlyNetto === 95) {
+                    packageName = 'Basic';
+                    packageBadgeColor = 'var(--color-green)';
+                } else if (monthlyNetto === 145) {
+                    packageName = 'Pro';
+                    packageBadgeColor = 'var(--color-cyan)';
+                } else if (monthlyNetto === 295) {
+                    packageName = 'Enterprise';
+                    packageBadgeColor = '#c084fc';
+                } else if (monthlyNetto > 0) {
+                    packageName = 'Individuell';
+                    packageBadgeColor = '#38bdf8';
+                } else {
+                    packageName = 'Kein Hosting';
+                    packageBadgeColor = 'var(--text-secondary)';
+                }
+
                 const monthlyBrutto = (monthlyNetto * 1.19).toFixed(2).replace('.', ',');
 
                 const borderStyle = isGreen ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
@@ -5340,13 +5574,17 @@ export default `<!DOCTYPE html>
                                 (isGreen ? 'Erledigt' : 'Offen') +
                             '</span>' +
                         '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 12px; margin-top: 12px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px;">' +
+                        '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">' +
                             '<div>' +
                                 '<div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600;">Hosting Paket</div>' +
-                                '<div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px;">' +
-                                    monthlyNetto + ' € / Mtl. <span style="font-weight: 400; color: var(--text-secondary); font-size: 11px;">(' + monthlyBrutto + ' € Brutto)</span>' +
+                                '<div style="font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px;">' +
+                                    (monthlyNetto > 0 ? (monthlyNetto.toFixed(2).replace('.', ',') + ' € / Mtl.') : '0,00 € / Mtl.') + 
+                                    ' <span style="font-weight: 400; color: var(--text-secondary); font-size: 11.5px;">(' + monthlyBrutto + ' € Brutto)</span>' +
                                 '</div>' +
                             '</div>' +
+                            '<span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); color: ' + packageBadgeColor + '; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 4px;">' +
+                                '<i class="fa-solid fa-server" style="font-size: 10px;"></i> ' + packageName +
+                            '</span>' +
                         '</div>' +
                     '</div>' +
                     '<div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">' +
