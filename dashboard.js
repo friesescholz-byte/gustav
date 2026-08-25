@@ -3167,6 +3167,38 @@ export default `<!DOCTYPE html>
             }
         }
 
+        function getResendStatusInfo(rawEvent) {
+            const ev = String(rawEvent || '').toLowerCase().trim();
+            if (ev === 'delivered') {
+                return { label: 'Zugestellt', cls: 'delivered', icon: 'fa-circle-check' };
+            }
+            if (ev === 'sent') {
+                return { label: 'Gesendet', cls: 'sent', icon: 'fa-paper-plane' };
+            }
+            if (ev === 'opened') {
+                return { label: 'Geöffnet', cls: 'opened', icon: 'fa-envelope-open' };
+            }
+            if (ev === 'clicked') {
+                return { label: 'Geklickt', cls: 'clicked', icon: 'fa-arrow-pointer' };
+            }
+            if (ev === 'bounced') {
+                return { label: 'Bounced', cls: 'bounced', icon: 'fa-circle-exclamation' };
+            }
+            if (ev === 'complained') {
+                return { label: 'Spam-Meldung', cls: 'complained', icon: 'fa-ban' };
+            }
+            if (ev === 'delivery_delayed' || ev === 'delayed') {
+                return { label: 'Verzögert', cls: 'delayed', icon: 'fa-clock' };
+            }
+            if (ev === 'failed') {
+                return { label: 'Fehlgeschlagen', cls: 'failed', icon: 'fa-triangle-exclamation' };
+            }
+            if (!ev || ev === 'undefined') {
+                return { label: 'Gesendet', cls: 'sent', icon: 'fa-paper-plane' };
+            }
+            return { label: rawEvent, cls: 'other', icon: 'fa-circle-info' };
+        }
+
         function renderMailLogTable(emails) {
             const tableBody = document.getElementById('mail-log-table-body');
             const emptyState = document.getElementById('mail-log-empty');
