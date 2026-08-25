@@ -1117,25 +1117,41 @@ export default `<!DOCTYPE html>
             gap: 5px;
             font-size: 11.5px;
             font-weight: 700;
-            padding: 4px 8px;
+            padding: 4px 9px;
             border-radius: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .mail-log-badge.delivered {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--color-green);
+            border: 1px solid rgba(16, 185, 129, 0.25);
         }
         .mail-log-badge.sent {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--color-green);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.25);
         }
-        .mail-log-badge.failed {
-            background: rgba(239, 68, 68, 0.1);
+        .mail-log-badge.opened {
+            background: rgba(192, 132, 252, 0.12);
+            color: #c084fc;
+            border: 1px solid rgba(192, 132, 252, 0.3);
+        }
+        .mail-log-badge.clicked {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        .mail-log-badge.failed, .mail-log-badge.bounced, .mail-log-badge.complained {
+            background: rgba(239, 68, 68, 0.12);
             color: var(--color-red);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.25);
         }
-        .mail-log-badge.other {
-            background: rgba(245, 158, 11, 0.1);
+        .mail-log-badge.delayed, .mail-log-badge.delivery_delayed, .mail-log-badge.other {
+            background: rgba(245, 158, 11, 0.12);
             color: #f59e0b;
-            border: 1px solid rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.25);
         }
         .mail-preview-modal-body {
             display: flex;
@@ -3163,17 +3179,22 @@ export default `<!DOCTYPE html>
             emptyState.style.display = 'none';
             tableBody.innerHTML = emails.map(item => {
                 const dateStr = new Date(item.created_at).toLocaleString('de-DE');
-                const toStr = Array.isArray(item.to) ? item.to.join(', ') : item.to;
-                const statusClass = item.status === 'sent' ? 'sent' : (item.status === 'failed' ? 'failed' : 'other');
-                const statusLabel = item.status === 'sent' ? 'Gesendet' : (item.status === 'failed' ? 'Fehlgeschlagen' : item.status);
+                const toStr = Array.isArray(item.to) ? item.to.join(', ') : (item.to || '');
+                const rawEvent = item.last_event || item.status;
+                const statusInfo = getResendStatusInfo(rawEvent);
                 
                 return \`
                     <tr>
                         <td style="white-space: nowrap;">\${dateStr}</td>
                         <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\${item.from}">\${item.from}</td>
                         <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\${toStr}">\${toStr}</td>
-                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;" title="\${item.subject}">\${item.subject || '(Kein Betreff)'}</td>
-                        <td><span class="mail-log-badge \${statusClass}">\${statusLabel}</span></td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;" title="\${item.subject || '(Kein Betreff)'}">\${item.subject || '(Kein Betreff)'}</td>
+                        <td>
+                            <span class="mail-log-badge \${statusInfo.cls}">
+                                <i class="fa-solid \${statusInfo.icon}" style="font-size: 10px;"></i>
+                                \${statusInfo.label}
+                            </span>
+                        </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <button type="button" class="btn" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="viewResendEmailDetails('\${item.id}')">
                                 <i class="fa-solid fa-eye"></i> Details
@@ -3232,8 +3253,10 @@ export default `<!DOCTYPE html>
                 dateSpan.innerText = new Date(data.created_at).toLocaleString('de-DE');
                 subjectSpan.innerText = data.subject || '(Kein Betreff)';
                 
-                badge.className = 'mail-log-badge ' + (data.status === 'sent' ? 'sent' : (data.status === 'failed' ? 'failed' : 'other'));
-                badge.innerText = data.status === 'sent' ? 'Gesendet' : (data.status === 'failed' ? 'Fehlgeschlagen' : data.status);
+                const rawEvent = data.last_event || data.status;
+                const statusInfo = getResendStatusInfo(rawEvent);
+                badge.className = 'mail-log-badge ' + statusInfo.cls;
+                badge.innerHTML = '<i class="fa-solid ' + statusInfo.icon + '" style="font-size: 10px;"></i> ' + statusInfo.label;
 
                 // Set HTML content inside safe iframe
                 const htmlContent = data.html || ('<div style="font-family: sans-serif; padding: 20px; white-space: pre-wrap;">' + (data.text || '') + '</div>');
