@@ -3117,6 +3117,16 @@ export default `<!DOCTYPE html>
         let activeClient = null;
         let cfProjects = { pages: [], workers: [] };
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         // --- OUTBOUND MAIL SYSTEM STATE & LOGIC ---
         let selectedMailRecipients = [];
         let resendMailLogData = [];
@@ -4217,26 +4227,26 @@ export default `<!DOCTYPE html>
             }
 
             // Render Todos & Tasks
-            renderTodos(client);
+            try { renderTodos(client); } catch(e) { console.error("renderTodos error:", e); }
 
             // Render Cloudflare info
-            renderCloudflareStatus(client);
+            try { renderCloudflareStatus(client); } catch(e) { console.error("renderCloudflareStatus error:", e); }
 
             // Render Hosting Status & Inputs
-            renderHostingStatus(client);
+            try { renderHostingStatus(client); } catch(e) { console.error("renderHostingStatus error:", e); }
 
             // Render Contracts
-            renderContracts(client);
+            try { renderContracts(client); } catch(e) { console.error("renderContracts error:", e); }
 
             // Fetch E-Mail logs
-            loadEmailLogs(client.id);
-
-
+            try { loadEmailLogs(client.id); } catch(e) { console.error("loadEmailLogs error:", e); }
 
             // Update suggested chat button
             const suggestBtn = document.getElementById('suggest-client-btn');
-            suggestBtn.style.display = 'block';
-            suggestBtn.innerText = 'Info zu ' + client.name;
+            if (suggestBtn) {
+                suggestBtn.style.display = 'block';
+                suggestBtn.innerText = 'Info zu ' + client.name;
+            }
 
             // Highlight in list
             renderClientList();
@@ -4321,6 +4331,7 @@ export default `<!DOCTYPE html>
             const dateInput = document.getElementById('client-hosting-start-date');
             if (dateInput) dateInput.value = client.hostingStartDate || '';
 
+            const priceInput = document.getElementById('client-hosting-price-net');
             const price = (client.hostingPriceNet !== undefined && client.hostingPriceNet !== null && client.hostingPriceNet !== '') 
                 ? parseFloat(client.hostingPriceNet) 
                 : (client.hostingPrice ? parseFloat(client.hostingPrice) : 0);
@@ -4701,21 +4712,29 @@ export default `<!DOCTYPE html>
         // Render Contracts (R2)
         function renderContracts(client) {
             const list = document.getElementById('contracts-list');
+            if (!list) return;
             list.innerHTML = '';
-            const contracts = client.contracts || [];
+            const contracts = (client && Array.isArray(client.contracts)) ? client.contracts : [];
             
             if (contracts.length === 0) {
-                list.innerHTML = '<li style="font-size: 13px; color: var(--text-secondary);">Noch keine Verträge hochgeladen.</li>';
+                list.innerHTML = '<li style="font-size: 13px; color: var(--text-secondary); padding: 8px 0;">Noch keine Verträge hochgeladen.</li>';
                 return;
             }
 
-            contracts.forEach(c => {
+            contracts.forEach((c, idx) => {
                 const item = document.createElement('li');
                 item.className = 'file-item';
-                const sizeKb = Math.round(c.size / 1024);
+                const sizeKb = c.size ? Math.max(1, Math.round(c.size / 1024)) : 1;
+
+                // Determine file icon
+                const fileName = c.name || 'Dokument';
+                const isPdf = fileName.toLowerCase().endsWith('.pdf');
+                const isDoc = fileName.toLowerCase().endsWith('.doc') || fileName.toLowerCase().endsWith('.docx');
+                const iconClass = isPdf ? 'fa-solid fa-file-pdf' : (isDoc ? 'fa-solid fa-file-word' : 'fa-solid fa-file-lines');
+                const iconColor = isPdf ? '#ef4444' : (isDoc ? '#3b82f6' : '#94a3b8');
 
                 // Rewrite direct R2 links to the download proxy
-                let downloadUrl = c.url;
+                let downloadUrl = c.url || '#';
                 if (c.r2Path) {
                     downloadUrl = \`/api/contracts/download?path=\${encodeURIComponent(c.r2Path)}\`;
                 } else if (c.url && c.url.includes('.r2.dev/')) {
@@ -4725,17 +4744,31 @@ export default `<!DOCTYPE html>
                     }
                 }
 
+                const uploadDate = c.uploadedAt ? new Date(c.uploadedAt).toLocaleDateString('de-DE') : '-';
+
                 item.innerHTML = \`
-                    <a href="\${downloadUrl}" target="_blank">
-                        <i class="fa-solid fa-file-pdf"></i> \${c.name} (\&nbsp;\${sizeKb} KB)
+                    <a href="\${downloadUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;">
+                        <i class="\${iconClass}" style="color: \${iconColor}; font-size: 15px; flex-shrink: 0;"></i>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${escapeHtml(fileName)}</span>
+                        <span style="font-size: 11px; color: var(--text-secondary); opacity: 0.7; flex-shrink: 0;">(\${sizeKb} KB)</span>
                     </a>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 11px; color: var(--text-secondary); opacity: 0.8;">\${new Date(c.uploadedAt).toLocaleDateString('de-DE')}</span>
-                        <button onclick="deleteContract('\${client.id}', '\${c.r2Path || ''}', '\${c.name}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Vertrag löschen">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <span style="font-size: 11px; color: var(--text-secondary); opacity: 0.8;">\${uploadDate}</span>
+                        <button class="btn-delete-contract" data-client-id="\${client.id}" data-r2-path="\${escapeHtml(c.r2Path || '')}" data-name="\${escapeHtml(fileName)}" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Vertrag löschen">
                             <i class="fa-solid fa-trash-can" style="font-size: 13px;"></i>
                         </button>
                     </div>
                 \`;
+
+                // Add delete event listener cleanly
+                const delBtn = item.querySelector('.btn-delete-contract');
+                if (delBtn) {
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteContract(client.id, c.r2Path || '', fileName);
+                    };
+                }
+
                 list.appendChild(item);
             });
         }
@@ -4756,13 +4789,17 @@ export default `<!DOCTYPE html>
                 if (data.success) {
                     // Update activeClient local object
                     if (activeClient && activeClient.id === clientId) {
-                        activeClient.contracts = data.customer.contracts;
+                        if (data.customer && data.customer.contracts) {
+                            activeClient.contracts = data.customer.contracts;
+                        } else {
+                            activeClient.contracts = (activeClient.contracts || []).filter(c => c.r2Path !== r2Path);
+                        }
                         renderContracts(activeClient);
                     }
                     // Reload clients cache
                     await loadClients();
                 } else {
-                    alert('Fehler beim Löschen des Vertrags: ' + data.error);
+                    alert('Fehler beim Löschen des Vertrags: ' + (data.error || 'Unbekannter Fehler'));
                 }
             } catch (e) {
                 alert('Netzwerkfehler beim Löschen des Vertrags.');
@@ -5054,21 +5091,29 @@ export default `<!DOCTYPE html>
         }
 
         function triggerFileInput() {
-            document.getElementById('contract-file-input').click();
+            const input = document.getElementById('contract-file-input');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
         }
 
         function uploadContract(event) {
             const files = event.target.files;
-            if (files.length > 0) {
+            if (files && files.length > 0) {
                 performUpload(files[0]);
             }
         }
 
         async function performUpload(file) {
-            if (!activeClient) return;
+            if (!activeClient) {
+                alert('Bitte wähle zuerst einen Kunden aus.');
+                return;
+            }
             
-            const uploaderText = document.getElementById('uploader-zone').querySelector('p');
-            uploaderText.innerText = "Lade hoch... " + file.name;
+            const uploaderZone = document.getElementById('uploader-zone');
+            const uploaderText = uploaderZone ? uploaderZone.querySelector('p') : null;
+            if (uploaderText) uploaderText.innerText = "Lade hoch... " + file.name;
 
             const fd = new FormData();
             fd.append('clientId', activeClient.id);
@@ -5080,15 +5125,31 @@ export default `<!DOCTYPE html>
                     body: fd
                 });
                 const data = await res.json();
-                if (data.success) {
-                    uploaderText.innerText = "Vertrag hochladen (PDF, Word...)";
-                    loadClients(); // Reload
+                if (data.success && data.contract) {
+                    if (uploaderText) uploaderText.innerText = "Vertrag hochladen (PDF, Word...)";
+                    
+                    // Immediately update local activeClient contracts and UI
+                    activeClient.contracts = activeClient.contracts || [];
+                    activeClient.contracts.unshift(data.contract);
+                    renderContracts(activeClient);
+
+                    // Clear file input
+                    const fileInput = document.getElementById('contract-file-input');
+                    if (fileInput) fileInput.value = '';
+
+                    // Synchronize clients in background
+                    await loadClients();
                 } else {
-                    alert("Fehler beim Upload: " + data.error);
+                    alert("Fehler beim Upload: " + (data.error || "Unbekannter Fehler"));
+                    if (uploaderText) uploaderText.innerText = "Vertrag hochladen (PDF, Word...)";
                 }
             } catch (e) {
-                alert("Upload fehlgeschlagen.");
-                uploaderText.innerText = "Vertrag hochladen (PDF, Word...)";
+                console.error("Upload error:", e);
+                alert("Upload fehlgeschlagen. Bitte prüfe die Internetverbindung.");
+                if (uploaderText) uploaderText.innerText = "Vertrag hochladen (PDF, Word...)";
+            } finally {
+                const fileInput = document.getElementById('contract-file-input');
+                if (fileInput) fileInput.value = '';
             }
         }
 

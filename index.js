@@ -656,6 +656,9 @@ export default {
         customer.contracts = (customer.contracts || []).filter(c => c.r2Path !== r2Path);
         await env.KUNDEN_DB.put(`kunde:${clientId}`, JSON.stringify(customer));
 
+        return new Response(JSON.stringify({ success: true, customer }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
       }
 
       // 5.5 API: Get Company Files
