@@ -456,10 +456,12 @@ export default {
           finalCustomer = {
             ...existing,
             ...customer,
+            adminPassword: customer.adminPassword !== undefined ? customer.adminPassword : (existing.adminPassword || ''),
             contracts: customer.contracts || existing.contracts || [],
           };
         } else {
           finalCustomer.contracts = [];
+          finalCustomer.adminPassword = customer.adminPassword || '';
           finalCustomer.status = finalCustomer.status || 'green';
           finalCustomer.statusReason = finalCustomer.statusReason || 'Neu angelegt';
         }
@@ -964,7 +966,7 @@ export default {
           const raw = await env.KUNDEN_DB.get(key.name);
           if (raw) {
             const c = JSON.parse(raw);
-            clientsContext += `- Name: ${c.name}, E-Mail: ${c.email}, Status: ${c.status} (${c.statusReason || ''}), Cloudflare Project: ${c.linkedCloudflareProject || 'none'}, Notizen: ${c.notes || ''}\n`;
+            clientsContext += `- Name: ${c.name}, E-Mail: ${c.email}, Status: ${c.status} (${c.statusReason || ''}), Cloudflare Project: ${c.linkedCloudflareProject || 'none'}, Custom Domain: ${c.customDomain || 'keine'}, Admin-Passwort (/admin): ${c.adminPassword || 'nicht hinterlegt'}, Notizen: ${c.notes || ''}\n`;
           }
         }
 

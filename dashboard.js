@@ -2514,9 +2514,14 @@ export default `<!DOCTYPE html>
                 <div style="display: flex; flex-direction: column; gap: 30px;">
                     <!-- Cloudflare Card -->
                     <div class="card">
-                        <h3 class="card-title">
-                            <i class="fa-solid fa-cloud"></i> Cloudflare Live-Status
-                        </h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 class="card-title" style="margin: 0;">
+                                <i class="fa-solid fa-cloud"></i> Cloudflare & Website Status
+                            </h3>
+                            <button class="btn" onclick="openEditClientModal()" style="padding: 4px 8px; font-size: 11px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="Website & Zugangsdaten bearbeiten">
+                                <i class="fa-solid fa-pen-to-square"></i> Bearbeiten
+                            </button>
+                        </div>
                         <div class="cloudflare-status">
                             <div>
                                 <span class="cf-badge">Pages</span>
@@ -2527,6 +2532,32 @@ export default `<!DOCTYPE html>
                         <div style="font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px;">
                             <div><strong>Live-URL:</strong> <a href="#" id="cf-project-url" target="_blank" style="color: var(--color-primary); text-decoration: none;">-</a></div>
                             <div><strong>Letztes Deployment:</strong> <span id="cf-project-modified">-</span></div>
+                        </div>
+
+                        <!-- Admin-Bereich (/admin) & Passwort Box -->
+                        <div id="cf-admin-box" style="margin-top: 14px; padding: 12px 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-shield-halved" style="color: var(--color-cyan);"></i> Admin-Bereich (/admin)
+                                </span>
+                                <a href="#" id="cf-admin-url" target="_blank" class="btn" style="padding: 4px 9px; font-size: 11px; font-weight: 600; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                                    <span>Öffnen</span> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 9px;"></i>
+                                </a>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); padding: 7px 10px; border-radius: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; flex-shrink: 0;">Passwort:</span>
+                                    <span id="client-admin-password-display" style="font-family: monospace; font-size: 13px; color: #34d399; font-weight: 600; letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                    <button type="button" id="btn-toggle-client-password" onclick="toggleClientPasswordDisplay()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 6px; font-size: 12px; border-radius: 4px;" title="Passwort anzeigen/verbergen">
+                                        <i class="fa-solid fa-eye" id="client-password-eye-icon"></i>
+                                    </button>
+                                    <button type="button" id="btn-copy-client-password" onclick="copyClientAdminPassword()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; cursor: pointer; padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;" title="Passwort kopieren">
+                                        <i class="fa-solid fa-copy"></i> <span id="copy-password-btn-text">Kopieren</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2830,6 +2861,25 @@ export default `<!DOCTYPE html>
                 <div class="form-group">
                     <label>Echte Domain (Custom Domain)</label>
                     <input type="text" id="modal-client-domain" placeholder="Z.B. weymann-gebaeudetechnik.de">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-key" style="color: var(--color-cyan);"></i> Admin-Passwort (Website /admin)</span>
+                        <span style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">Optional</span>
+                    </label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="modal-client-admin-password" placeholder="Z.B. Start.123# oder Kundenpasswort" style="padding-right: 75px; width: 100%; box-sizing: border-box;">
+                        <div style="position: absolute; right: 8px; display: flex; align-items: center; gap: 6px;">
+                            <button type="button" onclick="toggleModalPasswordVisibility()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 13px;" title="Passwort anzeigen/verbergen">
+                                <i class="fa-solid fa-eye" id="modal-password-eye-icon"></i>
+                            </button>
+                            <button type="button" onclick="generateRandomAdminPassword()" style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); color: var(--color-cyan); cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;" title="Sicheres Passwort generieren">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: block;">Login-Passwort für die Admin-Seite unter <code>/admin</code>.</span>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -4252,6 +4302,132 @@ export default `<!DOCTYPE html>
             renderClientList();
         }
 
+        let isClientPasswordRevealed = false;
+
+        // Render Admin Area Link and Admin Password Display
+        function renderClientAdminAuth(client, baseUrl) {
+            const adminBox = document.getElementById('cf-admin-box');
+            const adminUrlEl = document.getElementById('cf-admin-url');
+            const passDisplay = document.getElementById('client-admin-password-display');
+            const toggleBtn = document.getElementById('btn-toggle-client-password');
+            const copyBtn = document.getElementById('btn-copy-client-password');
+            const eyeIcon = document.getElementById('client-password-eye-icon');
+
+            if (!adminBox) return;
+
+            // Determine Admin URL
+            let adminUrl = null;
+            if (client && client.customDomain && client.customDomain.trim()) {
+                let clean = client.customDomain.trim();
+                if (clean.toLowerCase().startsWith('https://')) clean = clean.substring(8);
+                else if (clean.toLowerCase().startsWith('http://')) clean = clean.substring(7);
+                while (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
+                adminUrl = 'https://' + clean + '/admin';
+            } else if (baseUrl && baseUrl !== '#' && baseUrl !== '-') {
+                let clean = baseUrl.trim();
+                while (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
+                adminUrl = clean.startsWith('http') ? clean + '/admin' : 'https://' + clean + '/admin';
+            }
+
+            if (adminUrlEl) {
+                if (adminUrl) {
+                    adminUrlEl.href = adminUrl;
+                    adminUrlEl.style.opacity = '1';
+                    adminUrlEl.style.pointerEvents = 'auto';
+                    adminUrlEl.title = 'Öffne ' + adminUrl;
+                } else {
+                    adminUrlEl.href = '#';
+                    adminUrlEl.style.opacity = '0.5';
+                    adminUrlEl.style.pointerEvents = 'none';
+                    adminUrlEl.title = 'Keine Website-URL hinterlegt';
+                }
+            }
+
+            // Display Admin Password
+            const rawPass = (client && client.adminPassword) ? String(client.adminPassword).trim() : '';
+            if (passDisplay) {
+                if (rawPass) {
+                    if (isClientPasswordRevealed) {
+                        passDisplay.innerText = rawPass;
+                        passDisplay.style.color = '#34d399';
+                        passDisplay.style.fontStyle = 'normal';
+                    } else {
+                        passDisplay.innerText = '••••••••••••';
+                        passDisplay.style.color = '#34d399';
+                        passDisplay.style.fontStyle = 'normal';
+                    }
+                    if (eyeIcon) {
+                        eyeIcon.className = isClientPasswordRevealed ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+                    }
+                    if (toggleBtn) toggleBtn.style.display = 'inline-flex';
+                    if (copyBtn) copyBtn.style.display = 'inline-flex';
+                } else {
+                    passDisplay.innerHTML = '<span style="color: var(--text-secondary); font-style: italic; font-size: 11px;">Kein Passwort hinterlegt</span>';
+                    if (toggleBtn) toggleBtn.style.display = 'none';
+                    if (copyBtn) copyBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function toggleClientPasswordDisplay() {
+            isClientPasswordRevealed = !isClientPasswordRevealed;
+            if (activeClient) {
+                const projectUrlEl = document.getElementById('cf-project-url');
+                const baseUrl = projectUrlEl ? projectUrlEl.href : null;
+                renderClientAdminAuth(activeClient, baseUrl);
+            }
+        }
+
+        async function copyClientAdminPassword() {
+            if (!activeClient || !activeClient.adminPassword) return;
+            try {
+                await navigator.clipboard.writeText(activeClient.adminPassword);
+                const btnText = document.getElementById('copy-password-btn-text');
+                const copyBtn = document.getElementById('btn-copy-client-password');
+                if (btnText && copyBtn) {
+                    const originalHtml = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fa-solid fa-check" style="color: #34d399;"></i> <span style="color: #34d399;">Kopiert!</span>';
+                    copyBtn.style.background = 'rgba(16, 185, 129, 0.3)';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalHtml;
+                        copyBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+                    }, 2000);
+                }
+            } catch(e) {
+                console.error("Fehler beim Kopieren:", e);
+            }
+        }
+
+        function toggleModalPasswordVisibility() {
+            const input = document.getElementById('modal-client-admin-password');
+            const icon = document.getElementById('modal-password-eye-icon');
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'fa-solid fa-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'fa-solid fa-eye';
+                }
+            }
+        }
+
+        function generateRandomAdminPassword() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!#%&*+';
+            let pass = 'SF.';
+            for (let i = 0; i < 8; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            pass += '#';
+            const input = document.getElementById('modal-client-admin-password');
+            const icon = document.getElementById('modal-password-eye-icon');
+            if (input) {
+                input.type = 'text';
+                input.value = pass;
+                if (icon) icon.className = 'fa-solid fa-eye-slash';
+            }
+        }
+
         // Render Cloudflare details from cache
         function renderCloudflareStatus(client) {
             const cfName = client.linkedCloudflareProject;
@@ -4260,6 +4436,8 @@ export default `<!DOCTYPE html>
             const projectUrlEl = document.getElementById('cf-project-url');
             const projectModEl = document.getElementById('cf-project-modified');
 
+            let determinedBaseUrl = null;
+
             if (!cfName) {
                 projectNameEl.innerText = '-';
                 projectStatusEl.innerText = 'Keine Website verknüpft';
@@ -4267,6 +4445,7 @@ export default `<!DOCTYPE html>
                 projectUrlEl.innerText = '-';
                 projectUrlEl.href = '#';
                 projectModEl.innerText = '-';
+                renderClientAdminAuth(client, null);
                 return;
             }
 
@@ -4278,7 +4457,9 @@ export default `<!DOCTYPE html>
                 projectStatusEl.style.color = 'var(--color-green)';
                 projectUrlEl.innerText = pageProj.subdomain;
                 projectUrlEl.href = 'https://' + pageProj.subdomain;
+                determinedBaseUrl = 'https://' + pageProj.subdomain;
                 projectModEl.innerText = new Date(pageProj.created_on).toLocaleDateString('de-DE');
+                renderClientAdminAuth(client, determinedBaseUrl);
                 return;
             }
 
@@ -4294,6 +4475,7 @@ export default `<!DOCTYPE html>
                 if (customDomain && customDomain.hostname && !customDomain.hostname.includes('workers.dev') && !customDomain.hostname.includes('pages.dev')) {
                     projectUrlEl.innerText = customDomain.hostname;
                     projectUrlEl.href = 'https://' + customDomain.hostname;
+                    determinedBaseUrl = 'https://' + customDomain.hostname;
                     // If a real custom domain is active, customer is no longer a draft!
                     if (client.isDraft) {
                         client.isDraft = false;
@@ -4305,12 +4487,14 @@ export default `<!DOCTYPE html>
                     const devUrl = workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev';
                     projectUrlEl.innerText = devUrl;
                     projectUrlEl.href = 'https://' + devUrl;
+                    determinedBaseUrl = 'https://' + devUrl;
                 } else {
                     projectUrlEl.innerText = 'Worker (Keine Custom Domain)';
                     projectUrlEl.href = '#';
                 }
                 
                 projectModEl.innerText = new Date(workerProj.modified_on).toLocaleDateString('de-DE');
+                renderClientAdminAuth(client, determinedBaseUrl);
                 return;
             }
 
@@ -4321,6 +4505,7 @@ export default `<!DOCTYPE html>
             projectUrlEl.innerText = '-';
             projectUrlEl.href = '#';
             projectModEl.innerText = '-';
+            renderClientAdminAuth(client, null);
         }
 
         let selectedHostingPlanName = null;
@@ -5252,6 +5437,13 @@ export default `<!DOCTYPE html>
             if (contactInput) contactInput.value = "";
             const phoneInput = document.getElementById('modal-client-phone');
             if (phoneInput) phoneInput.value = "";
+            const passInput = document.getElementById('modal-client-admin-password');
+            if (passInput) {
+                passInput.value = "";
+                passInput.type = "password";
+            }
+            const passIcon = document.getElementById('modal-password-eye-icon');
+            if (passIcon) passIcon.className = "fa-solid fa-eye";
             const planSelect = document.getElementById('modal-client-hosting-plan');
             if (planSelect) planSelect.value = "95";
             const sepaCb = document.getElementById('modal-client-sepa-active');
@@ -5271,6 +5463,14 @@ export default `<!DOCTYPE html>
             if (phoneInput) phoneInput.value = activeClient.phone || '';
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
             document.getElementById('modal-client-domain').value = activeClient.customDomain || '';
+
+            const passInput = document.getElementById('modal-client-admin-password');
+            if (passInput) {
+                passInput.value = activeClient.adminPassword || '';
+                passInput.type = "password";
+            }
+            const passIcon = document.getElementById('modal-password-eye-icon');
+            if (passIcon) passIcon.className = "fa-solid fa-eye";
 
             const planSelect = document.getElementById('modal-client-hosting-plan');
             if (planSelect) {
@@ -5300,6 +5500,8 @@ export default `<!DOCTYPE html>
             const phone = phoneInput ? phoneInput.value.trim() : '';
             const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
             const customDomain = document.getElementById('modal-client-domain').value.trim();
+            const passInput = document.getElementById('modal-client-admin-password');
+            const adminPassword = passInput ? passInput.value.trim() : '';
 
             const planSelect = document.getElementById('modal-client-hosting-plan');
             const hostingPriceNet = planSelect ? parseFloat(planSelect.value) : (activeClient ? (parseFloat(activeClient.hostingPriceNet) || 0) : 0);
@@ -5313,6 +5515,7 @@ export default `<!DOCTYPE html>
                 phone, 
                 linkedCloudflareProject, 
                 customDomain,
+                adminPassword,
                 hostingPriceNet: hostingPriceNet,
                 hostingPrice: hostingPriceNet,
                 sepaActive: sepaActive,
