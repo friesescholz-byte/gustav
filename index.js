@@ -307,9 +307,9 @@ export default {
     if (url.pathname === '/login' && method === 'POST') {
       try {
         const body = await request.json();
-        const expectedPassword = (env.APP_PASSWORD || env.PASSWORD || env.ADMIN_PASSWORD || env.MASTER_PASSWORD || env.GUSTAV_PASSWORD || 'Start.123#').toString().trim();
+        const expectedPassword = (env.Passwort || env.APP_PASSWORD || env.PASSWORD || env.ADMIN_PASSWORD || env.MASTER_PASSWORD || env.GUSTAV_PASSWORD || '').toString().trim();
         const inputPassword = (body.password || '').toString().trim();
-        if (inputPassword === expectedPassword || inputPassword === 'Start.123#') {
+        if (expectedPassword && inputPassword === expectedPassword) {
           return new Response(JSON.stringify({ success: true }), {
             headers: {
               'Content-Type': 'application/json',
