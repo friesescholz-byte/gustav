@@ -1099,7 +1099,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                        <a href="tel:+491556343678" style="display: block; text-align: center; background-color: #0B726D; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(11, 114, 109, 0.25); border: 1px solid #0B726D; box-sizing: border-box;">📞 Anrufen</a>
                      </td>
                      <td style="padding-left: 6px; width: 50%;">
-                       <a href="mailto:info@scholz-friese-webdesign.de" style="display: block; text-align: center; background-color: #111827; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 1px solid #111827; box-sizing: border-box;">✉️ E-Mail</a>
+                       <a href="mailto:adrianfriese@scholz-friese-webdesign.de" style="display: block; text-align: center; background-color: #111827; color: #ffffff !important; padding: 12px 14px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 1px solid #111827; box-sizing: border-box;">✉️ E-Mail</a>
                      </td>
                    </tr>
                  </table>`
@@ -1152,9 +1152,11 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           };
 
           const htmlContent = getHtmlEmail(body);
-          const fromName = sender === 'info@scholz-friese-webdesign.de'
-            ? 'Scholz & Friese Webdesign'
-            : 'Bastian Scholz | Scholz & Friese';
+          const fromName = sender === 'adrianfriese@scholz-friese-webdesign.de'
+            ? 'Adrian Friese | Scholz & Friese'
+            : (sender === 'bastianscholz@scholz-friese-webdesign.de'
+                ? 'Bastian Scholz | Scholz & Friese'
+                : 'Scholz & Friese Webdesign');
 
           // Send individual emails to prevent DSGVO leaks and log them in customer histories
           const sendPromises = recipients.map(async (recipientEmail) => {
@@ -1410,7 +1412,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           }
 
           const emailMap = {
-            adrian: 'info@scholz-friese-webdesign.de',
+            adrian: 'adrianfriese@scholz-friese-webdesign.de',
             basti: 'bastianscholz@scholz-friese-webdesign.de'
           };
 
@@ -1636,8 +1638,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                 break;
               }
               // 2. Fallback match for forwarded emails: if email is from us to us, check if the customer email appears in the body
-              const isSelfSent = (senderEmail.includes('scholz-friese-webdesign.de') || senderEmail.includes('info@') || senderEmail.includes('bastianscholz@')) &&
-                                 toList.some(t => t.toLowerCase().includes('scholz-friese-webdesign.de') || t.toLowerCase().includes('info@') || t.toLowerCase().includes('bastianscholz@'));
+              const isSelfSent = (senderEmail.includes('scholz-friese-webdesign.de') || senderEmail.includes('info@') || senderEmail.includes('bastianscholz@') || senderEmail.includes('adrianfriese@')) &&
+                                 toList.some(t => t.toLowerCase().includes('scholz-friese-webdesign.de') || t.toLowerCase().includes('info@') || t.toLowerCase().includes('bastianscholz@') || t.toLowerCase().includes('adrianfriese@'));
               if (isSelfSent && bodyText.toLowerCase().includes(customerEmail)) {
                 matchedCustomer = customer;
                 break;

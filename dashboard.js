@@ -1891,8 +1891,9 @@ export default `<!DOCTYPE html>
                             <div class="form-group" style="margin: 0;">
                                 <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absender (Sender)</label>
                                 <select id="mail-sender" onchange="autoSelectSignature()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
-                                    <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
+                                    <option value="adrianfriese@scholz-friese-webdesign.de">adrianfriese@scholz-friese-webdesign.de</option>
                                     <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
+                                    <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
                                 </select>
                             </div>
 
@@ -2267,7 +2268,7 @@ export default `<!DOCTYPE html>
                     <input type="checkbox" id="chk-recipient-adrian" style="accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer;">
                     <div>
                         <div style="font-size: 13px; font-weight: 700; color: #60a5fa;">Adrian</div>
-                        <div style="font-size: 10px; color: #94a3b8; font-weight: 500;">info@...</div>
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: 500;">adrianfriese@...</div>
                     </div>
                 </label>
 
@@ -2828,6 +2829,8 @@ export default `<!DOCTYPE html>
             const sigSelect = document.getElementById('mail-signature');
             if (sender === 'bastianscholz@scholz-friese-webdesign.de') {
                 sigSelect.value = 'bastian';
+            } else if (sender === 'adrianfriese@scholz-friese-webdesign.de') {
+                sigSelect.value = 'adrian';
             } else if (sender === 'info@scholz-friese-webdesign.de') {
                 sigSelect.value = 'bastian';
             }
