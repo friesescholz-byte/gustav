@@ -2160,7 +2160,12 @@ export default `<!DOCTYPE html>
                             <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                                 <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Pre-Flight Bericht
                             </h3>
-                            <span id="client-sec-overall-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-secondary);">Prüfe...</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn" id="btn-single-client-scan" onclick="startSingleClientSecurityScan(activeClient)" style="padding: 3px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; cursor: pointer;" title="Jetzt live prüfen">
+                                    <i class="fa-solid fa-play" style="font-size: 9px;" id="single-scan-btn-icon"></i> <span id="single-scan-btn-text">Prüfen</span>
+                                </button>
+                                <span id="client-sec-overall-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-secondary);">Prüfe...</span>
+                            </div>
                         </div>
                         <div id="client-sec-body" style="font-size: 12.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
                             <div>Lade aktuellen Sicherheitsbericht...</div>
@@ -2219,6 +2224,10 @@ export default `<!DOCTYPE html>
                     </select>
                     <button class="btn" onclick="loadSecurityGuardianData(true)" style="padding: 9px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-rotate"></i> Aktualisieren
+                    </button>
+                    <button class="btn btn-primary" id="btn-run-full-scan" onclick="startFullSecurityScan()" style="padding: 9px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); cursor: pointer;">
+                        <i class="fa-solid fa-play" id="btn-run-scan-icon"></i>
+                        <span id="btn-run-scan-text">Jetzt Sicherheits-Scan starten</span>
                     </button>
                 </div>
             </div>
@@ -2398,6 +2407,59 @@ export default `<!DOCTYPE html>
                 <button type="button" class="btn" onclick="closeTaskEmailModal()" style="padding: 9px 12px; font-size: 12.5px;">Abbrechen</button>
                 <button type="button" class="btn btn-primary" id="btn-submit-task-email" onclick="submitTaskEmailModal()" style="padding: 9px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
                     <i class="fa-solid fa-paper-plane"></i> <span>E-Mail versenden</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECURITY SCAN PROGRESS MODAL -->
+    <div class="modal" id="security-scan-modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
+        <div class="modal-content" style="max-width: 620px; width: 92%; background: #0b1120; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 16px; padding: 26px 28px; box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 35px rgba(16, 185, 129, 0.18);">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 22px;" id="sec-scan-modal-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.3px;" id="sec-scan-modal-title">Live Sicherheits-Scan</h3>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 3px;" id="sec-scan-modal-subtitle">Prüfe Websites auf SSL, Security-Headers, /admin Turnstile & DSGVO...</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSecurityScanModal()" id="btn-close-sec-scan-modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 4px;" title="Schließen">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Progress Bar Container -->
+            <div style="margin-bottom: 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 14px 16px; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px;">
+                    <span style="font-size: 12.5px; font-weight: 600; color: #e2e8f0; display: flex; align-items: center; gap: 7px;" id="sec-scan-status-text">
+                        <i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Starte Scan...
+                    </span>
+                    <span style="font-size: 14px; font-weight: 800; color: #34d399; font-family: monospace;" id="sec-scan-percent">0%</span>
+                </div>
+                <div style="height: 12px; width: 100%; background: rgba(0,0,0,0.4); border-radius: 9999px; overflow: hidden; padding: 2px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.08);">
+                    <div id="sec-scan-progress-bar" style="height: 100%; width: 0%; border-radius: 9999px; background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%); transition: width 0.3s ease; box-shadow: 0 0 14px rgba(16, 185, 129, 0.65);"></div>
+                </div>
+            </div>
+
+            <!-- Live Log Activity Feed -->
+            <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between;">
+                <span>Echtzeit-Prüfprotokoll</span>
+                <span id="sec-scan-count-badge" style="color: #34d399;">0 geprüft</span>
+            </div>
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 12px; max-height: 220px; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;" id="sec-scan-log-feed">
+                <!-- Dynamic log pills appear here -->
+            </div>
+
+            <!-- Summary & Action Button -->
+            <div id="sec-scan-footer" style="margin-top: 18px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                <div style="font-size: 12.5px; color: var(--text-secondary);" id="sec-scan-summary-stats">
+                    Prüfung läuft...
+                </div>
+                <button class="btn btn-primary" id="btn-sec-scan-action" onclick="closeSecurityScanModal()" style="display: none; padding: 8px 18px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); cursor: pointer;">
+                    Bericht ansehen
                 </button>
             </div>
         </div>
@@ -5682,6 +5744,330 @@ export default `<!DOCTYPE html>
                 setTimeout(() => { btnEl.innerHTML = orig; }, 2500);
             } catch (e) {
                 alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
+        }
+
+        // ==========================================
+        // LIVE SECURITY SCAN CONTROLLER & PROGRESS
+        // ==========================================
+        let isScanRunning = false;
+
+        function closeSecurityScanModal() {
+            if (isScanRunning) {
+                if (!confirm("Der Sicherheits-Scan läuft gerade. Möchtest du das Fenster wirklich schließen?")) return;
+            }
+            const modal = document.getElementById('security-scan-modal');
+            if (modal) modal.style.display = 'none';
+            isScanRunning = false;
+        }
+
+        function isRealCustomDomainCheck(d) {
+            if (!d || typeof d !== 'string') return false;
+            const low = d.toLowerCase().trim();
+            if (!low || low.includes('workers.dev') || low.includes('pages.dev') || low.includes('localhost') || low.includes('trycloudflare.com')) return false;
+            if (low.includes('preview.scholz-friese-webdesign.de') || low.includes('scholz-friese-chatbot.de')) return false;
+            return low.includes('.');
+        }
+
+        function addScanLogEntry(result) {
+            const feed = document.getElementById('sec-scan-log-feed');
+            if (!feed) return;
+            const item = document.createElement('div');
+            item.style.cssText = "display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 7px 10px; border-radius: 7px; font-size: 12px;";
+
+            let iconHtml = '<i class="fa-solid fa-circle-check" style="color:#34d399;"></i>';
+            let badgeBg = "rgba(16,185,129,0.15)";
+            let badgeColor = "#34d399";
+            let badgeText = "GRÜN";
+
+            if (result.overallStatus === 'RED') {
+                iconHtml = '<i class="fa-solid fa-circle-xmark" style="color:#f87171;"></i>';
+                badgeBg = "rgba(239,68,68,0.2)";
+                badgeColor = "#f87171";
+                badgeText = "ROT";
+            } else if (result.overallStatus === 'YELLOW') {
+                iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color:#fbbf24;"></i>';
+                badgeBg = "rgba(245,158,11,0.2)";
+                badgeColor = "#fbbf24";
+                badgeText = "GELB";
+            }
+
+            const clientLabel = escapeSecHtml(result.clientName || result.project);
+            const latencyText = result.latencyMs ? (result.latencyMs + 'ms') : '';
+            const detailText = result.overallStatus === 'GREEN' 
+                ? (result.isLiveCustomDomain ? 'SSL, Headers, /admin & DSGVO konform' : 'Online & geschützt')
+                : (result.sec && result.sec.issues && result.sec.issues.length > 0 ? result.sec.issues[0] : ((result.sec && result.sec.warnings && result.sec.warnings[0]) || (result.legal && result.legal.issues && result.legal.issues[0]) || (result.seo && result.seo.issues && result.seo.issues[0]) || 'Optimierungsbedarf'));
+
+            item.innerHTML = 
+                '<div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1;">' +
+                    '<span>' + iconHtml + '</span>' +
+                    '<strong style="color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">' + clientLabel + '</strong>' +
+                    '<span style="color: var(--text-secondary); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeSecHtml(detailText) + '</span>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
+                    '<span style="font-size: 11px; color: var(--text-secondary); font-family: monospace;">' + latencyText + '</span>' +
+                    '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: ' + badgeBg + '; color: ' + badgeColor + ';">' + badgeText + '</span>' +
+                '</div>';
+            feed.appendChild(item);
+            feed.scrollTop = feed.scrollHeight;
+
+            const badge = document.getElementById('sec-scan-count-badge');
+            if (badge) badge.innerText = feed.children.length + ' geprüft';
+        }
+
+        function addScanLogFallback(target, errText) {
+            const feed = document.getElementById('sec-scan-log-feed');
+            if (!feed) return;
+            const item = document.createElement('div');
+            item.style.cssText = "display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); padding: 7px 10px; border-radius: 7px; font-size: 12px;";
+            item.innerHTML = 
+                '<div style="display: flex; align-items: center; gap: 8px;">' +
+                    '<i class="fa-solid fa-circle-xmark" style="color:#f87171;"></i>' +
+                    '<strong style="color: #fff;">' + escapeSecHtml(target.clientName || target.project) + '</strong>' +
+                    '<span style="color: #fca5a5; font-size: 11px;">' + escapeSecHtml(errText) + '</span>' +
+                '</div>' +
+                '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(239,68,68,0.2); color: #f87171;">FEHLER</span>';
+            feed.appendChild(item);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        async function startFullSecurityScan() {
+            if (isScanRunning) return;
+            isScanRunning = true;
+
+            const modal = document.getElementById('security-scan-modal');
+            const pBar = document.getElementById('sec-scan-progress-bar');
+            const pPct = document.getElementById('sec-scan-percent');
+            const statusText = document.getElementById('sec-scan-status-text');
+            const feed = document.getElementById('sec-scan-log-feed');
+            const actionBtn = document.getElementById('btn-sec-scan-action');
+            const closeBtn = document.getElementById('btn-close-sec-scan-modal');
+            const titleEl = document.getElementById('sec-scan-modal-title');
+            const subEl = document.getElementById('sec-scan-modal-subtitle');
+            const footerStats = document.getElementById('sec-scan-summary-stats');
+
+            if (!modal) return;
+            modal.style.display = 'flex';
+            pBar.style.width = '0%';
+            pPct.innerText = '0%';
+            statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Sammle Ziel-Websites...';
+            feed.innerHTML = '';
+            if (actionBtn) actionBtn.style.display = 'none';
+            if (closeBtn) closeBtn.style.opacity = '0.4';
+            titleEl.innerText = 'Live Sicherheits-Scan';
+            subEl.innerText = 'Prüfe Websites auf SSL, Security-Headers, /admin Turnstile & DSGVO...';
+            footerStats.innerText = 'Prüfung läuft...';
+
+            // Gather targets
+            const targets = [];
+            const seenUrls = new Set();
+
+            for (const c of (clients || [])) {
+                if (c.isDraft) continue;
+                let url = null;
+                let isCustom = false;
+                if (c.customDomain && c.customDomain.trim() && c.customDomain.includes('.')) {
+                    url = c.customDomain.trim();
+                    isCustom = isRealCustomDomainCheck(url);
+                } else if (c.linkedCloudflareProject && c.linkedCloudflareProject.trim()) {
+                    url = 'https://' + c.linkedCloudflareProject.trim() + '.pages.dev';
+                    isCustom = false;
+                }
+                if (url) {
+                    const normUrl = url.startsWith('http') ? url : 'https://' + url;
+                    if (!seenUrls.has(normUrl)) {
+                        seenUrls.add(normUrl);
+                        targets.push({
+                            url: normUrl,
+                            project: c.linkedCloudflareProject || c.name || c.id,
+                            clientName: c.name || c.id,
+                            clientId: c.id,
+                            isLiveCustomDomain: isCustom
+                        });
+                    }
+                }
+            }
+
+            // Main Agency Website
+            const sfMainUrl = 'https://scholz-friese-webdesign.de';
+            if (!seenUrls.has(sfMainUrl)) {
+                seenUrls.add(sfMainUrl);
+                targets.push({
+                    url: sfMainUrl,
+                    project: 'sf-website',
+                    clientName: 'Scholz & Friese Webdesign',
+                    clientId: null,
+                    isLiveCustomDomain: true
+                });
+            }
+
+            // Additional Cloudflare Pages projects from cache if any
+            if (cfProjects && Array.isArray(cfProjects.pages)) {
+                for (const p of cfProjects.pages) {
+                    const pUrl = 'https://' + p.subdomain;
+                    if (!seenUrls.has(pUrl) && !p.name.includes('preview') && !p.name.includes('test')) {
+                        seenUrls.add(pUrl);
+                        targets.push({
+                            url: pUrl,
+                            project: p.name,
+                            clientName: p.name,
+                            clientId: null,
+                            isLiveCustomDomain: false
+                        });
+                    }
+                }
+            }
+
+            const total = targets.length;
+            if (total === 0) {
+                statusText.innerHTML = 'Keine Websites zur Überprüfung gefunden.';
+                isScanRunning = false;
+                if (closeBtn) closeBtn.style.opacity = '1';
+                return;
+            }
+
+            const auditedResults = [];
+
+            for (let i = 0; i < total; i++) {
+                const t = targets[i];
+                const pct = Math.round((i / total) * 100);
+                pPct.innerText = pct + '%';
+                pBar.style.width = pct + '%';
+                statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Prüfe ' + (i + 1) + ' von ' + total + ': <strong style="color:#fff;">' + escapeSecHtml(t.clientName || t.project) + '</strong>...';
+
+                try {
+                    const res = await fetch('/api/security/audit-single', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(t)
+                    });
+                    const data = await res.json();
+                    if (data && data.result) {
+                        auditedResults.push(data.result);
+                        addScanLogEntry(data.result);
+                    } else {
+                        addScanLogFallback(t, (data && data.error) ? data.error : 'Fehler beim Abruf');
+                    }
+                } catch (err) {
+                    addScanLogFallback(t, err.message);
+                }
+            }
+
+            // Finish 100%
+            pPct.innerText = '100%';
+            pBar.style.width = '100%';
+            statusText.innerHTML = '💾 Speichere Prüfbericht in Cloudflare KV...';
+
+            try {
+                const saveRes = await fetch('/api/security/save-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projects: auditedResults,
+                        title: 'Live Security Scan (' + new Date().toLocaleDateString('de-DE') + ')'
+                    })
+                });
+                const saveData = await saveRes.json();
+                if (saveData && saveData.report) {
+                    securityReportCache = saveData.report;
+                    renderSecurityScreen();
+                    if (activeClient) renderClientSecurityAudit(activeClient);
+                }
+            } catch (saveErr) {
+                console.error("Fehler beim Speichern des Berichts:", saveErr);
+            }
+
+            const greens = auditedResults.filter(r => r.overallStatus === 'GREEN').length;
+            const yellows = auditedResults.filter(r => r.overallStatus === 'YELLOW').length;
+            const reds = auditedResults.filter(r => r.overallStatus === 'RED').length;
+
+            titleEl.innerText = '✅ Scan erfolgreich abgeschlossen';
+            subEl.innerText = total + ' Websites geprüft • Ergebnis: 🟢 ' + greens + ' Grün • 🟡 ' + yellows + ' Gelb • 🔴 ' + reds + ' Rot';
+            statusText.innerHTML = '<span style="color:#34d399; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Fertig:</span> ' + greens + ' sicher, ' + yellows + ' Hinweise, ' + reds + ' kritisch';
+            footerStats.innerHTML = '<strong style="color:#fff;">' + total + ' Websites</strong> erfolgreich analysiert & synchronisiert.';
+
+            isScanRunning = false;
+            if (closeBtn) closeBtn.style.opacity = '1';
+            if (actionBtn) {
+                actionBtn.style.display = 'inline-flex';
+                actionBtn.onclick = () => {
+                    closeSecurityScanModal();
+                    loadSecurityGuardianData(true);
+                };
+            }
+        }
+
+        async function startSingleClientSecurityScan(client) {
+            if (!client) return;
+            const btn = document.getElementById('btn-single-client-scan');
+            const icon = document.getElementById('single-scan-btn-icon');
+            const text = document.getElementById('single-scan-btn-text');
+
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = "fa-solid fa-spinner fa-spin";
+            if (text) text.innerText = "Prüfe...";
+
+            let url = null;
+            let isCustom = false;
+            if (client.customDomain && client.customDomain.trim() && client.customDomain.includes('.')) {
+                url = client.customDomain.trim();
+                isCustom = isRealCustomDomainCheck(url);
+            } else if (client.linkedCloudflareProject && client.linkedCloudflareProject.trim()) {
+                url = 'https://' + client.linkedCloudflareProject.trim() + '.pages.dev';
+                isCustom = false;
+            }
+
+            if (!url) {
+                alert("Keine Website-URL oder Cloudflare-Projekt für diesen Kunden hinterlegt.");
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = "fa-solid fa-play";
+                if (text) text.innerText = "Prüfen";
+                return;
+            }
+
+            const normUrl = url.startsWith('http') ? url : 'https://' + url;
+
+            try {
+                const res = await fetch('/api/security/audit-single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: normUrl,
+                        project: client.linkedCloudflareProject || client.name || client.id,
+                        clientName: client.name || client.id,
+                        clientId: client.id,
+                        isLiveCustomDomain: isCustom
+                    })
+                });
+                const data = await res.json();
+                if (data && data.result) {
+                    if (securityReportCache && Array.isArray(securityReportCache.projects)) {
+                        const existingIdx = securityReportCache.projects.findIndex(p => p.clientId === client.id || p.project === (client.linkedCloudflareProject || ''));
+                        if (existingIdx >= 0) {
+                            securityReportCache.projects[existingIdx] = data.result;
+                        } else {
+                            securityReportCache.projects.unshift(data.result);
+                        }
+                    }
+                    renderClientSecurityAudit(client);
+                    if (icon) icon.className = "fa-solid fa-check";
+                    if (text) text.innerText = "Fertig!";
+                    setTimeout(() => {
+                        if (btn) btn.disabled = false;
+                        if (icon) icon.className = "fa-solid fa-play";
+                        if (text) text.innerText = "Prüfen";
+                    }, 2500);
+                } else {
+                    alert("Prüfung fehlgeschlagen: " + ((data && data.error) || 'Unbekannter Fehler'));
+                    if (btn) btn.disabled = false;
+                    if (icon) icon.className = "fa-solid fa-play";
+                    if (text) text.innerText = "Prüfen";
+                }
+            } catch (e) {
+                alert("Fehler bei der Prüfung: " + e.message);
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = "fa-solid fa-play";
+                if (text) text.innerText = "Prüfen";
             }
         }
     </script>

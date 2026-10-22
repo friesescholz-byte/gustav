@@ -1790,6 +1790,371 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         }
       }
 
+      // 11b. API: Security Guardian Audit Single Target
+      if (url.pathname === '/api/security/audit-single' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          let { url: targetUrl, project, clientName, clientId, isLiveCustomDomain } = payload;
+          if (!targetUrl || typeof targetUrl !== 'string') {
+            return new Response(JSON.stringify({ error: 'Target URL is required' }), { status: 400, headers: corsHeaders });
+          }
+
+          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            targetUrl = 'https://' + targetUrl;
+          }
+
+          const secIssues = [];
+          const secWarnings = [];
+          const legalIssues = [];
+          const seoIssues = [];
+          const seoWarnings = [];
+          const perfIssues = [];
+          const perfWarnings = [];
+
+          let statusCode = 0;
+          let reachable = false;
+          let latencyMs = 0;
+          let htmlContent = '';
+          const headersDict = {};
+          let errorMsg = null;
+
+          const startTime = Date.now();
+          try {
+            const resp = await fetch(targetUrl, {
+              headers: { 'User-Agent': 'ScholzFriese-SecurityGuardian/2.0' },
+              redirect: 'follow',
+              signal: AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined
+            });
+            latencyMs = Date.now() - startTime;
+            statusCode = resp.status;
+            reachable = (statusCode >= 200 && statusCode < 400);
+
+            for (const [k, v] of resp.headers.entries()) {
+              headersDict[k.toLowerCase()] = v;
+            }
+
+            const rawBody = await resp.text();
+            htmlContent = rawBody.substring(0, 300000);
+          } catch (fetchErr) {
+            latencyMs = Date.now() - startTime;
+            reachable = false;
+            errorMsg = fetchErr.message || 'Verbindung fehlgeschlagen';
+          }
+
+          // 1. Security Headers & Live Token Leaks
+          if (reachable && statusCode === 200) {
+            if (!headersDict['x-frame-options'] && !headersDict['content-security-policy']) {
+              secWarnings.push("Live-Header 'X-Frame-Options' (Clickjacking-Schutz) fehlt auf dem Server.");
+            }
+            if (!headersDict['x-content-type-options']) {
+              secWarnings.push("Live-Header 'X-Content-Type-Options: nosniff' fehlt auf dem Server.");
+            }
+
+            const leakRegex = /(?:re_[a-zA-Z0-9]{8}_[a-zA-Z0-9]{20,}|cfat_[a-zA-Z0-9_-]{30,}|sk_live_[a-zA-Z0-9]{20,})/;
+            if (leakRegex.test(htmlContent)) {
+              secIssues.push("KRITISCH: API-Key im öffentlichen HTML-Quelltext der Live-Seite gefunden!");
+            }
+
+            // Probe /admin for Turnstile bot protection
+            try {
+              const adminUrl = targetUrl.replace(/\/+$/, '') + '/admin';
+              const adminResp = await fetch(adminUrl, {
+                headers: { 'User-Agent': 'ScholzFriese-SecurityGuardian/2.0' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
+              });
+              if (adminResp.status === 200) {
+                const adminHtml = (await adminResp.text()).toLowerCase();
+                const hasTurnstile = adminHtml.includes('turnstile') || adminHtml.includes('cf-turnstile');
+                const hasPasswordForm = adminHtml.includes('password') || adminHtml.includes('passwort') || adminHtml.includes('login');
+                if (hasPasswordForm && !hasTurnstile) {
+                  secWarnings.push("Admin-Login unter /admin erreichbar, aber kein Cloudflare Turnstile Bot-Schutz eingebunden!");
+                }
+              }
+            } catch (_) {
+              // Ignore probe errors
+            }
+          }
+
+          const secStatus = secIssues.length > 0 ? 'RED' : (secWarnings.length > 0 ? 'YELLOW' : 'GREEN');
+          const sec = {
+            status: secStatus,
+            issues: secIssues,
+            warnings: secWarnings,
+            details: (secIssues.length === 0 && secWarnings.length === 0)
+              ? 'Live-SSL aktiv & keine exponierten Keys'
+              : (secIssues[0] || secWarnings[0])
+          };
+
+          // 2. Legal & SEO
+          let legal, seo;
+          if (isLiveCustomDomain && reachable && htmlContent) {
+            const htmlLower = htmlContent.toLowerCase();
+            if (!htmlLower.includes('impressum')) {
+              legalIssues.push("Kein 'Impressum'-Link auf der Live-Startseite gefunden!");
+            }
+            if (!htmlLower.includes('datenschutz') && !htmlLower.includes('privacy')) {
+              legalIssues.push("Kein 'Datenschutz'-Link auf der Live-Startseite gefunden!");
+            }
+
+            legal = {
+              status: legalIssues.length > 0 ? 'RED' : 'GREEN',
+              issues: legalIssues,
+              warnings: [],
+              details: legalIssues.length === 0 ? 'Impressum & Datenschutz live verlinkt.' : legalIssues.join(', ')
+            };
+
+            const hasTitle = htmlLower.includes('<title>');
+            const hasDesc = htmlLower.includes('name="description"') || htmlLower.includes("name='description'");
+            const hasOg = htmlLower.includes('property="og:');
+            const hasSchema = htmlLower.includes('application/ld+json') || htmlLower.includes('schema.org');
+            const hasAf = htmlLower.includes('autumn-flower') || htmlLower.includes('scholz-friese-chatbot');
+
+            if (!hasTitle) seoIssues.push("Kein <title> Tag auf Live-Seite!");
+            if (!hasDesc) seoWarnings.push("Keine <meta name='description'> auf Live-Seite.");
+            if (!hasSchema) seoWarnings.push("Kein Schema.org JSON-LD auf Live-Seite gefunden.");
+
+            seo = {
+              status: seoIssues.length > 0 ? 'RED' : (seoWarnings.length > 0 ? 'YELLOW' : 'GREEN'),
+              issues: seoIssues,
+              warnings: seoWarnings,
+              details: `Title (${hasTitle ? '✓' : '✗'}), Desc (${hasDesc ? '✓' : '✗'}), OG (${hasOg ? '✓' : '✗'}), Schema.org (${hasSchema ? '✓' : '✗'}), Worker (${hasAf ? '✓' : 'Standalone'})`
+            };
+          } else {
+            legal = { status: 'SKIPPED', issues: [], warnings: [], details: 'Internes Tool / .dev-Domain' };
+            seo = { status: 'SKIPPED', issues: [], warnings: [], details: 'Internes Tool / .dev-Domain' };
+          }
+
+          // 3. Performance / Reachability
+          if (!reachable) {
+            perfIssues.push(`Website nicht erreichbar (${targetUrl}): ${errorMsg || 'HTTP ' + statusCode}`);
+          } else if (latencyMs > 2500) {
+            perfWarnings.push(`Hohe Server-Antwortzeit (${latencyMs}ms)`);
+          }
+
+          const perfStatus = perfIssues.length > 0 ? 'RED' : (perfWarnings.length > 0 ? 'YELLOW' : 'GREEN');
+          const perf = {
+            status: perfStatus,
+            issues: perfIssues,
+            warnings: perfWarnings,
+            details: reachable ? `Online (HTTP ${statusCode}, ${latencyMs}ms)` : `OFFLINE (${errorMsg || 'HTTP ' + statusCode})`
+          };
+
+          const checkStatuses = [sec.status, perf.status];
+          if (isLiveCustomDomain) checkStatuses.push(legal.status, seo.status);
+
+          const overallStatus = checkStatuses.includes('RED') ? 'RED' : (checkStatuses.includes('YELLOW') ? 'YELLOW' : 'GREEN');
+          const hasSecurityEmergency = (sec.status === 'RED') || (!reachable && isLiveCustomDomain);
+
+          // Build Antigravity Prompt
+          const promptLines = [
+            `Ich habe ein Sicherheits- & Qualitätsproblem auf der Live-Website '${clientName || project}' (${targetUrl}) festgestellt.`,
+            `Aktueller Pre-Flight Status: ${overallStatus}`
+          ];
+          if (sec.issues.length > 0) promptLines.push(`- Kritische Sicherheitsrisiken: ${sec.issues.join('; ')}`);
+          if (sec.warnings.length > 0) promptLines.push(`- Sicherheits-Warnungen: ${sec.warnings.join('; ')}`);
+          if (legal.issues.length > 0) promptLines.push(`- Rechtliche Verstöße: ${legal.issues.join('; ')}`);
+          if (seo.issues.length > 0 || seo.warnings.length > 0) promptLines.push(`- SEO-Optimierungsbedarf: ${[...seo.issues, ...seo.warnings].join('; ')}`);
+          if (perf.issues.length > 0) promptLines.push(`- Ausfall/Performance: ${perf.issues.join('; ')}`);
+          promptLines.push('Bitte behebe diese Probleme umgehend und stelle sicher, dass alle Checks auf GRÜN stehen.');
+
+          const result = {
+            project: project || clientName || 'unbekannt',
+            path: `Cloudflare Live (${targetUrl})`,
+            clientName: clientName || project,
+            clientId: clientId || null,
+            category: isLiveCustomDomain ? 'LIVE_DOMAIN' : 'INTERNAL_DEV',
+            isLiveCustomDomain: !!isLiveCustomDomain,
+            liveUrl: targetUrl,
+            liveReachable: reachable,
+            latencyMs,
+            overallStatus,
+            hasSecurityEmergency,
+            sec,
+            legal,
+            seo,
+            perf,
+            antigravityPrompt: promptLines.join('\n')
+          };
+
+          if (clientId) {
+            await env.KUNDEN_DB.put(`security:by_client:${clientId}`, JSON.stringify(result));
+          }
+
+          return new Response(JSON.stringify({ success: true, result }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 11c. API: Security Guardian Save Report & Emergency Tasks
+      if (url.pathname === '/api/security/save-report' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          const projects = Array.isArray(payload.projects) ? payload.projects : [];
+          const title = payload.title || 'Live Security Guardian Scan';
+
+          if (projects.length === 0) {
+            return new Response(JSON.stringify({ error: 'Keine Projekte übergeben.' }), { status: 400, headers: corsHeaders });
+          }
+
+          const statusOrder = { RED: 0, YELLOW: 1, GREEN: 2 };
+          projects.sort((a, b) => {
+            const diff = (statusOrder[a.overallStatus] ?? 3) - (statusOrder[b.overallStatus] ?? 3);
+            if (diff !== 0) return diff;
+            return (a.isLiveCustomDomain === b.isLiveCustomDomain) ? 0 : (a.isLiveCustomDomain ? -1 : 1);
+          });
+
+          const stats = {
+            totalProjects: projects.length,
+            liveCustomDomains: projects.filter(p => p.isLiveCustomDomain).length,
+            internalOrDev: projects.filter(p => !p.isLiveCustomDomain).length,
+            greenCount: projects.filter(p => p.overallStatus === 'GREEN').length,
+            yellowCount: projects.filter(p => p.overallStatus === 'YELLOW').length,
+            redCount: projects.filter(p => p.overallStatus === 'RED').length,
+          };
+
+          let delta = { newRedProjects: [], resolvedProjects: [], unchangedCount: projects.length };
+          try {
+            const rawPrev = await env.KUNDEN_DB.get('security:latest');
+            if (rawPrev) {
+              const prev = JSON.parse(rawPrev);
+              const prevStatus = {};
+              (prev.projects || []).forEach(p => { prevStatus[p.project] = p.overallStatus; });
+              const newRed = [];
+              const resolved = [];
+              projects.forEach(p => {
+                const oldSt = prevStatus[p.project];
+                if (p.overallStatus === 'RED' && oldSt !== 'RED') {
+                  newRed.push(`${p.clientName || p.project} (jetzt RED)`);
+                } else if (p.overallStatus === 'GREEN' && oldSt === 'RED') {
+                  resolved.push(`${p.clientName || p.project} (jetzt GREEN)`);
+                }
+              });
+              delta = {
+                newRedProjects: newRed,
+                resolvedProjects: resolved,
+                unchangedCount: projects.length - newRed.length - resolved.length
+              };
+            }
+          } catch (_) {}
+
+          const now = new Date();
+          const reportId = 'report_' + now.toISOString().replace(/[:.]/g, '-');
+          const report = {
+            reportId,
+            title,
+            timestamp: now.toISOString(),
+            formattedDate: now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr',
+            stats,
+            delta,
+            research: {
+              scanTimestamp: now.toISOString(),
+              totalAnalyzed: projects.length,
+              activeThreatsDetected: stats.redCount,
+              workflowRecommendations: stats.redCount > 0 ? [`${stats.redCount} Projekt(e) erfordern Überprüfung.`] : ['Alle Systeme im sicheren Zustand.'],
+              cveAdvisories: []
+            },
+            projects
+          };
+
+          await Promise.all([
+            env.KUNDEN_DB.put('security:latest', JSON.stringify(report)),
+            env.KUNDEN_DB.put(`security:report:${reportId}`, JSON.stringify(report))
+          ]);
+
+          try {
+            const rawIndex = await env.KUNDEN_DB.get('security:index');
+            let index = rawIndex ? JSON.parse(rawIndex) : [];
+            index.unshift({
+              id: reportId,
+              title,
+              timestamp: now.toISOString(),
+              formattedDate: report.formattedDate,
+              stats
+            });
+            if (index.length > 50) index = index.slice(0, 50);
+            await env.KUNDEN_DB.put('security:index', JSON.stringify(index));
+          } catch (_) {}
+
+          for (const p of projects) {
+            if (p.clientId) {
+              await env.KUNDEN_DB.put(`security:by_client:${p.clientId}`, JSON.stringify(p));
+            }
+          }
+
+          // Trigger emergency tasks if any
+          const emergencies = [];
+          for (const p of projects) {
+            if (p.hasSecurityEmergency) {
+              emergencies.push({
+                type: 'CRITICAL_SECURITY',
+                project: p.project,
+                clientName: p.clientName,
+                clientId: p.clientId,
+                liveUrl: p.liveUrl,
+                title: `🚨 SICHERHEITS-ALARM: ${p.clientName || p.project}`,
+                details: p.sec.issues.length > 0 ? p.sec.issues : p.perf.issues,
+                fixPrompt: p.antigravityPrompt
+              });
+            }
+          }
+
+          if (emergencies.length > 0) {
+            try {
+              const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+              let tasks = rawTasks ? JSON.parse(rawTasks) : [];
+              for (const em of emergencies) {
+                const emergencyKey = `${em.type || 'ALERT'}:${em.project || em.clientName || 'unknown'}`;
+                const taskTitle = em.title;
+                const alreadyOpen = tasks.some(t => !t.completed && (t.emergencyKey === emergencyKey || t.title === taskTitle));
+                if (alreadyOpen) continue;
+
+                const newTask = {
+                  id: 'task_sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                  title: taskTitle,
+                  clientId: em.clientId || null,
+                  clientName: em.clientName || em.project || 'Agentur-Projekt',
+                  assignee: 'adrian',
+                  priority: 'high',
+                  emergencyKey,
+                  createdAt: new Date().toISOString(),
+                  completed: false
+                };
+                tasks.unshift(newTask);
+
+                if (em.clientId) {
+                  const rawClient = await env.KUNDEN_DB.get(`kunde:${em.clientId}`);
+                  if (rawClient) {
+                    const clientObj = JSON.parse(rawClient);
+                    if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
+                    clientObj.todos.push({
+                      id: newTask.id,
+                      text: taskTitle,
+                      assignee: 'adrian',
+                      done: false,
+                      createdAt: new Date().toISOString()
+                    });
+                    clientObj.status = 'red';
+                    clientObj.statusReason = 'Offene Sicherheitsaufgabe';
+                    await env.KUNDEN_DB.put(`kunde:${em.clientId}`, JSON.stringify(clientObj));
+                  }
+                }
+              }
+              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+            } catch (_) {}
+          }
+
+          return new Response(JSON.stringify({ success: true, report }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       if (url.pathname === '/api/security/emergency-alert' && method === 'POST') {
         try {
           const payload = await request.json();
