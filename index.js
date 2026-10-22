@@ -331,9 +331,11 @@ export default {
       }
     }
 
-    // Check authorization cookie (skip for webhook endpoint)
+    // Check authorization cookie (skip for webhook endpoint & authenticated security guardian bot)
     const isWebhook = url.pathname === '/api/webhooks/email';
-    const isAuthorized = isWebhook || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
+    const secTokenHeader = request.headers.get('X-Security-Token') || '';
+    const isSecurityBot = url.pathname === '/api/security/emergency-alert' && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
+    const isAuthorized = isWebhook || isSecurityBot || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
     if (!isAuthorized) {
       if (url.pathname === '/' || url.pathname === '/index.html') {
         return new Response(loginHtml, {
@@ -1755,6 +1757,180 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         return new Response(JSON.stringify({ success: true, matched: null, info: 'Sender/Recipient not matched to any client' }), {
           headers: { 'Content-Type': 'application/json' },
         });
+      }
+
+      // 11. API: Security Guardian Reports & Emergency Alerts
+      if (url.pathname === '/api/security/latest' && method === 'GET') {
+        try {
+          const [rawLatest, rawIndex] = await Promise.all([
+            env.KUNDEN_DB.get('security:latest'),
+            env.KUNDEN_DB.get('security:index')
+          ]);
+          const report = rawLatest ? JSON.parse(rawLatest) : null;
+          const index = rawIndex ? JSON.parse(rawIndex) : [];
+          return new Response(JSON.stringify({ report, index }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/security/report' && method === 'GET') {
+        try {
+          const reportId = url.searchParams.get('id');
+          const key = reportId ? `security:report:${reportId}` : 'security:latest';
+          const rawReport = await env.KUNDEN_DB.get(key);
+          const report = rawReport ? JSON.parse(rawReport) : null;
+          return new Response(JSON.stringify({ report }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/security/emergency-alert' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          const emergencies = Array.isArray(payload.emergencies) ? payload.emergencies : [];
+          if (emergencies.length === 0) {
+            return new Response(JSON.stringify({ success: true, createdTasks: 0, message: 'Keine Notfälle übergeben.' }), {
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+          }
+
+          const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+          let tasks = rawTasks ? JSON.parse(rawTasks) : [];
+          const newlyCreatedEmergencies = [];
+
+          for (const em of emergencies) {
+            const emergencyKey = `${em.type || 'ALERT'}:${em.project || em.clientName || 'unknown'}`;
+            const taskTitle = em.title || `🚨 SICHERHEITS-ALARM: ${em.clientName || em.project}`;
+
+            // Deduplication: Check if an open task for this exact emergency already exists
+            const alreadyOpen = tasks.some(t => !t.completed && (t.emergencyKey === emergencyKey || t.title === taskTitle));
+            if (alreadyOpen) {
+              continue;
+            }
+
+            const newTask = {
+              id: 'task_sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              title: taskTitle,
+              clientId: em.clientId || null,
+              clientName: em.clientName || em.project || 'Agentur-Projekt',
+              assignee: 'adrian',
+              priority: 'high',
+              emergencyKey,
+              createdAt: new Date().toISOString(),
+              completed: false
+            };
+            tasks.unshift(newTask);
+            newlyCreatedEmergencies.push({ ...em, task: newTask });
+
+            // Also attach to client todos and set status to red if clientId is mapped
+            if (em.clientId) {
+              const rawClient = await env.KUNDEN_DB.get(`kunde:${em.clientId}`);
+              if (rawClient) {
+                const clientObj = JSON.parse(rawClient);
+                if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
+                const existsInClient = clientObj.todos.some(td => !td.done && td.text === taskTitle);
+                if (!existsInClient) {
+                  clientObj.todos.push({
+                    id: newTask.id,
+                    text: taskTitle,
+                    assignee: 'adrian',
+                    done: false,
+                    createdAt: new Date().toISOString()
+                  });
+                }
+                clientObj.status = 'red';
+                const openTodos = clientObj.todos.filter(td => !td.done);
+                if (openTodos.length > 0) {
+                  clientObj.statusReason = openTodos.map(td => 'Offene Aufgabe: ' + td.text).join(' • ');
+                }
+                clientObj.lastInteraction = new Date().toISOString();
+                await env.KUNDEN_DB.put(`kunde:${em.clientId}`, JSON.stringify(clientObj));
+              }
+            }
+          }
+
+          if (newlyCreatedEmergencies.length > 0) {
+            await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+          }
+
+          // Send Emergency Email via Resend if new emergencies were recorded and RESEND_API_KEY is available
+          let emailSent = false;
+          if (newlyCreatedEmergencies.length > 0 && env.RESEND_API_KEY) {
+            const targetEmails = [
+              'adrianfriese@scholz-friese-webdesign.de',
+              'bastianscholz@scholz-friese-webdesign.de'
+            ];
+
+            const itemsHtml = newlyCreatedEmergencies.map(em => {
+              const detailsHtml = (em.details || []).map(d => `<li style="margin-bottom:4px;">${d}</li>`).join('');
+              return `
+                <div style="background: #1f2937; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px;">
+                  <div style="font-size: 15px; font-weight: 800; color: #f87171; margin-bottom: 6px;">${em.title}</div>
+                  <div style="font-size: 12.5px; color: #9ca3af; margin-bottom: 8px;">Projekt: <strong style="color:#ffffff;">${em.project}</strong> ${em.liveUrl ? `(${em.liveUrl})` : ''}</div>
+                  <ul style="margin: 0 0 10px 18px; padding: 0; font-size: 13px; color: #e2e8f0;">${detailsHtml}</ul>
+                  ${em.fixPrompt ? `<div style="background:#0b0f17; border:1px solid #374151; border-radius:6px; padding:10px; font-family:monospace; font-size:11.5px; color:#38bdf8; white-space:pre-wrap;">${em.fixPrompt}</div>` : ''}
+                </div>
+              `;
+            }).join('');
+
+            const htmlContent = `
+              <!DOCTYPE html>
+              <html>
+              <head><meta charset="utf-8"></head>
+              <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f17; color: #e2e8f0; margin: 0; padding: 24px;">
+                <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #dc2626; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+                  <div style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%); padding: 20px 24px;">
+                    <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 4px;">Scholz & Friese • Security Guardian</div>
+                    <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">🚨 Kritischer Sicherheits- oder Ausfall-Alarm (${newlyCreatedEmergencies.length})</h1>
+                  </div>
+                  <div style="padding: 24px;">
+                    <p style="font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-top: 0;">
+                      Beim automatischen Security- & Uptime-Durchlauf wurden <strong>${newlyCreatedEmergencies.length} neue kritische Vorfälle</strong> entdeckt und automatisch als dringende Aufgabe im Gustav-Dashboard angelegt:
+                    </p>
+                    ${itemsHtml}
+                    <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-top: 18px; margin-bottom: 0;">
+                      Öffne <a href="https://gustav.friese-scholz.workers.dev/" style="color:#38bdf8; font-weight:700;">Gustav Dashboard &rarr; Security & Berichte</a>, um den Fix-Prompt mit 1 Klick für Antigravity zu kopieren.
+                    </p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `;
+
+            await Promise.all(targetEmails.map(toEmail =>
+              fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${env.RESEND_API_KEY}`
+                },
+                body: JSON.stringify({
+                  from: 'Gustav Security Guardian <noreply@scholz-friese-webdesign.de>',
+                  to: [toEmail],
+                  subject: `🚨 SECURITY ALARM (${newlyCreatedEmergencies.length}): Kritischer Befund / Website Offline`,
+                  html: htmlContent
+                })
+              })
+            ));
+            emailSent = true;
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            createdTasks: newlyCreatedEmergencies.length,
+            emailSent
+          }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
       }
 
       return new Response('Not Found', { status: 404 });

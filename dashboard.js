@@ -1662,6 +1662,9 @@ export default `<!DOCTYPE html>
             <button class="nav-item" id="nav-btn-mail" onclick="showView('mail')">
                 <i class="fa-solid fa-paper-plane"></i> E-Mail verfassen
             </button>
+            <button class="nav-item" id="nav-btn-security" onclick="showView('security')">
+                <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Berichte
+            </button>
         </div>
         <div class="search-container">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -2129,6 +2132,19 @@ export default `<!DOCTYPE html>
                         </div>
                     </div>
 
+                    <!-- Security & Pre-Flight Audit Card (Kunden-Ansicht) -->
+                    <div class="card" id="client-security-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+                            <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Pre-Flight Bericht
+                            </h3>
+                            <span id="client-sec-overall-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-secondary);">Prüfe...</span>
+                        </div>
+                        <div id="client-sec-body" style="font-size: 12.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
+                            <div>Lade aktuellen Sicherheitsbericht...</div>
+                        </div>
+                    </div>
+
                     <!-- Notes & Tasks Card -->
                     <div class="card">
                         <h3 class="card-title">
@@ -2182,6 +2198,99 @@ export default `<!DOCTYPE html>
                     <div class="email-list" id="email-list">
                         <!-- Dynamic Emails -->
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECURITY GUARDIAN & BERICHTE SCREEN -->
+        <div id="security-screen" style="display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 34px 40px; box-sizing: border-box; gap: 24px;">
+            <!-- Header Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); padding-bottom: 18px;">
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; margin-bottom: 4px;">
+                        <i class="fa-solid fa-shield-halved"></i> Automatisierte Sicherheits- & Qualitätsüberwachung
+                    </div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.4px;" id="sec-screen-title">Security Guardian & System-Berichte</h2>
+                    <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px;" id="sec-screen-subtitle">Lade aktuellen Prüfbericht aus Cloudflare KV...</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <select id="security-report-select" onchange="loadSecurityReportById(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; cursor: pointer;">
+                        <option value="">Aktueller Bericht</option>
+                    </select>
+                    <button class="btn" onclick="loadSecurityGuardianData(true)" style="padding: 9px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-rotate"></i> Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Summary Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px;">
+                <div class="card" style="padding: 18px 20px; border-left: 3px solid var(--color-cyan);">
+                    <div style="font-size: 11.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Geprüfte Projekte</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #fff; margin: 6px 0 4px 0;" id="sec-kpi-total">-</div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);" id="sec-kpi-split">- Live-Domains • - Intern/.dev</div>
+                </div>
+                <div class="card" style="padding: 18px 20px; border-left: 3px solid #10b981;">
+                    <div style="font-size: 11.5px; color: #34d399; text-transform: uppercase; font-weight: 700;">🟢 100% Konform (Grün)</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #34d399; margin: 6px 0 4px 0;" id="sec-kpi-green">-</div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);">Keine Sicherheits- oder SEO-Mängel</div>
+                </div>
+                <div class="card" style="padding: 18px 20px; border-left: 3px solid #f59e0b;">
+                    <div style="font-size: 11.5px; color: #fbbf24; text-transform: uppercase; font-weight: 700;">🟡 Optimierung / Hinweis</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #fbbf24; margin: 6px 0 4px 0;" id="sec-kpi-yellow">-</div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);">Turnstile / Header / Meta-Hinweise</div>
+                </div>
+                <div class="card" style="padding: 18px 20px; border-left: 3px solid #ef4444;">
+                    <div style="font-size: 11.5px; color: #f87171; text-transform: uppercase; font-weight: 700;">🔴 Kritisch / Handlungsbedarf</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #f87171; margin: 6px 0 4px 0;" id="sec-kpi-red">-</div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);">Secret-Leak, Offline oder Pflichtlink</div>
+                </div>
+            </div>
+
+            <!-- Delta Comparison & Zero-Bullshit Security Researcher -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
+                <!-- Delta Card -->
+                <div class="card" style="padding: 20px;">
+                    <h3 class="card-title" style="margin: 0 0 12px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-code-compare" style="color: var(--color-cyan);"></i> Veränderungen zum Vorbericht
+                    </h3>
+                    <div id="sec-delta-container" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                        Keine Vergleichsdaten geladen.
+                    </div>
+                </div>
+
+                <!-- Zero-Bullshit Security Researcher Card -->
+                <div class="card" style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+                        <h3 class="card-title" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-microscope" style="color: #a855f7;"></i> Security Researcher (Stack & CVEs)
+                        </h3>
+                        <span id="sec-research-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06);">-</span>
+                    </div>
+                    <div id="sec-research-container" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                        Prüfe Produktions-Abhängigkeiten...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar & Project List -->
+            <div class="card" style="padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" id="sec-filter-buttons">
+                        <button type="button" class="btn sec-filter-btn active" data-filter="ALL" onclick="setSecurityFilter('ALL')" style="padding: 7px 13px; font-size: 12px; font-weight: 700; background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.5); color: #60a5fa;">Alle</button>
+                        <button type="button" class="btn sec-filter-btn" data-filter="RED" onclick="setSecurityFilter('RED')" style="padding: 7px 13px; font-size: 12px; font-weight: 600;">🔴 Kritisch</button>
+                        <button type="button" class="btn sec-filter-btn" data-filter="YELLOW" onclick="setSecurityFilter('YELLOW')" style="padding: 7px 13px; font-size: 12px; font-weight: 600;">🟡 Hinweise</button>
+                        <button type="button" class="btn sec-filter-btn" data-filter="GREEN" onclick="setSecurityFilter('GREEN')" style="padding: 7px 13px; font-size: 12px; font-weight: 600;">🟢 Grün</button>
+                        <button type="button" class="btn sec-filter-btn" data-filter="LIVE_DOMAIN" onclick="setSecurityFilter('LIVE_DOMAIN')" style="padding: 7px 13px; font-size: 12px; font-weight: 600;">🌐 Live-Domains</button>
+                        <button type="button" class="btn sec-filter-btn" data-filter="INTERNAL_DEV" onclick="setSecurityFilter('INTERNAL_DEV')" style="padding: 7px 13px; font-size: 12px; font-weight: 600;">⚙️ Intern / .dev</button>
+                    </div>
+                    <div style="position: relative; min-width: 240px; flex: 1; max-width: 340px;">
+                        <input type="text" id="sec-project-search" placeholder="Projekt, Kunde oder Domain filtern..." oninput="renderSecurityProjectsList()" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 8px 13px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 12.5px; outline: none;">
+                    </div>
+                </div>
+
+                <div id="sec-projects-list" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Dynamic Project Audit Cards -->
                 </div>
             </div>
         </div>
@@ -3407,6 +3516,7 @@ export default `<!DOCTYPE html>
             try { initDragAndDrop(); } catch(e) { console.error('Drag drop init error:', e); }
             try { await loadImapSettings(); } catch(e) { console.error('IMAP settings init error:', e); }
             try { await updateSystemChecklist(); } catch(e) { console.error('System checklist init error:', e); }
+            try { await loadSecurityGuardianData(); } catch(e) { console.error('Security Guardian init error:', e); }
             
             // Sync emails on load and every 5 minutes silently
             try { syncEmails(true); } catch(e) {}
@@ -3523,6 +3633,8 @@ export default `<!DOCTYPE html>
             const routingS = document.getElementById('routing-screen');
             if (routingS) routingS.style.display = 'none';
             document.getElementById('mail-screen').style.display = 'none';
+            const secS = document.getElementById('security-screen');
+            if (secS) secS.style.display = 'none';
 
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
 
@@ -3585,6 +3697,9 @@ export default `<!DOCTYPE html>
 
             // Render Cloudflare info
             try { renderCloudflareStatus(client); } catch(e) { console.error("renderCloudflareStatus error:", e); }
+
+            // Render Security & Pre-Flight Audit card for this customer
+            try { renderClientSecurityAudit(client); } catch(e) { console.error("renderClientSecurityAudit error:", e); }
 
 
 
@@ -4497,6 +4612,8 @@ export default `<!DOCTYPE html>
             const routingScreen = document.getElementById('routing-screen');
             if (routingScreen) routingScreen.style.display = 'none';
             document.getElementById('mail-screen').style.display = 'none';
+            const secScreen = document.getElementById('security-screen');
+            if (secScreen) secScreen.style.display = 'none';
             
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             
@@ -4513,6 +4630,11 @@ export default `<!DOCTYPE html>
                 const mailBtn = document.getElementById('nav-btn-mail');
                 if (mailBtn) mailBtn.classList.add('active');
                 initMailScreen();
+            } else if (viewName === 'security') {
+                if (secScreen) secScreen.style.display = 'flex';
+                const secBtn = document.getElementById('nav-btn-security');
+                if (secBtn) secBtn.classList.add('active');
+                loadSecurityGuardianData();
             }
         }
 
@@ -5144,6 +5266,389 @@ export default `<!DOCTYPE html>
 
         function closeImapModal() {
             document.getElementById('imap-modal').style.display = 'none';
+        }
+
+        // --- SECURITY GUARDIAN & BERICHTE LOGIC ---
+        let securityReportCache = null;
+        let securityIndexCache = [];
+        let activeSecurityFilter = 'ALL';
+        let activeClientSecurityMatch = null;
+
+        function escapeSecHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getSecStatusBadge(status) {
+            if (status === 'GREEN') {
+                return '<span style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#34d399; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">🟢 GRÜN</span>';
+            }
+            if (status === 'YELLOW') {
+                return '<span style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.35); color:#fbbf24; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">🟡 GELB</span>';
+            }
+            if (status === 'RED') {
+                return '<span style="background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.4); color:#f87171; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">🔴 ROT</span>';
+            }
+            return '<span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#94a3b8; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600;">⚪ SKIP (.dev)</span>';
+        }
+
+        async function loadSecurityGuardianData(forceRefresh = false) {
+            try {
+                if (securityReportCache && !forceRefresh) {
+                    renderSecurityScreen();
+                    if (activeClient) renderClientSecurityAudit(activeClient);
+                    return;
+                }
+                const res = await fetch('/api/security/latest');
+                const data = await res.json();
+                if (data && data.report) {
+                    securityReportCache = data.report;
+                    securityIndexCache = Array.isArray(data.index) ? data.index : [];
+                    populateSecurityReportSelect();
+                    renderSecurityScreen();
+                    if (activeClient) renderClientSecurityAudit(activeClient);
+                } else {
+                    const sub = document.getElementById('sec-screen-subtitle');
+                    if (sub) sub.innerText = 'Noch kein Security-Bericht in der Datenbank hinterlegt.';
+                }
+            } catch (e) {
+                console.error('Fehler beim Laden des Security-Berichts:', e);
+            }
+        }
+
+        function populateSecurityReportSelect() {
+            const sel = document.getElementById('security-report-select');
+            if (!sel) return;
+            let html = '<option value="">Aktueller Bericht (' + escapeSecHtml(securityReportCache ? securityReportCache.reportId : 'Neu') + ')</option>';
+            for (const entry of securityIndexCache) {
+                if (securityReportCache && entry.reportId === securityReportCache.reportId) continue;
+                const label = (entry.reportId || '') + ' — ' + (entry.formattedDate || '') + ' (🟢' + (entry.greenCount || 0) + ' 🟡' + (entry.yellowCount || 0) + ' 🔴' + (entry.redCount || 0) + ')';
+                html += '<option value="' + escapeSecHtml(entry.reportId) + '">' + escapeSecHtml(label) + '</option>';
+            }
+            sel.innerHTML = html;
+        }
+
+        async function loadSecurityReportById(reportId) {
+            try {
+                const url = reportId ? ('/api/security/report?id=' + encodeURIComponent(reportId)) : '/api/security/latest';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.report) {
+                    securityReportCache = data.report;
+                    renderSecurityScreen();
+                    if (activeClient) renderClientSecurityAudit(activeClient);
+                }
+            } catch (e) {
+                console.error('Fehler beim Wechseln des Berichts:', e);
+            }
+        }
+
+        function renderSecurityScreen() {
+            const report = securityReportCache;
+            if (!report) return;
+
+            const titleEl = document.getElementById('sec-screen-title');
+            const subEl = document.getElementById('sec-screen-subtitle');
+            if (titleEl) titleEl.innerText = report.title || ('Security & Qualitäts-Bericht (' + report.reportId + ')');
+            if (subEl) subEl.innerText = 'Stand: ' + (report.formattedDate || report.timestamp) + ' • Single-Source-of-Truth Pre-Flight & Live-Check';
+
+            const stats = report.stats || {};
+            const kpiTotal = document.getElementById('sec-kpi-total');
+            const kpiSplit = document.getElementById('sec-kpi-split');
+            const kpiGreen = document.getElementById('sec-kpi-green');
+            const kpiYellow = document.getElementById('sec-kpi-yellow');
+            const kpiRed = document.getElementById('sec-kpi-red');
+
+            if (kpiTotal) kpiTotal.innerText = stats.totalProjects || 0;
+            if (kpiSplit) kpiSplit.innerText = '🌐 ' + (stats.liveCustomDomains || 0) + ' Live-Domains • ⚙️ ' + (stats.internalOrDev || 0) + ' Intern/.dev';
+            if (kpiGreen) kpiGreen.innerText = stats.greenCount || 0;
+            if (kpiYellow) kpiYellow.innerText = stats.yellowCount || 0;
+            if (kpiRed) kpiRed.innerText = stats.redCount || 0;
+
+            // Delta Container
+            const deltaEl = document.getElementById('sec-delta-container');
+            if (deltaEl) {
+                const delta = report.delta || {};
+                let dHtml = '<div style="font-weight:700; color:#fff; margin-bottom:10px;">' + escapeSecHtml(delta.summaryText || 'Keine Änderungen.') + '</div>';
+                if (Array.isArray(delta.improved) && delta.improved.length > 0) {
+                    dHtml += '<div style="margin-bottom:8px;"><span style="color:#34d399; font-weight:700;">🎉 Verbessert (' + delta.improved.length + '):</span> ';
+                    dHtml += delta.improved.map(i => '<span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#34d399; padding:2px 7px; border-radius:5px; font-size:11.5px; margin-right:4px;">' + escapeSecHtml(i.project) + ' (' + escapeSecHtml(i.from) + ' &rarr; ' + escapeSecHtml(i.to) + ')</span>').join(' ');
+                    dHtml += '</div>';
+                }
+                if (Array.isArray(delta.degraded) && delta.degraded.length > 0) {
+                    dHtml += '<div style="margin-bottom:8px;"><span style="color:#f87171; font-weight:700;">⚠️ Verschlechtert (' + delta.degraded.length + '):</span> ';
+                    dHtml += delta.degraded.map(i => '<span style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); color:#f87171; padding:2px 7px; border-radius:5px; font-size:11.5px; margin-right:4px;">' + escapeSecHtml(i.project) + ' (' + escapeSecHtml(i.from) + ' &rarr; ' + escapeSecHtml(i.to) + ')</span>').join(' ');
+                    dHtml += '</div>';
+                }
+                if ((!delta.improved || delta.improved.length === 0) && (!delta.degraded || delta.degraded.length === 0)) {
+                    dHtml += '<div style="font-size:12px; color:var(--text-secondary);">Alle Projekt-Einstufungen sind stabil gegenüber dem letzten Lauf.</div>';
+                }
+                deltaEl.innerHTML = dHtml;
+            }
+
+            // Research Container
+            const resBadge = document.getElementById('sec-research-badge');
+            const resCont = document.getElementById('sec-research-container');
+            const research = report.research || {};
+            if (resBadge) {
+                resBadge.outerHTML = '<span id="sec-research-badge">' + getSecStatusBadge(research.status || 'GREEN') + '</span>';
+            }
+            if (resCont) {
+                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:10px;">' + escapeSecHtml(research.summary || 'Keine kritischen Stack-Schwachstellen gefunden.') + '</div>';
+                const recs = Array.isArray(research.recommendations) ? research.recommendations : [];
+                if (recs.length > 0) {
+                    recs.forEach((rec, idx) => {
+                        rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-top:8px;">';
+                        rHtml += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">';
+                        rHtml += '<strong style="color:#fbbf24; font-size:12.5px;">' + escapeSecHtml(rec.title) + '</strong>';
+                        if (rec.antigravityCommand) {
+                            rHtml += '<button type="button" class="btn" onclick="copyResearchCommand(' + idx + ', this)" style="padding:4px 9px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px;"><i class="fa-solid fa-copy"></i> Befehl für Antigravity kopieren</button>';
+                        }
+                        rHtml += '</div>';
+                        rHtml += '<div style="font-size:12px; color:var(--text-secondary);">' + escapeSecHtml(rec.description) + '</div>';
+                        rHtml += '</div>';
+                    });
+                }
+                resCont.innerHTML = rHtml;
+            }
+
+            renderSecurityProjectsList();
+        }
+
+        function setSecurityFilter(filter) {
+            activeSecurityFilter = filter;
+            document.querySelectorAll('.sec-filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-filter') === filter) {
+                    btn.classList.add('active');
+                    btn.style.background = 'rgba(59,130,246,0.2)';
+                    btn.style.borderColor = 'rgba(59,130,246,0.5)';
+                    btn.style.color = '#60a5fa';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }
+            });
+            renderSecurityProjectsList();
+        }
+
+        function renderSecurityProjectsList() {
+            const listEl = document.getElementById('sec-projects-list');
+            if (!listEl || !securityReportCache) return;
+
+            const query = ((document.getElementById('sec-project-search') || {}).value || '').toLowerCase().trim();
+            const projects = Array.isArray(securityReportCache.projects) ? securityReportCache.projects : [];
+
+            const filtered = projects.filter((p, idx) => {
+                p._origIdx = idx;
+                if (activeSecurityFilter === 'RED' && p.overallStatus !== 'RED') return false;
+                if (activeSecurityFilter === 'YELLOW' && p.overallStatus !== 'YELLOW') return false;
+                if (activeSecurityFilter === 'GREEN' && p.overallStatus !== 'GREEN') return false;
+                if (activeSecurityFilter === 'LIVE_DOMAIN' && p.category !== 'LIVE_DOMAIN') return false;
+                if (activeSecurityFilter === 'INTERNAL_DEV' && p.category !== 'INTERNAL_DEV') return false;
+
+                if (query) {
+                    const hay = ((p.project || '') + ' ' + (p.clientName || '') + ' ' + (p.liveUrl || '')).toLowerCase();
+                    if (!hay.includes(query)) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-secondary); font-size:13.5px;">Keine Projekte für diesen Filter gefunden.</div>';
+                return;
+            }
+
+            let html = '';
+            for (const p of filtered) {
+                const borderColor = p.overallStatus === 'RED' ? 'rgba(239,68,68,0.45)' : (p.overallStatus === 'YELLOW' ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.28)');
+                const catBadge = p.isLiveCustomDomain
+                    ? '<span style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.3); color:#22d3ee; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">🌐 Live-Domain</span>'
+                    : '<span style="background:rgba(148,163,184,0.12); border:1px solid rgba(148,163,184,0.25); color:#94a3b8; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">⚙️ Intern / .dev</span>';
+
+                const allIssues = []
+                    .concat((p.sec && p.sec.issues) || [])
+                    .concat((p.legal && p.legal.issues) || [])
+                    .concat((p.seo && p.seo.issues) || [])
+                    .concat((p.perf && p.perf.issues) || []);
+                const allWarnings = []
+                    .concat((p.sec && p.sec.warnings) || [])
+                    .concat((p.legal && p.legal.warnings) || [])
+                    .concat((p.seo && p.seo.warnings) || [])
+                    .concat((p.perf && p.perf.warnings) || [])
+                    .filter(w => !String(w).startsWith('[Auto-Fix]'));
+
+                html += '<div style="background:rgba(15,23,42,0.65); border:1px solid ' + borderColor + '; border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:12px;">';
+                html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">';
+                html += '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">';
+                html += getSecStatusBadge(p.overallStatus);
+                html += '<strong style="font-size:15px; color:#fff;">' + escapeSecHtml(p.clientName || p.project) + '</strong>';
+                if (p.clientName && p.clientName.toLowerCase() !== p.project.toLowerCase()) {
+                    html += '<span style="font-size:12px; color:var(--text-secondary);">(' + escapeSecHtml(p.project) + ')</span>';
+                }
+                html += catBadge;
+                if (p.liveUrl) {
+                    html += '<a href="' + escapeSecHtml(p.liveUrl) + '" target="_blank" style="font-size:12px; color:var(--color-primary); text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i> ' + escapeSecHtml(p.liveUrl) + '</a>';
+                }
+                html += '</div>';
+
+                if (p.antigravityPrompt) {
+                    html += '<button type="button" class="btn" onclick="copySecurityPromptByIndex(' + p._origIdx + ', this)" style="padding:7px 13px; font-size:12px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.45); color:#60a5fa; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">';
+                    html += '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Fix-Prompt für Antigravity kopieren</span>';
+                    html += '</button>';
+                } else {
+                    html += '<span style="font-size:12px; color:#34d399; font-weight:700;"><i class="fa-solid fa-circle-check"></i> 100% Konform</span>';
+                }
+                html += '</div>';
+
+                // 4 Pillar Grid
+                html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px; background:rgba(0,0,0,0.25); padding:10px 12px; border-radius:8px; font-size:12px;">';
+                html += '<div><span style="color:var(--text-secondary);">🔒 Security:</span> ' + getSecStatusBadge(p.sec ? p.sec.status : 'GREEN') + '<div style="color:#cbd5e1; margin-top:4px; font-size:11.5px;">' + escapeSecHtml(p.sec ? p.sec.details : '-') + '</div></div>';
+                html += '<div><span style="color:var(--text-secondary);">⚖️ DSGVO/Recht:</span> ' + getSecStatusBadge(p.legal ? p.legal.status : 'SKIPPED') + '<div style="color:#cbd5e1; margin-top:4px; font-size:11.5px;">' + escapeSecHtml(p.legal ? p.legal.details : '-') + '</div></div>';
+                html += '<div><span style="color:var(--text-secondary);">🚀 SEO & GEO:</span> ' + getSecStatusBadge(p.seo ? p.seo.status : 'SKIPPED') + '<div style="color:#cbd5e1; margin-top:4px; font-size:11.5px;">' + escapeSecHtml(p.seo ? p.seo.details : '-') + '</div></div>';
+                html += '<div><span style="color:var(--text-secondary);">⚡ Uptime & Build:</span> ' + getSecStatusBadge(p.perf ? p.perf.status : 'GREEN') + '<div style="color:#cbd5e1; margin-top:4px; font-size:11.5px;">' + escapeSecHtml(p.perf ? p.perf.details : '-') + '</div></div>';
+                html += '</div>';
+
+                if (allIssues.length > 0 || allWarnings.length > 0) {
+                    html += '<div style="display:flex; flex-direction:column; gap:4px; font-size:12px; padding-top:2px;">';
+                    for (const iss of allIssues) {
+                        html += '<div style="color:#f87171;"><i class="fa-solid fa-circle-xmark"></i> <strong>Kritisch:</strong> ' + escapeSecHtml(iss) + '</div>';
+                    }
+                    for (const warn of allWarnings) {
+                        html += '<div style="color:#fbbf24;"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Hinweis:</strong> ' + escapeSecHtml(warn) + '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        async function copySecurityPromptByIndex(idx, btnEl) {
+            if (!securityReportCache || !Array.isArray(securityReportCache.projects)) return;
+            const proj = securityReportCache.projects[idx];
+            if (!proj || !proj.antigravityPrompt) return;
+            try {
+                await navigator.clipboard.writeText(proj.antigravityPrompt);
+                const orig = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Kopiert! In Antigravity einfügen</span>';
+                setTimeout(() => { btnEl.innerHTML = orig; }, 2500);
+            } catch (e) {
+                alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
+        }
+
+        async function copyResearchCommand(idx, btnEl) {
+            if (!securityReportCache || !securityReportCache.research || !Array.isArray(securityReportCache.research.recommendations)) return;
+            const rec = securityReportCache.research.recommendations[idx];
+            if (!rec || !rec.antigravityCommand) return;
+            try {
+                await navigator.clipboard.writeText(rec.antigravityCommand);
+                const orig = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Kopiert!</span>';
+                setTimeout(() => { btnEl.innerHTML = orig; }, 2500);
+            } catch (e) {
+                alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
+        }
+
+        function findSecurityProjectForClient(client) {
+            if (!client || !securityReportCache || !Array.isArray(securityReportCache.projects)) return null;
+            const projects = securityReportCache.projects;
+
+            // 1. Direct match by clientId
+            let match = projects.find(p => p.clientId && p.clientId === client.id);
+            if (match) return match;
+
+            // 2. Match by linkedCloudflareProject
+            if (client.linkedCloudflareProject) {
+                const cfLower = client.linkedCloudflareProject.toLowerCase().trim();
+                match = projects.find(p => (p.project || '').toLowerCase() === cfLower);
+                if (match) return match;
+            }
+
+            // 3. Match by customDomain
+            if (client.customDomain) {
+                let domClean = client.customDomain.toLowerCase().replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].trim();
+                if (domClean) {
+                    match = projects.find(p => (p.liveUrl || '').toLowerCase().includes(domClean));
+                    if (match) return match;
+                }
+            }
+
+            // 4. Match by client name
+            if (client.name) {
+                const nameLower = client.name.toLowerCase().trim();
+                match = projects.find(p => (p.clientName || '').toLowerCase() === nameLower || (p.project || '').toLowerCase() === nameLower);
+                if (match) return match;
+            }
+
+            return null;
+        }
+
+        function renderClientSecurityAudit(client) {
+            const badgeEl = document.getElementById('client-sec-overall-badge');
+            const bodyEl = document.getElementById('client-sec-body');
+            if (!badgeEl || !bodyEl) return;
+
+            if (!securityReportCache) {
+                badgeEl.innerText = 'Lade...';
+                bodyEl.innerHTML = '<div>Sicherheitsbericht wird geladen...</div>';
+                return;
+            }
+
+            const proj = findSecurityProjectForClient(client);
+            activeClientSecurityMatch = proj;
+
+            if (!proj) {
+                badgeEl.outerHTML = '<span id="client-sec-overall-badge" style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.06); color:var(--text-secondary);">Nicht verknüpft</span>';
+                bodyEl.innerHTML = '<div style="font-size:12px; color:var(--text-secondary);">Für diesen Kunden ist noch kein Cloudflare-Projekt oder Domain-Audit zugeordnet.</div>';
+                return;
+            }
+
+            badgeEl.outerHTML = '<span id="client-sec-overall-badge">' + getSecStatusBadge(proj.overallStatus) + '</span>';
+
+            const catText = proj.isLiveCustomDomain ? '🌐 Live-Domain (Voller Check inkl. SEO & Recht)' : '⚙️ Intern / .dev (Security & Uptime Check)';
+            let html = '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-secondary); border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">';
+            html += '<span>' + escapeSecHtml(catText) + '</span>';
+            html += '<span>Stand: ' + escapeSecHtml(securityReportCache.formattedDate || '-') + '</span>';
+            html += '</div>';
+
+            html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px;">';
+            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">🔒 Security & Secrets</div>' + getSecStatusBadge(proj.sec ? proj.sec.status : 'GREEN') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.sec ? proj.sec.details : '-') + '</div></div>';
+            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">⚖️ DSGVO & Recht</div>' + getSecStatusBadge(proj.legal ? proj.legal.status : 'SKIPPED') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.legal ? proj.legal.details : '-') + '</div></div>';
+            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">🚀 SEO & GEO</div>' + getSecStatusBadge(proj.seo ? proj.seo.status : 'SKIPPED') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.seo ? proj.seo.details : '-') + '</div></div>';
+            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">⚡ Uptime & Speed</div>' + getSecStatusBadge(proj.perf ? proj.perf.status : 'GREEN') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.perf ? proj.perf.details : '-') + '</div></div>';
+            html += '</div>';
+
+            if (proj.antigravityPrompt) {
+                html += '<button type="button" class="btn" onclick="copyClientSecurityPrompt(this)" style="margin-top:4px; width:100%; justify-content:center; padding:9px 12px; font-size:12px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.45); color:#60a5fa; border-radius:8px; display:inline-flex; align-items:center; gap:7px; cursor:pointer;">';
+                html += '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Fix-Prompt für Antigravity kopieren</span>';
+                html += '</button>';
+            } else {
+                html += '<div style="margin-top:4px; text-align:center; padding:7px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:7px; color:#34d399; font-weight:700; font-size:12px;"><i class="fa-solid fa-circle-check"></i> Alle Prüfungen bestanden (100% Konform)</div>';
+            }
+
+            bodyEl.innerHTML = html;
+        }
+
+        async function copyClientSecurityPrompt(btnEl) {
+            if (!activeClientSecurityMatch || !activeClientSecurityMatch.antigravityPrompt) return;
+            try {
+                await navigator.clipboard.writeText(activeClientSecurityMatch.antigravityPrompt);
+                const orig = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Prompt kopiert! Jetzt in Antigravity einfügen</span>';
+                setTimeout(() => { btnEl.innerHTML = orig; }, 2500);
+            } catch (e) {
+                alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
         }
     </script>
 </body>
