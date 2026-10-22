@@ -2437,6 +2437,11 @@ export default `<!DOCTYPE html>
                 </div>
 
                 <div class="form-group">
+                    <label>Echte Domain (Custom Domain)</label>
+                    <input type="text" id="modal-client-domain" placeholder="Z.B. weymann-gebaeudetechnik.de">
+                </div>
+
+                <div class="form-group">
                     <label style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-key" style="color: var(--color-cyan);"></i> Admin-Passwort (Website /admin)</span>
                         <span style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">Optional</span>
@@ -3852,6 +3857,17 @@ export default `<!DOCTYPE html>
             let determinedBaseUrl = null;
 
             if (!cfName) {
+                if (client.customDomain) {
+                    projectNameEl.innerText = client.customDomain;
+                    projectStatusEl.innerText = 'Extern verwaltet';
+                    projectStatusEl.style.color = 'var(--color-cyan)';
+                    const normUrl = client.customDomain.startsWith('http') ? client.customDomain : 'https://' + client.customDomain;
+                    projectUrlEl.innerText = client.customDomain;
+                    projectUrlEl.href = normUrl;
+                    projectModEl.innerText = 'Externer Server';
+                    renderClientAdminAuth(client, normUrl);
+                    return;
+                }
                 projectNameEl.innerText = '-';
                 projectStatusEl.innerText = 'Keine Website verknüpft';
                 projectStatusEl.style.color = 'var(--text-secondary)';
@@ -3868,9 +3884,11 @@ export default `<!DOCTYPE html>
                 projectNameEl.innerText = pageProj.name;
                 projectStatusEl.innerText = 'Pages Aktiv';
                 projectStatusEl.style.color = 'var(--color-green)';
-                projectUrlEl.innerText = pageProj.subdomain;
-                projectUrlEl.href = 'https://' + pageProj.subdomain;
-                determinedBaseUrl = 'https://' + pageProj.subdomain;
+                const displayUrl = client.customDomain || pageProj.subdomain;
+                const normUrl = displayUrl.startsWith('http') ? displayUrl : 'https://' + displayUrl;
+                projectUrlEl.innerText = displayUrl;
+                projectUrlEl.href = normUrl;
+                determinedBaseUrl = normUrl;
                 projectModEl.innerText = new Date(pageProj.created_on).toLocaleDateString('de-DE');
                 renderClientAdminAuth(client, determinedBaseUrl);
                 return;
@@ -3895,6 +3913,11 @@ export default `<!DOCTYPE html>
                         const nameEl = document.getElementById('active-client-name');
                         if (nameEl) nameEl.innerHTML = client.name;
                     }
+                } else if (client.customDomain) {
+                    const normUrl = client.customDomain.startsWith('http') ? client.customDomain : 'https://' + client.customDomain;
+                    projectUrlEl.innerText = client.customDomain;
+                    projectUrlEl.href = normUrl;
+                    determinedBaseUrl = normUrl;
                 } else if (cfProjects.workersSubdomain) {
                     // Fallback to default workers.dev subdomain link
                     const devUrl = workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev';
@@ -3911,7 +3934,19 @@ export default `<!DOCTYPE html>
                 return;
             }
 
-            // Not found
+            // Not found in Pages or Workers
+            if (client.customDomain) {
+                projectNameEl.innerText = client.customDomain;
+                projectStatusEl.innerText = 'Extern verwaltet (CF unverknüpft)';
+                projectStatusEl.style.color = 'var(--color-cyan)';
+                const normUrl = client.customDomain.startsWith('http') ? client.customDomain : 'https://' + client.customDomain;
+                projectUrlEl.innerText = client.customDomain;
+                projectUrlEl.href = normUrl;
+                projectModEl.innerText = cfName ? ('Worker: ' + cfName) : 'Externer Server';
+                renderClientAdminAuth(client, normUrl);
+                return;
+            }
+
             projectNameEl.innerText = cfName;
             projectStatusEl.innerText = 'Projekt unauffindbar';
             projectStatusEl.style.color = 'var(--color-red)';
@@ -4428,6 +4463,8 @@ export default `<!DOCTYPE html>
             if (contactInput) contactInput.value = "";
             const phoneInput = document.getElementById('modal-client-phone');
             if (phoneInput) phoneInput.value = "";
+            const domainInput = document.getElementById('modal-client-domain');
+            if (domainInput) domainInput.value = "";
             const passInput = document.getElementById('modal-client-admin-password');
             if (passInput) {
                 passInput.value = "";
@@ -4449,6 +4486,8 @@ export default `<!DOCTYPE html>
             const phoneInput = document.getElementById('modal-client-phone');
             if (phoneInput) phoneInput.value = activeClient.phone || '';
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
+            const domainInput = document.getElementById('modal-client-domain');
+            if (domainInput) domainInput.value = activeClient.customDomain || '';
 
             const passInput = document.getElementById('modal-client-admin-password');
             if (passInput) {
@@ -4475,7 +4514,8 @@ export default `<!DOCTYPE html>
             const phoneInput = document.getElementById('modal-client-phone');
             const phone = phoneInput ? phoneInput.value.trim() : '';
             const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
-            const customDomain = (activeClient && activeClient.id === id) ? (activeClient.customDomain || '') : '';
+            const domainInput = document.getElementById('modal-client-domain');
+            const customDomain = domainInput ? domainInput.value.trim() : ((activeClient && activeClient.id === id) ? (activeClient.customDomain || '') : '');
             const passInput = document.getElementById('modal-client-admin-password');
             const adminPassword = passInput ? passInput.value.trim() : '';
 
