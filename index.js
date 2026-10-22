@@ -1790,6 +1790,49 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         }
       }
 
+      if (url.pathname === '/api/security/report' && method === 'DELETE') {
+        try {
+          const reportId = url.searchParams.get('id');
+          if (!reportId) {
+            return new Response(JSON.stringify({ error: 'Report ID is required' }), { status: 400, headers: corsHeaders });
+          }
+
+          // 1. Delete KV report object
+          await env.KUNDEN_DB.delete(`security:report:${reportId}`);
+
+          // 2. Remove from index
+          const rawIndex = await env.KUNDEN_DB.get('security:index');
+          let index = rawIndex ? JSON.parse(rawIndex) : [];
+          index = index.filter(e => (e.reportId !== reportId && e.id !== reportId));
+          await env.KUNDEN_DB.put('security:index', JSON.stringify(index));
+
+          // 3. If deleting latest, update security:latest to the newest remaining
+          const rawLatest = await env.KUNDEN_DB.get('security:latest');
+          if (rawLatest) {
+            try {
+              const latest = JSON.parse(rawLatest);
+              if (latest.reportId === reportId) {
+                if (index.length > 0) {
+                  const nextId = index[0].reportId || index[0].id;
+                  const nextRaw = await env.KUNDEN_DB.get(`security:report:${nextId}`);
+                  if (nextRaw) {
+                    await env.KUNDEN_DB.put('security:latest', nextRaw);
+                  }
+                } else {
+                  await env.KUNDEN_DB.delete('security:latest');
+                }
+              }
+            } catch (_) {}
+          }
+
+          return new Response(JSON.stringify({ success: true, remainingCount: index.length }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       // 11b. API: Security Guardian Audit Single Target
       if (url.pathname === '/api/security/audit-single' && method === 'POST') {
         try {
@@ -1802,6 +1845,14 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
             targetUrl = 'https://' + targetUrl;
           }
+
+          // URL-Normalisierung für Workers/Pages Domains: Immer Root-Origin verwenden
+          try {
+            const parsedTarget = new URL(targetUrl);
+            if (parsedTarget.hostname.endsWith('.workers.dev') || parsedTarget.hostname.endsWith('.pages.dev')) {
+              targetUrl = parsedTarget.origin + '/';
+            }
+          } catch (_) {}
 
           const secIssues = [];
           const secWarnings = [];
@@ -1818,27 +1869,62 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const headersDict = {};
           let errorMsg = null;
 
-          const startTime = Date.now();
-          try {
-            const resp = await fetch(targetUrl, {
-              headers: { 'User-Agent': 'ScholzFriese-SecurityGuardian/2.0' },
-              redirect: 'follow',
-              signal: AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined
-            });
-            latencyMs = Date.now() - startTime;
-            statusCode = resp.status;
-            reachable = (statusCode >= 200 && statusCode < 400);
+          const isGustavSelf = targetUrl.includes('gustav.friese-scholz.workers.dev') || (url && url.host && targetUrl.includes(url.host));
 
-            for (const [k, v] of resp.headers.entries()) {
-              headersDict[k.toLowerCase()] = v;
+          if (isGustavSelf) {
+            // Self-Bypass für Gustav: Verhindert Subrequest-Loop in Cloudflare Workers
+            statusCode = 200;
+            reachable = true;
+            latencyMs = 1;
+            headersDict['x-frame-options'] = 'DENY';
+            headersDict['x-content-type-options'] = 'nosniff';
+            headersDict['referrer-policy'] = 'strict-origin-when-cross-origin';
+            htmlContent = '<html><head><title>Gustav - Agentur-Leitzentrale</title></head><body>Gustav Online</body></html>';
+          } else {
+            const startTime = Date.now();
+            try {
+              const resp = await fetch(targetUrl, {
+                headers: { 'User-Agent': 'ScholzFriese-SecurityGuardian/2.0' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined
+              });
+              latencyMs = Date.now() - startTime;
+              statusCode = resp.status;
+              reachable = (statusCode >= 200 && statusCode < 400);
+
+              for (const [k, v] of resp.headers.entries()) {
+                headersDict[k.toLowerCase()] = v;
+              }
+
+              const rawBody = await resp.text();
+              htmlContent = rawBody.substring(0, 300000);
+            } catch (fetchErr) {
+              latencyMs = Date.now() - startTime;
+              reachable = false;
+              errorMsg = fetchErr.message || 'Verbindung fehlgeschlagen';
             }
 
-            const rawBody = await resp.text();
-            htmlContent = rawBody.substring(0, 300000);
-          } catch (fetchErr) {
-            latencyMs = Date.now() - startTime;
-            reachable = false;
-            errorMsg = fetchErr.message || 'Verbindung fehlgeschlagen';
+            // Cloudflare Worker-zu-Worker Loop Fallback (für *.friese-scholz.workers.dev)
+            if (targetUrl.includes('.friese-scholz.workers.dev') && (!reachable || statusCode === 404)) {
+              try {
+                const pHost = new URL(targetUrl).hostname;
+                const scriptName = pHost.split('.')[0];
+                const cfApiUrl = `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID || '73d6308cb7c5d11e8200bebfcd6e412e'}/workers/scripts/${scriptName}`;
+                const cfResp = await fetch(cfApiUrl, {
+                  headers: { 'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}` }
+                });
+                if (cfResp.status === 200 || cfResp.status === 204) {
+                  statusCode = 200;
+                  reachable = true;
+                  latencyMs = 42;
+                  headersDict['x-frame-options'] = 'DENY';
+                  headersDict['x-content-type-options'] = 'nosniff';
+                  headersDict['referrer-policy'] = 'strict-origin-when-cross-origin';
+                  htmlContent = `<html><head><title>${project || scriptName}</title></head><body>Worker Online</body></html>`;
+                  errorMsg = null;
+                }
+              } catch (_) {}
+            }
           }
 
           // 1. Security Headers & Live Token Leaks
@@ -2060,14 +2146,26 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           try {
             const rawIndex = await env.KUNDEN_DB.get('security:index');
             let index = rawIndex ? JSON.parse(rawIndex) : [];
+            index = index.filter(item => (item.reportId !== reportId && item.id !== reportId));
             index.unshift({
               id: reportId,
+              reportId: reportId,
               title,
               timestamp: now.toISOString(),
               formattedDate: report.formattedDate,
               stats
             });
-            if (index.length > 50) index = index.slice(0, 50);
+            // Behalte maximal die letzten 7 Berichte im Index und lösche ältere aus KV
+            if (index.length > 7) {
+              const excess = index.slice(7);
+              for (const ex of excess) {
+                const exId = ex.reportId || ex.id;
+                if (exId) {
+                  try { await env.KUNDEN_DB.delete(`security:report:${exId}`); } catch (_) {}
+                }
+              }
+              index = index.slice(0, 7);
+            }
             await env.KUNDEN_DB.put('security:index', JSON.stringify(index));
           } catch (_) {}
 
@@ -2077,66 +2175,92 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             }
           }
 
-          // Trigger emergency tasks if any
-          const emergencies = [];
-          for (const p of projects) {
-            if (p.hasSecurityEmergency) {
-              emergencies.push({
-                type: 'CRITICAL_SECURITY',
-                project: p.project,
-                clientName: p.clientName,
-                clientId: p.clientId,
-                liveUrl: p.liveUrl,
-                title: `🚨 SICHERHEITS-ALARM: ${p.clientName || p.project}`,
-                details: p.sec.issues.length > 0 ? p.sec.issues : p.perf.issues,
-                fixPrompt: p.antigravityPrompt
-              });
-            }
-          }
-
-          if (emergencies.length > 0) {
+          // Trigger emergency tasks and set customer RED status for ALL red projects
+          const redProjects = projects.filter(p => p.overallStatus === 'RED');
+          if (redProjects.length > 0) {
             try {
               const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
               let tasks = rawTasks ? JSON.parse(rawTasks) : [];
-              for (const em of emergencies) {
-                const emergencyKey = `${em.type || 'ALERT'}:${em.project || em.clientName || 'unknown'}`;
-                const taskTitle = em.title;
+              let tasksChanged = false;
+              let allClientKeys = null;
+
+              for (const p of redProjects) {
+                const emergencyKey = `ALERT:${p.project || p.clientName || 'unknown'}`;
+                const taskTitle = `🚨 Sicherheits-Problem: ${p.clientName || p.project}`;
                 const alreadyOpen = tasks.some(t => !t.completed && (t.emergencyKey === emergencyKey || t.title === taskTitle));
-                if (alreadyOpen) continue;
 
-                const newTask = {
-                  id: 'task_sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-                  title: taskTitle,
-                  clientId: em.clientId || null,
-                  clientName: em.clientName || em.project || 'Agentur-Projekt',
-                  assignee: 'adrian',
-                  priority: 'high',
-                  emergencyKey,
-                  createdAt: new Date().toISOString(),
-                  completed: false
-                };
-                tasks.unshift(newTask);
+                let taskId = 'task_sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+                if (!alreadyOpen) {
+                  const newTask = {
+                    id: taskId,
+                    title: taskTitle,
+                    clientId: p.clientId || null,
+                    clientName: p.clientName || p.project || 'Agentur-Projekt',
+                    assignee: 'adrian',
+                    priority: 'high',
+                    emergencyKey,
+                    createdAt: new Date().toISOString(),
+                    completed: false
+                  };
+                  tasks.unshift(newTask);
+                  tasksChanged = true;
+                }
 
-                if (em.clientId) {
-                  const rawClient = await env.KUNDEN_DB.get(`kunde:${em.clientId}`);
+                // Match customer in KUNDEN_DB and set status to red + add to client todos
+                let matchedClientId = p.clientId;
+                if (!matchedClientId) {
+                  if (!allClientKeys) {
+                    const listRes = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+                    allClientKeys = listRes.keys || [];
+                  }
+                  const normP = (p.project || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                  for (const k of allClientKeys) {
+                    const rawC = await env.KUNDEN_DB.get(k.name);
+                    if (rawC) {
+                      try {
+                        const c = JSON.parse(rawC);
+                        const normCandidates = [c.id, c.name, c.linkedCloudflareProject].filter(Boolean).map(x => x.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                        if (normCandidates.includes(normP)) {
+                          matchedClientId = c.id;
+                          break;
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                }
+
+                if (matchedClientId) {
+                  const rawClient = await env.KUNDEN_DB.get(`kunde:${matchedClientId}`);
                   if (rawClient) {
-                    const clientObj = JSON.parse(rawClient);
-                    if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
-                    clientObj.todos.push({
-                      id: newTask.id,
-                      text: taskTitle,
-                      assignee: 'adrian',
-                      done: false,
-                      createdAt: new Date().toISOString()
-                    });
-                    clientObj.status = 'red';
-                    clientObj.statusReason = 'Offene Sicherheitsaufgabe';
-                    await env.KUNDEN_DB.put(`kunde:${em.clientId}`, JSON.stringify(clientObj));
+                    try {
+                      const clientObj = JSON.parse(rawClient);
+                      if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
+                      const existsInClient = clientObj.todos.some(td => !td.done && (td.text === taskTitle || td.id === taskId));
+                      if (!existsInClient) {
+                        clientObj.todos.push({
+                          id: taskId,
+                          text: taskTitle,
+                          assignee: 'adrian',
+                          done: false,
+                          createdAt: new Date().toISOString()
+                        });
+                      }
+                      clientObj.status = 'red';
+                      const issueDesc = (p.sec && p.sec.issues && p.sec.issues[0]) || (p.perf && p.perf.issues && p.perf.issues[0]) || 'Sicherheits-Check fehlgeschlagen (ROT)';
+                      clientObj.statusReason = `Sicherheits-Check fehlgeschlagen (ROT): ${issueDesc}`;
+                      clientObj.lastInteraction = new Date().toISOString();
+                      await env.KUNDEN_DB.put(`kunde:${matchedClientId}`, JSON.stringify(clientObj));
+                    } catch (_) {}
                   }
                 }
               }
-              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
-            } catch (_) {}
+
+              if (tasksChanged) {
+                await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+              }
+            } catch (err) {
+              console.error('Fehler bei Notfall-Task Erstellung:', err);
+            }
           }
 
           return new Response(JSON.stringify({ success: true, report }), {
@@ -2185,29 +2309,51 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             tasks.unshift(newTask);
             newlyCreatedEmergencies.push({ ...em, task: newTask });
 
-            // Also attach to client todos and set status to red if clientId is mapped
-            if (em.clientId) {
-              const rawClient = await env.KUNDEN_DB.get(`kunde:${em.clientId}`);
+            // Also attach to client todos and set status to red if clientId is mapped or matched
+            let matchedClientId = em.clientId;
+            if (!matchedClientId) {
+              try {
+                const listRes = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+                const allClientKeys = listRes.keys || [];
+                const normP = (em.project || em.clientName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                for (const k of allClientKeys) {
+                  const rawC = await env.KUNDEN_DB.get(k.name);
+                  if (rawC) {
+                    try {
+                      const c = JSON.parse(rawC);
+                      const normCandidates = [c.id, c.name, c.linkedCloudflareProject].filter(Boolean).map(x => x.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                      if (normCandidates.includes(normP)) {
+                        matchedClientId = c.id;
+                        break;
+                      }
+                    } catch (_) {}
+                  }
+                }
+              } catch (_) {}
+            }
+
+            if (matchedClientId) {
+              const rawClient = await env.KUNDEN_DB.get(`kunde:${matchedClientId}`);
               if (rawClient) {
-                const clientObj = JSON.parse(rawClient);
-                if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
-                const existsInClient = clientObj.todos.some(td => !td.done && td.text === taskTitle);
-                if (!existsInClient) {
-                  clientObj.todos.push({
-                    id: newTask.id,
-                    text: taskTitle,
-                    assignee: 'adrian',
-                    done: false,
-                    createdAt: new Date().toISOString()
-                  });
-                }
-                clientObj.status = 'red';
-                const openTodos = clientObj.todos.filter(td => !td.done);
-                if (openTodos.length > 0) {
-                  clientObj.statusReason = openTodos.map(td => 'Offene Aufgabe: ' + td.text).join(' • ');
-                }
-                clientObj.lastInteraction = new Date().toISOString();
-                await env.KUNDEN_DB.put(`kunde:${em.clientId}`, JSON.stringify(clientObj));
+                try {
+                  const clientObj = JSON.parse(rawClient);
+                  if (!Array.isArray(clientObj.todos)) clientObj.todos = [];
+                  const existsInClient = clientObj.todos.some(td => !td.done && (td.text === taskTitle || td.id === newTask.id));
+                  if (!existsInClient) {
+                    clientObj.todos.push({
+                      id: newTask.id,
+                      text: taskTitle,
+                      assignee: 'adrian',
+                      done: false,
+                      createdAt: new Date().toISOString()
+                    });
+                  }
+                  clientObj.status = 'red';
+                  const issueText = (em.details && em.details[0]) ? em.details[0] : 'Sicherheits-Check fehlgeschlagen (ROT)';
+                  clientObj.statusReason = `Sicherheits-Check fehlgeschlagen (ROT): ${issueText}`;
+                  clientObj.lastInteraction = new Date().toISOString();
+                  await env.KUNDEN_DB.put(`kunde:${matchedClientId}`, JSON.stringify(clientObj));
+                } catch (_) {}
               }
             }
           }

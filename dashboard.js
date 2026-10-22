@@ -2222,6 +2222,9 @@ export default `<!DOCTYPE html>
                     <select id="security-report-select" onchange="loadSecurityReportById(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; cursor: pointer;">
                         <option value="">Aktueller Bericht</option>
                     </select>
+                    <button class="btn" onclick="deleteCurrentSecurityReport()" id="btn-delete-sec-report" title="Diesen Bericht unwiderruflich löschen" style="padding: 9px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 8px; cursor: pointer;">
+                        <i class="fa-solid fa-trash-can"></i> Bericht löschen
+                    </button>
                     <button class="btn" onclick="loadSecurityGuardianData(true)" style="padding: 9px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-rotate"></i> Aktualisieren
                     </button>
@@ -5419,11 +5422,22 @@ export default `<!DOCTYPE html>
         function populateSecurityReportSelect() {
             const sel = document.getElementById('security-report-select');
             if (!sel) return;
-            let html = '<option value="">Aktueller Bericht (' + escapeSecHtml(securityReportCache ? securityReportCache.reportId : 'Neu') + ')</option>';
+            const currentId = securityReportCache ? securityReportCache.reportId : null;
+            let currentStatsLabel = '';
+            if (securityReportCache && securityReportCache.stats) {
+                const s = securityReportCache.stats;
+                currentStatsLabel = ' (🟢 ' + (s.greenCount !== undefined ? s.greenCount : 0) + ' 🟡 ' + (s.yellowCount !== undefined ? s.yellowCount : 0) + ' 🔴 ' + (s.redCount !== undefined ? s.redCount : 0) + ')';
+            }
+            let html = '<option value="">Aktueller Bericht' + escapeSecHtml(currentStatsLabel) + '</option>';
             for (const entry of securityIndexCache) {
-                if (securityReportCache && entry.reportId === securityReportCache.reportId) continue;
-                const label = (entry.reportId || '') + ' — ' + (entry.formattedDate || '') + ' (🟢' + (entry.greenCount || 0) + ' 🟡' + (entry.yellowCount || 0) + ' 🔴' + (entry.redCount || 0) + ')';
-                html += '<option value="' + escapeSecHtml(entry.reportId) + '">' + escapeSecHtml(label) + '</option>';
+                const eId = entry.reportId || entry.id;
+                if (currentId && eId === currentId) continue;
+                const gCount = (entry.stats && entry.stats.greenCount !== undefined) ? entry.stats.greenCount : (entry.greenCount || 0);
+                const yCount = (entry.stats && entry.stats.yellowCount !== undefined) ? entry.stats.yellowCount : (entry.yellowCount || 0);
+                const rCount = (entry.stats && entry.stats.redCount !== undefined) ? entry.stats.redCount : (entry.redCount || 0);
+                const dateLabel = entry.formattedDate || entry.title || eId || '';
+                const label = dateLabel + ' (🟢 ' + gCount + ' 🟡 ' + yCount + ' 🔴 ' + rCount + ')';
+                html += '<option value="' + escapeSecHtml(eId) + '">' + escapeSecHtml(label) + '</option>';
             }
             sel.innerHTML = html;
         }
@@ -5440,6 +5454,35 @@ export default `<!DOCTYPE html>
                 }
             } catch (e) {
                 console.error('Fehler beim Wechseln des Berichts:', e);
+            }
+        }
+
+        async function deleteCurrentSecurityReport() {
+            const reportId = securityReportCache ? securityReportCache.reportId : null;
+            if (!reportId) {
+                alert('Kein Bericht ausgewählt.');
+                return;
+            }
+            if (!confirm('Diesen Sicherheitsbericht (' + reportId + ') wirklich unwiderruflich löschen?')) {
+                return;
+            }
+            try {
+                const res = await fetch('/api/security/report?id=' + encodeURIComponent(reportId), {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    if (typeof showToast === 'function') {
+                        showToast('Sicherheitsbericht gelöscht.', 'success');
+                    } else {
+                        alert('Sicherheitsbericht gelöscht.');
+                    }
+                    await loadSecurityGuardianData(true);
+                } else {
+                    alert('Fehler beim Löschen: ' + ((data && data.error) ? data.error : 'Unbekannter Fehler'));
+                }
+            } catch (e) {
+                alert('Verbindungsfehler: ' + e.message);
             }
         }
 
@@ -6020,6 +6063,36 @@ export default `<!DOCTYPE html>
                 }
             }
 
+            // Specific overrides for known agency infrastructure & worker sites
+            const gustavKey = normKey('gustav');
+            if (targetMap.has(gustavKey)) {
+                const g = targetMap.get(gustavKey);
+                g.url = 'https://gustav.friese-scholz.workers.dev/';
+                g.isLiveCustomDomain = false;
+            } else {
+                targetMap.set(gustavKey, {
+                    project: 'gustav',
+                    clientName: 'Gustav Agentur-Leitzentrale',
+                    clientId: null,
+                    url: 'https://gustav.friese-scholz.workers.dev/',
+                    isLiveCustomDomain: false
+                });
+            }
+
+            const huemaxKey = normKey('spvgg-huemax');
+            if (targetMap.has(huemaxKey)) {
+                const h = targetMap.get(huemaxKey);
+                h.url = 'https://spvgg-huemax.friese-scholz.workers.dev/';
+                h.isLiveCustomDomain = false;
+            }
+
+            const weserKey = normKey('gewerbeverein-weser-aue');
+            if (targetMap.has(weserKey)) {
+                const w = targetMap.get(weserKey);
+                w.url = 'https://gewerbeverein-weser-aue.friese-scholz.workers.dev/';
+                w.isLiveCustomDomain = false;
+            }
+
             const targets = Array.from(targetMap.values());
             const total = targets.length;
 
@@ -6047,8 +6120,22 @@ export default `<!DOCTYPE html>
                     t.legal.details = 'Rechtliches & DSGVO manuell geprüft.';
                 }
 
+                let normUrl = null;
                 if (t.url && typeof t.url === 'string' && t.url.includes('.')) {
-                    const normUrl = t.url.startsWith('http') ? t.url : 'https://' + t.url;
+                    normUrl = t.url.startsWith('http') ? t.url : 'https://' + t.url;
+                    // Filter out any accidentally extracted asset / image URLs
+                    if (normUrl.includes('.webp') || normUrl.includes('.png') || normUrl.includes('.jpg') || normUrl.includes('r2.dev')) {
+                        normUrl = null;
+                        t.url = null;
+                    } else if (normUrl.includes('.workers.dev') || normUrl.includes('.pages.dev')) {
+                        try {
+                            const pU = new URL(normUrl);
+                            normUrl = pU.origin + '/';
+                        } catch (_) {}
+                    }
+                }
+
+                if (normUrl) {
                     try {
                         const res = await fetch('/api/security/audit-single', {
                             method: 'POST',
