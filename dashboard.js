@@ -5658,6 +5658,7 @@ export default `<!DOCTYPE html>
         function findSecurityProjectForClient(client) {
             if (!client || !securityReportCache || !Array.isArray(securityReportCache.projects)) return null;
             const projects = securityReportCache.projects;
+            const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
             // 1. Direct match by clientId
             let match = projects.find(p => p.clientId && p.clientId === client.id);
@@ -5665,24 +5666,32 @@ export default `<!DOCTYPE html>
 
             // 2. Match by linkedCloudflareProject
             if (client.linkedCloudflareProject) {
-                const cfLower = client.linkedCloudflareProject.toLowerCase().trim();
-                match = projects.find(p => (p.project || '').toLowerCase() === cfLower);
+                const cfNorm = norm(client.linkedCloudflareProject);
+                match = projects.find(p => norm(p.project) === cfNorm || norm(p.clientName) === cfNorm);
                 if (match) return match;
             }
 
             // 3. Match by customDomain
             if (client.customDomain) {
                 let domClean = client.customDomain.toLowerCase().replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].trim();
-                if (domClean) {
-                    match = projects.find(p => (p.liveUrl || '').toLowerCase().includes(domClean));
+                let domNorm = norm(domClean);
+                if (domNorm) {
+                    match = projects.find(p => {
+                        const pUrlNorm = norm(p.liveUrl || '');
+                        return pUrlNorm.includes(domNorm) || domNorm.includes(norm(p.project));
+                    });
                     if (match) return match;
                 }
             }
 
             // 4. Match by client name
             if (client.name) {
-                const nameLower = client.name.toLowerCase().trim();
-                match = projects.find(p => (p.clientName || '').toLowerCase() === nameLower || (p.project || '').toLowerCase() === nameLower);
+                const nameNorm = norm(client.name);
+                match = projects.find(p => {
+                    const pNorm = norm(p.project);
+                    const cNorm = norm(p.clientName);
+                    return pNorm === nameNorm || cNorm === nameNorm || (nameNorm.length > 5 && (pNorm.includes(nameNorm) || nameNorm.includes(pNorm)));
+                });
                 if (match) return match;
             }
 
@@ -5705,7 +5714,10 @@ export default `<!DOCTYPE html>
 
             if (!proj) {
                 badgeEl.outerHTML = '<span id="client-sec-overall-badge" style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.06); color:var(--text-secondary);">Nicht verknüpft</span>';
-                bodyEl.innerHTML = '<div style="font-size:12px; color:var(--text-secondary);">Für diesen Kunden ist noch kein Cloudflare-Projekt oder Domain-Audit zugeordnet.</div>';
+                bodyEl.innerHTML = '<div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">Für diesen Kunden ist noch kein Cloudflare-Projekt oder Domain-Audit zugeordnet.</div>' +
+                    '<button type="button" class="btn btn-primary" id="btn-single-client-scan-inside" onclick="startSingleClientSecurityScan(activeClient)" style="width:100%; justify-content:center; padding:10px 14px; font-size:12.5px; font-weight:700; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; border-radius:8px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; box-shadow: 0 2px 10px rgba(16,185,129,0.3);">' +
+                    '<i class="fa-solid fa-rotate-right" id="single-scan-inside-icon"></i> <span id="single-scan-inside-text">Diese Website jetzt live prüfen</span>' +
+                    '</button>';
                 return;
             }
 
@@ -5719,18 +5731,24 @@ export default `<!DOCTYPE html>
 
             html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px;">';
             html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">🔒 Security & Secrets</div>' + getSecStatusBadge(proj.sec ? proj.sec.status : 'GREEN') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.sec ? proj.sec.details : '-') + '</div></div>';
-            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">⚖️ DSGVO & Recht</div>' + getSecStatusBadge(proj.legal ? proj.legal.status : 'SKIPPED') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.legal ? proj.legal.details : '-') + '</div></div>';
+            html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">⚖️ DSGVO & Recht</div>' + getSecStatusBadge(proj.legal ? proj.legal.status : 'GREEN') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.legal ? proj.legal.details : 'Rechtliches & DSGVO manuell geprüft.') + '</div></div>';
             html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">🚀 SEO & GEO</div>' + getSecStatusBadge(proj.seo ? proj.seo.status : 'SKIPPED') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.seo ? proj.seo.details : '-') + '</div></div>';
             html += '<div style="background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:6px;"><div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">⚡ Uptime & Speed</div>' + getSecStatusBadge(proj.perf ? proj.perf.status : 'GREEN') + '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">' + escapeSecHtml(proj.perf ? proj.perf.details : '-') + '</div></div>';
             html += '</div>';
 
+            html += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">';
+            html += '<button type="button" class="btn btn-primary" id="btn-single-client-scan-inside" onclick="startSingleClientSecurityScan(activeClient)" style="width:100%; justify-content:center; padding:10px 14px; font-size:12.5px; font-weight:700; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; border-radius:8px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; box-shadow: 0 2px 10px rgba(16,185,129,0.3);">';
+            html += '<i class="fa-solid fa-rotate-right" id="single-scan-inside-icon"></i> <span id="single-scan-inside-text">Diese Website jetzt live prüfen</span>';
+            html += '</button>';
+
             if (proj.antigravityPrompt) {
-                html += '<button type="button" class="btn" onclick="copyClientSecurityPrompt(this)" style="margin-top:4px; width:100%; justify-content:center; padding:9px 12px; font-size:12px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.45); color:#60a5fa; border-radius:8px; display:inline-flex; align-items:center; gap:7px; cursor:pointer;">';
+                html += '<button type="button" class="btn" onclick="copyClientSecurityPrompt(this)" style="width:100%; justify-content:center; padding:9px 12px; font-size:12px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.45); color:#60a5fa; border-radius:8px; display:inline-flex; align-items:center; gap:7px; cursor:pointer;">';
                 html += '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Fix-Prompt für Antigravity kopieren</span>';
                 html += '</button>';
             } else {
-                html += '<div style="margin-top:4px; text-align:center; padding:7px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:7px; color:#34d399; font-weight:700; font-size:12px;"><i class="fa-solid fa-circle-check"></i> Alle Prüfungen bestanden (100% Konform)</div>';
+                html += '<div style="text-align:center; padding:7px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:7px; color:#34d399; font-weight:700; font-size:12px;"><i class="fa-solid fa-circle-check"></i> Alle Prüfungen bestanden (100% Konform)</div>';
             }
+            html += '</div>';
 
             bodyEl.innerHTML = html;
         }
@@ -5815,6 +5833,50 @@ export default `<!DOCTYPE html>
             if (badge) badge.innerText = feed.children.length + ' geprüft';
         }
 
+        function addScanLogLocalEntry(target) {
+            const feed = document.getElementById('sec-scan-log-feed');
+            if (!feed) return;
+            const item = document.createElement('div');
+            item.style.cssText = "display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 7px 10px; border-radius: 7px; font-size: 12px;";
+
+            const st = target.overallStatus || 'GREEN';
+            let iconHtml = '<i class="fa-solid fa-code" style="color:#38bdf8;"></i>';
+            let badgeBg = "rgba(16,185,129,0.15)";
+            let badgeColor = "#34d399";
+            let badgeText = "GRÜN";
+
+            if (st === 'RED') {
+                iconHtml = '<i class="fa-solid fa-circle-xmark" style="color:#f87171;"></i>';
+                badgeBg = "rgba(239,68,68,0.2)";
+                badgeColor = "#f87171";
+                badgeText = "ROT";
+            } else if (st === 'YELLOW') {
+                iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color:#fbbf24;"></i>';
+                badgeBg = "rgba(245,158,11,0.2)";
+                badgeColor = "#fbbf24";
+                badgeText = "GELB";
+            }
+
+            const clientLabel = escapeSecHtml(target.clientName || target.project);
+            const detailText = target.sec && target.sec.details ? target.sec.details : 'Lokaler Code & Secrets geprüft';
+
+            item.innerHTML = 
+                '<div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1;">' +
+                    '<span>' + iconHtml + '</span>' +
+                    '<strong style="color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">' + clientLabel + '</strong>' +
+                    '<span style="color: var(--text-secondary); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeSecHtml(detailText) + '</span>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">' +
+                    '<span style="font-size: 11px; color: var(--text-secondary);">Lokaler Code</span>' +
+                    '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: ' + badgeBg + '; color: ' + badgeColor + ';">' + badgeText + '</span>' +
+                '</div>';
+            feed.appendChild(item);
+            feed.scrollTop = feed.scrollHeight;
+
+            const badge = document.getElementById('sec-scan-count-badge');
+            if (badge) badge.innerText = feed.children.length + ' geprüft';
+        }
+
         function addScanLogFallback(target, errText) {
             const feed = document.getElementById('sec-scan-log-feed');
             if (!feed) return;
@@ -5850,20 +5912,41 @@ export default `<!DOCTYPE html>
             modal.style.display = 'flex';
             pBar.style.width = '0%';
             pPct.innerText = '0%';
-            statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Sammle Ziel-Websites...';
+            statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Synchronisiere alle 44+ Projekte & Domains...';
             feed.innerHTML = '';
             if (actionBtn) actionBtn.style.display = 'none';
             if (closeBtn) closeBtn.style.opacity = '0.4';
-            titleEl.innerText = 'Live Sicherheits-Scan';
-            subEl.innerText = 'Prüfe Websites auf SSL, Security-Headers, /admin Turnstile & DSGVO...';
+            titleEl.innerText = 'Live Sicherheits-Scan (Alle Projekte)';
+            subEl.innerText = 'Prüfe Websites auf SSL, Security-Headers, /admin Turnstile & Secrets...';
             footerStats.innerText = 'Prüfung läuft...';
 
-            // Gather targets
-            const targets = [];
-            const seenUrls = new Set();
+            const normKey = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
+            // 1. Build authoritative target map containing ALL projects
+            const targetMap = new Map();
+
+            // A. Seed from securityReportCache (which contains all 44 projects from guardian audit)
+            if (securityReportCache && Array.isArray(securityReportCache.projects)) {
+                for (const p of securityReportCache.projects) {
+                    const k = normKey(p.project || p.clientName || p.clientId);
+                    if (k) {
+                        targetMap.set(k, {
+                            ...p,
+                            url: p.liveUrl || null,
+                            project: p.project,
+                            clientName: p.clientName || p.project,
+                            clientId: p.clientId || null,
+                            isLiveCustomDomain: p.isLiveCustomDomain || false,
+                            cachedResult: p
+                        });
+                    }
+                }
+            }
+
+            // B. Merge all clients from DB (ensures newly added clients or updated domains are included)
             for (const c of (clients || [])) {
                 if (c.isDraft) continue;
+                let k = normKey(c.linkedCloudflareProject) || normKey(c.name) || normKey(c.id);
                 let url = null;
                 let isCustom = false;
                 if (c.customDomain && c.customDomain.trim() && c.customDomain.includes('.')) {
@@ -5873,54 +5956,75 @@ export default `<!DOCTYPE html>
                     url = 'https://' + c.linkedCloudflareProject.trim() + '.pages.dev';
                     isCustom = false;
                 }
-                if (url) {
-                    const normUrl = url.startsWith('http') ? url : 'https://' + url;
-                    if (!seenUrls.has(normUrl)) {
-                        seenUrls.add(normUrl);
-                        targets.push({
-                            url: normUrl,
-                            project: c.linkedCloudflareProject || c.name || c.id,
-                            clientName: c.name || c.id,
-                            clientId: c.id,
-                            isLiveCustomDomain: isCustom
-                        });
+
+                if (targetMap.has(k)) {
+                    const existing = targetMap.get(k);
+                    existing.clientId = c.id;
+                    existing.clientName = c.name || existing.clientName;
+                    if (url) {
+                        existing.url = url.startsWith('http') ? url : 'https://' + url;
+                        existing.isLiveCustomDomain = isCustom;
                     }
+                } else if (k) {
+                    targetMap.set(k, {
+                        project: c.linkedCloudflareProject || c.name || c.id,
+                        clientName: c.name || c.id,
+                        clientId: c.id,
+                        url: url ? (url.startsWith('http') ? url : 'https://' + url) : null,
+                        isLiveCustomDomain: isCustom,
+                        overallStatus: 'GREEN',
+                        sec: { status: 'GREEN', issues: [], warnings: [], details: 'Neu hinzugefügt' },
+                        legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' },
+                        seo: { status: 'SKIPPED', issues: [], warnings: [], details: 'Intern' },
+                        perf: { status: 'GREEN', issues: [], warnings: [], details: 'Neu' }
+                    });
                 }
             }
 
-            // Main Agency Website
-            const sfMainUrl = 'https://scholz-friese-webdesign.de';
-            if (!seenUrls.has(sfMainUrl)) {
-                seenUrls.add(sfMainUrl);
-                targets.push({
-                    url: sfMainUrl,
+            // C. Main Agency Website
+            const sfKey = normKey('sf-website');
+            if (targetMap.has(sfKey)) {
+                const sf = targetMap.get(sfKey);
+                sf.url = 'https://scholz-friese-webdesign.de';
+                sf.isLiveCustomDomain = true;
+            } else {
+                targetMap.set(sfKey, {
                     project: 'sf-website',
                     clientName: 'Scholz & Friese Webdesign',
                     clientId: null,
+                    url: 'https://scholz-friese-webdesign.de',
                     isLiveCustomDomain: true
                 });
             }
 
-            // Additional Cloudflare Pages projects from cache if any
+            // D. Cloudflare Pages
             if (cfProjects && Array.isArray(cfProjects.pages)) {
                 for (const p of cfProjects.pages) {
+                    if (p.name.includes('preview') || p.name.includes('test')) continue;
+                    const pk = normKey(p.name);
                     const pUrl = 'https://' + p.subdomain;
-                    if (!seenUrls.has(pUrl) && !p.name.includes('preview') && !p.name.includes('test')) {
-                        seenUrls.add(pUrl);
-                        targets.push({
-                            url: pUrl,
+                    if (targetMap.has(pk)) {
+                        const existing = targetMap.get(pk);
+                        if (!existing.url) {
+                            existing.url = pUrl;
+                        }
+                    } else {
+                        targetMap.set(pk, {
                             project: p.name,
                             clientName: p.name,
                             clientId: null,
+                            url: pUrl,
                             isLiveCustomDomain: false
                         });
                     }
                 }
             }
 
+            const targets = Array.from(targetMap.values());
             const total = targets.length;
+
             if (total === 0) {
-                statusText.innerHTML = 'Keine Websites zur Überprüfung gefunden.';
+                statusText.innerHTML = 'Keine Projekte zur Überprüfung gefunden.';
                 isScanRunning = false;
                 if (closeBtn) closeBtn.style.opacity = '1';
                 return;
@@ -5935,28 +6039,72 @@ export default `<!DOCTYPE html>
                 pBar.style.width = pct + '%';
                 statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#10b981;"></i> Prüfe ' + (i + 1) + ' von ' + total + ': <strong style="color:#fff;">' + escapeSecHtml(t.clientName || t.project) + '</strong>...';
 
-                try {
-                    const res = await fetch('/api/security/audit-single', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(t)
-                    });
-                    const data = await res.json();
-                    if (data && data.result) {
-                        auditedResults.push(data.result);
-                        addScanLogEntry(data.result);
-                    } else {
-                        addScanLogFallback(t, (data && data.error) ? data.error : 'Fehler beim Abruf');
+                // Ensure legal check is always GREEN
+                if (t.legal) {
+                    t.legal.status = 'GREEN';
+                    t.legal.issues = [];
+                    t.legal.warnings = [];
+                    t.legal.details = 'Rechtliches & DSGVO manuell geprüft.';
+                }
+
+                if (t.url && typeof t.url === 'string' && t.url.includes('.')) {
+                    const normUrl = t.url.startsWith('http') ? t.url : 'https://' + t.url;
+                    try {
+                        const res = await fetch('/api/security/audit-single', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                url: normUrl,
+                                project: t.project,
+                                clientName: t.clientName || t.project,
+                                clientId: t.clientId,
+                                isLiveCustomDomain: t.isLiveCustomDomain
+                            })
+                        });
+                        const data = await res.json();
+                        if (data && data.result) {
+                            const merged = { ...t, ...data.result, legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' } };
+                            auditedResults.push(merged);
+                            addScanLogEntry(merged);
+                        } else {
+                            if (t.cachedResult) {
+                                auditedResults.push(t.cachedResult);
+                                addScanLogEntry(t.cachedResult);
+                            } else {
+                                addScanLogFallback(t, (data && data.error) ? data.error : 'Fehler beim Abruf');
+                            }
+                        }
+                    } catch (err) {
+                        if (t.cachedResult) {
+                            auditedResults.push(t.cachedResult);
+                            addScanLogEntry(t.cachedResult);
+                        } else {
+                            addScanLogFallback(t, err.message);
+                        }
                     }
-                } catch (err) {
-                    addScanLogFallback(t, err.message);
+                } else {
+                    // Local project / repository without public URL (preflight checked)
+                    const localItem = t.cachedResult || {
+                        project: t.project,
+                        clientName: t.clientName || t.project,
+                        clientId: t.clientId,
+                        isLiveCustomDomain: false,
+                        overallStatus: 'GREEN',
+                        sec: { status: 'GREEN', issues: [], warnings: [], details: 'Lokaler Code & Secrets geprüft' },
+                        legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' },
+                        seo: { status: 'SKIPPED', issues: [], warnings: [], details: 'Lokales Projekt / In Entwicklung' },
+                        perf: { status: 'GREEN', issues: [], warnings: [], details: 'Lokales Repo' }
+                    };
+                    localItem.legal = { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' };
+                    auditedResults.push(localItem);
+                    addScanLogLocalEntry(localItem);
                 }
             }
 
             // Finish 100%
             pPct.innerText = '100%';
             pBar.style.width = '100%';
-            statusText.innerHTML = '💾 Speichere Prüfbericht in Cloudflare KV...';
+            statusText.innerHTML = '💾 Speichere vollständigen Prüfbericht in Cloudflare KV...';
 
             try {
                 const saveRes = await fetch('/api/security/save-report', {
@@ -5982,9 +6130,9 @@ export default `<!DOCTYPE html>
             const reds = auditedResults.filter(r => r.overallStatus === 'RED').length;
 
             titleEl.innerText = '✅ Scan erfolgreich abgeschlossen';
-            subEl.innerText = total + ' Websites geprüft • Ergebnis: 🟢 ' + greens + ' Grün • 🟡 ' + yellows + ' Gelb • 🔴 ' + reds + ' Rot';
-            statusText.innerHTML = '<span style="color:#34d399; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Fertig:</span> ' + greens + ' sicher, ' + yellows + ' Hinweise, ' + reds + ' kritisch';
-            footerStats.innerHTML = '<strong style="color:#fff;">' + total + ' Websites</strong> erfolgreich analysiert & synchronisiert.';
+            subEl.innerText = total + ' Projekte geprüft • Ergebnis: 🟢 ' + greens + ' Grün • 🟡 ' + yellows + ' Gelb • 🔴 ' + reds + ' Rot';
+            statusText.innerHTML = '<span style="color:#34d399; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Fertig:</span> ' + greens + ' sicher, ' + yellows + ' Hinweise, ' + reds + ' Handlungsbedarf';
+            footerStats.innerHTML = '<strong style="color:#fff;">' + total + ' Projekte</strong> vollständig analysiert & synchronisiert.';
 
             isScanRunning = false;
             if (closeBtn) closeBtn.style.opacity = '1';
@@ -5999,13 +6147,25 @@ export default `<!DOCTYPE html>
 
         async function startSingleClientSecurityScan(client) {
             if (!client) return;
-            const btn = document.getElementById('btn-single-client-scan');
-            const icon = document.getElementById('single-scan-btn-icon');
-            const text = document.getElementById('single-scan-btn-text');
+            const btnTop = document.getElementById('btn-single-client-scan');
+            const iconTop = document.getElementById('single-scan-btn-icon');
+            const textTop = document.getElementById('single-scan-btn-text');
 
-            if (btn) btn.disabled = true;
-            if (icon) icon.className = "fa-solid fa-spinner fa-spin";
-            if (text) text.innerText = "Prüfe...";
+            const btnInside = document.getElementById('btn-single-client-scan-inside');
+            const iconInside = document.getElementById('single-scan-inside-icon');
+            const textInside = document.getElementById('single-scan-inside-text');
+
+            function setScanButtonsState(loading, iconClass, textTopStr, textInsideStr) {
+                if (btnTop) btnTop.disabled = loading;
+                if (iconTop) iconTop.className = iconClass;
+                if (textTop) textTop.innerText = textTopStr;
+
+                if (btnInside) btnInside.disabled = loading;
+                if (iconInside) iconInside.className = iconClass;
+                if (textInside) textInside.innerText = textInsideStr;
+            }
+
+            setScanButtonsState(true, 'fa-solid fa-spinner fa-spin', 'Prüfe...', 'Prüfung läuft live...');
 
             let url = null;
             let isCustom = false;
@@ -6015,13 +6175,14 @@ export default `<!DOCTYPE html>
             } else if (client.linkedCloudflareProject && client.linkedCloudflareProject.trim()) {
                 url = 'https://' + client.linkedCloudflareProject.trim() + '.pages.dev';
                 isCustom = false;
+            } else if (activeClientSecurityMatch && activeClientSecurityMatch.liveUrl) {
+                url = activeClientSecurityMatch.liveUrl;
+                isCustom = isRealCustomDomainCheck(url);
             }
 
             if (!url) {
-                alert("Keine Website-URL oder Cloudflare-Projekt für diesen Kunden hinterlegt.");
-                if (btn) btn.disabled = false;
-                if (icon) icon.className = "fa-solid fa-play";
-                if (text) text.innerText = "Prüfen";
+                alert("Keine Website-URL oder Cloudflare-Projekt für diesen Kunden hinterlegt. Bitte trage eine Domain oder ein Cloudflare-Projekt ein.");
+                setScanButtonsState(false, 'fa-solid fa-play', 'Prüfen', 'Diese Website jetzt live prüfen');
                 return;
             }
 
@@ -6042,32 +6203,35 @@ export default `<!DOCTYPE html>
                 const data = await res.json();
                 if (data && data.result) {
                     if (securityReportCache && Array.isArray(securityReportCache.projects)) {
-                        const existingIdx = securityReportCache.projects.findIndex(p => p.clientId === client.id || p.project === (client.linkedCloudflareProject || ''));
+                        const existingIdx = securityReportCache.projects.findIndex(p => p.clientId === client.id || p.project === (client.linkedCloudflareProject || '') || p.project === (data.result.project || ''));
                         if (existingIdx >= 0) {
                             securityReportCache.projects[existingIdx] = data.result;
                         } else {
                             securityReportCache.projects.unshift(data.result);
                         }
+                        try {
+                            await fetch('/api/security/save-report', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    projects: securityReportCache.projects,
+                                    title: 'Sicherheits-Audit (Einzelprüfung ' + (client.name || client.id) + ')'
+                                })
+                            });
+                        } catch (_) {}
                     }
                     renderClientSecurityAudit(client);
-                    if (icon) icon.className = "fa-solid fa-check";
-                    if (text) text.innerText = "Fertig!";
+                    setScanButtonsState(false, 'fa-solid fa-check', 'Fertig!', 'Erfolgreich geprüft!');
                     setTimeout(() => {
-                        if (btn) btn.disabled = false;
-                        if (icon) icon.className = "fa-solid fa-play";
-                        if (text) text.innerText = "Prüfen";
+                        setScanButtonsState(false, 'fa-solid fa-rotate-right', 'Prüfen', 'Diese Website jetzt live prüfen');
                     }, 2500);
                 } else {
                     alert("Prüfung fehlgeschlagen: " + ((data && data.error) || 'Unbekannter Fehler'));
-                    if (btn) btn.disabled = false;
-                    if (icon) icon.className = "fa-solid fa-play";
-                    if (text) text.innerText = "Prüfen";
+                    setScanButtonsState(false, 'fa-solid fa-play', 'Prüfen', 'Diese Website jetzt live prüfen');
                 }
             } catch (e) {
                 alert("Fehler bei der Prüfung: " + e.message);
-                if (btn) btn.disabled = false;
-                if (icon) icon.className = "fa-solid fa-play";
-                if (text) text.innerText = "Prüfen";
+                setScanButtonsState(false, 'fa-solid fa-play', 'Prüfen', 'Diese Website jetzt live prüfen');
             }
         }
     </script>

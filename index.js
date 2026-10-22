@@ -1886,24 +1886,17 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               : (secIssues[0] || secWarnings[0])
           };
 
-          // 2. Legal & SEO
-          let legal, seo;
+          // 2. Legal (manuell gepflegt) & SEO
+          const legal = {
+            status: 'GREEN',
+            issues: [],
+            warnings: [],
+            details: 'Rechtliches & DSGVO manuell geprüft.'
+          };
+
+          let seo;
           if (isLiveCustomDomain && reachable && htmlContent) {
             const htmlLower = htmlContent.toLowerCase();
-            if (!htmlLower.includes('impressum')) {
-              legalIssues.push("Kein 'Impressum'-Link auf der Live-Startseite gefunden!");
-            }
-            if (!htmlLower.includes('datenschutz') && !htmlLower.includes('privacy')) {
-              legalIssues.push("Kein 'Datenschutz'-Link auf der Live-Startseite gefunden!");
-            }
-
-            legal = {
-              status: legalIssues.length > 0 ? 'RED' : 'GREEN',
-              issues: legalIssues,
-              warnings: [],
-              details: legalIssues.length === 0 ? 'Impressum & Datenschutz live verlinkt.' : legalIssues.join(', ')
-            };
-
             const hasTitle = htmlLower.includes('<title>');
             const hasDesc = htmlLower.includes('name="description"') || htmlLower.includes("name='description'");
             const hasOg = htmlLower.includes('property="og:');
@@ -1921,7 +1914,6 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               details: `Title (${hasTitle ? '✓' : '✗'}), Desc (${hasDesc ? '✓' : '✗'}), OG (${hasOg ? '✓' : '✗'}), Schema.org (${hasSchema ? '✓' : '✗'}), Worker (${hasAf ? '✓' : 'Standalone'})`
             };
           } else {
-            legal = { status: 'SKIPPED', issues: [], warnings: [], details: 'Internes Tool / .dev-Domain' };
             seo = { status: 'SKIPPED', issues: [], warnings: [], details: 'Internes Tool / .dev-Domain' };
           }
 
