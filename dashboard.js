@@ -2132,19 +2132,6 @@ export default `<!DOCTYPE html>
                         </div>
                     </div>
 
-                    <!-- Security & Pre-Flight Audit Card (Kunden-Ansicht) -->
-                    <div class="card" id="client-security-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
-                            <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Pre-Flight Bericht
-                            </h3>
-                            <span id="client-sec-overall-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-secondary);">Prüfe...</span>
-                        </div>
-                        <div id="client-sec-body" style="font-size: 12.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
-                            <div>Lade aktuellen Sicherheitsbericht...</div>
-                        </div>
-                    </div>
-
                     <!-- Notes & Tasks Card -->
                     <div class="card">
                         <h3 class="card-title">
@@ -2167,6 +2154,19 @@ export default `<!DOCTYPE html>
 
                 <!-- COL 2 -->
                 <div style="display: flex; flex-direction: column; gap: 30px;">
+                    <!-- Security & Pre-Flight Audit Card (Rechte Seite über Verträge) -->
+                    <div class="card" id="client-security-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+                            <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Pre-Flight Bericht
+                            </h3>
+                            <span id="client-sec-overall-badge" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-secondary);">Prüfe...</span>
+                        </div>
+                        <div id="client-sec-body" style="font-size: 12.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
+                            <div>Lade aktuellen Sicherheitsbericht...</div>
+                        </div>
+                    </div>
+
                     <!-- Contracts (R2) -->
                     <div class="card">
                         <h3 class="card-title">
@@ -2434,11 +2434,6 @@ export default `<!DOCTYPE html>
                 <div class="form-group">
                     <label>Verknüpftes Cloudflare Pages Projekt</label>
                     <input type="text" id="modal-client-cf" placeholder="Z.B. weymann-gebaeudetechnik">
-                </div>
-
-                <div class="form-group">
-                    <label>Echte Domain (Custom Domain)</label>
-                    <input type="text" id="modal-client-domain" placeholder="Z.B. weymann-gebaeudetechnik.de">
                 </div>
 
                 <div class="form-group">
@@ -4454,7 +4449,6 @@ export default `<!DOCTYPE html>
             const phoneInput = document.getElementById('modal-client-phone');
             if (phoneInput) phoneInput.value = activeClient.phone || '';
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
-            document.getElementById('modal-client-domain').value = activeClient.customDomain || '';
 
             const passInput = document.getElementById('modal-client-admin-password');
             if (passInput) {
@@ -4481,7 +4475,7 @@ export default `<!DOCTYPE html>
             const phoneInput = document.getElementById('modal-client-phone');
             const phone = phoneInput ? phoneInput.value.trim() : '';
             const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
-            const customDomain = document.getElementById('modal-client-domain').value.trim();
+            const customDomain = (activeClient && activeClient.id === id) ? (activeClient.customDomain || '') : '';
             const passInput = document.getElementById('modal-client-admin-password');
             const adminPassword = passInput ? passInput.value.trim() : '';
 
