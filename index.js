@@ -428,6 +428,19 @@ export default {
               }
             }
 
+            // Clean up legacy email-triggered red status
+            if ((customer.statusReason || '').startsWith('Neue Kunden-E-Mail')) {
+              const openTodo = (customer.todos || []).find(t => !t.done);
+              if (openTodo) {
+                customer.status = 'red';
+                customer.statusReason = `Offene Aufgabe: ${openTodo.text}`;
+              } else {
+                customer.status = 'green';
+                customer.statusReason = customer.isDraft ? 'Neu angelegt (Entwurf)' : 'Website verknüpft';
+              }
+              await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
+            }
+
             kunden.push(customer);
           }
         }
@@ -477,24 +490,14 @@ export default {
 
         finalCustomer.isDraft = !hasRealDomain;
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-
-        // Fetch emails to check if any unresolved incoming mail exists
-        const emailsRaw = await env.KUNDEN_DB.get(`emails:${finalCustomer.id}`);
-        const emails = emailsRaw ? JSON.parse(emailsRaw) : [];
-        const hasUnresolvedIncoming = emails.some(m => m.direction === 'incoming' && !m.isResolved);
         const hasUnresolvedTodos = (finalCustomer.todos || []).some(t => !t.done);
 
         if (finalCustomer.manualOverride) {
           // Explicit manual override by user - preserve status & statusReason!
-        } else if (hasUnresolvedIncoming || hasUnresolvedTodos) {
+        } else if (hasUnresolvedTodos) {
           finalCustomer.status = 'red';
-          if (hasUnresolvedIncoming) {
-            const unresolvedMail = emails.find(m => m.direction === 'incoming' && !m.isResolved);
-            finalCustomer.statusReason = unresolvedMail.body || unresolvedMail.subject;
-          } else {
-            const unresolvedTodo = finalCustomer.todos.find(t => !t.done);
-            finalCustomer.statusReason = `Offene Aufgabe: ${unresolvedTodo.text}`;
-          }
+          const unresolvedTodo = finalCustomer.todos.find(t => !t.done);
+          finalCustomer.statusReason = `Offene Aufgabe: ${unresolvedTodo.text}`;
         } else {
           // No unresolved items! Check draft rules:
           if (finalCustomer.isDraft) {

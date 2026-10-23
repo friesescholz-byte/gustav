@@ -2221,20 +2221,6 @@ export default `<!DOCTYPE html>
 
                 </div>
 
-                <!-- ROW 2: E-Mail log -->
-                <div class="card email-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 class="card-title">
-                            <i class="fa-solid fa-envelope-open-text"></i> Letzte Interaktionen (E-Mails)
-                        </h3>
-                        <span style="font-size: 11px; color: var(--color-green); font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                            <span class="status-dot green" style="width: 6px; height: 6px; position: static; display: inline-block; box-shadow: 0 0 4px var(--color-green);"></span> Webhooks aktiv
-                        </span>
-                    </div>
-                    <div class="email-list" id="email-list">
-                        <!-- Dynamic Emails -->
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -3813,9 +3799,6 @@ export default `<!DOCTYPE html>
             // Render Contracts
             try { renderContracts(client); } catch(e) { console.error("renderContracts error:", e); }
 
-            // Fetch E-Mail logs
-            try { loadEmailLogs(client.id); } catch(e) { console.error("loadEmailLogs error:", e); }
-
             // Update suggested chat button
             const suggestBtn = document.getElementById('suggest-client-btn');
             if (suggestBtn) {
@@ -4160,77 +4143,7 @@ export default `<!DOCTYPE html>
             }
         }
 
-        // Fetch & render emails
-        async function loadEmailLogs(clientId) {
-            const list = document.getElementById('email-list');
-            list.innerHTML = '<div style="font-size:13px; color:var(--text-secondary);">Mails werden geladen...</div>';
-            
-            try {
-                const res = await fetch('/api/emails/' + clientId);
-                const emails = await res.json();
-                list.innerHTML = '';
 
-                if (emails.length === 0) {
-                    list.innerHTML = '<div style="font-size:13px; color:var(--text-secondary);">Kein Mailverkehr registriert.</div>';
-                    return;
-                }
-
-                emails.forEach(e => {
-                    const item = document.createElement('div');
-                    const isUnresolvedIncoming = e.direction === 'incoming' && !e.isResolved;
-                    item.className = 'email-item ' + e.direction + (isUnresolvedIncoming ? ' unresolved-email' : '');
-                    
-                    const directionText = e.direction === 'incoming' ? 'Eingehend' : 'Gesendet';
-                    const iconClass = e.direction === 'incoming' ? 'fa-arrow-down-left' : 'fa-arrow-up-right';
-                    
-                    let attachmentsHtml = '';
-                    if (e.attachments && e.attachments.length > 0) {
-                        attachmentsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">';
-                        e.attachments.forEach(att => {
-                            attachmentsHtml += '<a href="' + att.url + '" target="_blank" class="email-attachment-link"><i class="fa-solid fa-paperclip" style="color: var(--color-cyan);"></i> ' + att.name + '</a>';
-                        });
-                        attachmentsHtml += '</div>';
-                    }
-
-                    const badgeHtml = e.direction === 'incoming' 
-                        ? '<span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Kunde</span>'
-                        : '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Ich</span>';
-
-                    const summaryHtml = e.summary
-                        ? '<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; font-size: 12.5px; color: var(--text-primary); margin-top: 6px; line-height: 1.4;">' +
-                            '<strong style="color: var(--color-cyan); font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;"><i class="fa-solid fa-robot"></i> KI-Zusammenfassung</strong>' +
-                            e.summary +
-                           '</div>'
-                        : '';
-
-                    item.innerHTML = \`
-                        <div class="email-meta">
-                            <div class="email-meta-left" style="display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid \${iconClass}"></i> \${directionText} (\&lt;\${e.from}\&gt;) \${badgeHtml}
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <span>\${new Date(e.date).toLocaleString('de-DE')}</span>
-                                \${e.direction === 'incoming' ? (
-                                    e.isResolved 
-                                    ? \`<button onclick="toggleEmailResolve('\${clientId}', '\${e.id}', false)" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:600;" title="Aufgabe wiedereröffnen"><i class="fa-solid fa-circle-check"></i> Erledigt</button>\`
-                                    : \`<button onclick="toggleEmailResolve('\${clientId}', '\${e.id}', true)" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
-                                ) : ''}
-                            </div>
-                        </div>
-                        <div class="email-subject">\${e.subject}</div>
-                        \${summaryHtml}
-                        <div onclick="const el = this.nextElementSibling; const isH = el.style.display === 'none'; el.style.display = isH ? 'block' : 'none'; this.querySelector('i').className = isH ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'; this.querySelector('span').innerText = isH ? 'E-Mail ausblenden' : 'Vollständige E-Mail anzeigen';" style="font-size: 11px; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-weight: 600; user-select: none;">
-                            <i class="fa-solid fa-chevron-down" style="font-size: 8px;"></i> <span>Vollständige E-Mail anzeigen</span>
-                        </div>
-                        <div class="email-body" style="display: none; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word;">\${e.body || '(Kein Inhalt)'}</div>
-                        \${attachmentsHtml}
-\`;
-                    list.appendChild(item);
-                });
-            } catch (err) {
-                list.innerHTML = '<div style="font-size:13px; color:var(--color-red);">Fehler beim Laden der Mails.</div>';
-            }
-        }
 
 
 
@@ -4517,28 +4430,7 @@ export default `<!DOCTYPE html>
             }
         }
 
-        async function toggleEmailResolve(clientId, emailId, isResolved) {
-            try {
-                const res = await fetch('/api/emails/resolve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ clientId, emailId, isResolved })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    if (activeClient && activeClient.id === clientId) {
-                        activeClient.status = data.customer.status;
-                        activeClient.statusReason = data.customer.statusReason;
-                        selectClient(activeClient);
-                    }
-                    await loadClients();
-                } else {
-                    alert('Fehler beim Ändern des E-Mail-Status: ' + data.error);
-                }
-            } catch(e) {
-                alert('Netzwerkfehler beim Ändern des E-Mail-Status.');
-            }
-        }
+
 
         // Manual Status Switch
         async function toggleManualStatus() {
