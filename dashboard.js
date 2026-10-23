@@ -2514,13 +2514,14 @@ export default `<!DOCTYPE html>
                 </div>
 
                 <div class="form-group">
-                    <label>Verknüpftes Cloudflare Pages Projekt</label>
-                    <input type="text" id="modal-client-cf" placeholder="Z.B. weymann-gebaeudetechnik">
+                    <label>Verknüpftes Cloudflare Projekt (Worker / Pages)</label>
+                    <input type="text" id="modal-client-cf" placeholder="Z.B. homan-madical oder weymann-gebaeudetechnik" oninput="onCloudflareProjectInput(this.value)">
+                    <div id="modal-cf-auto-domain-hint" style="display: none; font-size: 11.5px; color: #34d399; margin-top: 5px; font-weight: 600;"></div>
                 </div>
 
                 <div class="form-group">
                     <label>Echte Domain (Custom Domain)</label>
-                    <input type="text" id="modal-client-domain" placeholder="Z.B. weymann-gebaeudetechnik.de">
+                    <input type="text" id="modal-client-domain" placeholder="Z.B. homann-medical.de oder www.karl-weymann-gmbh.de">
                 </div>
 
                 <div class="form-group">
@@ -3616,6 +3617,68 @@ export default `<!DOCTYPE html>
             }
         }
 
+        // --- AUTO-SYNC CLIENT DOMAINS FROM CLOUDFLARE ---
+        async function syncClientsWithCloudflare() {
+            if (!cfProjects || !Array.isArray(cfProjects.workerDomains) || !Array.isArray(clients) || clients.length === 0) return;
+            const normKey = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+
+            // Build map of worker service -> best domain (prefer apex over www)
+            const workerDomainMap = new Map();
+            cfProjects.workerDomains.forEach(wd => {
+                if (!wd.service || !wd.hostname) return;
+                const k = normKey(wd.service);
+                const host = wd.hostname.toLowerCase().trim();
+                if (!host || host.includes('workers.dev') || host.includes('pages.dev')) return;
+                if (!workerDomainMap.has(k) || (!host.startsWith('www.') && workerDomainMap.get(k).startsWith('www.'))) {
+                    workerDomainMap.set(k, host);
+                }
+            });
+
+            let changedCount = 0;
+
+            for (const c of clients) {
+                const kCf = normKey(c.linkedCloudflareProject);
+                const kId = normKey(c.id);
+                const kName = normKey(c.name);
+
+                const matchedHost = workerDomainMap.get(kCf) || workerDomainMap.get(kId) || workerDomainMap.get(kName);
+                if (matchedHost) {
+                    const formatted = 'https://' + matchedHost + '/';
+                    const domainChanged = !c.customDomain || (!c.customDomain.includes(matchedHost) && c.customDomain !== formatted);
+                    const draftChanged = c.isDraft === true;
+                    const hadFake530 = c.statusReason && (c.statusReason.includes('pages.dev') || c.statusReason.includes('HTTP 530'));
+
+                    if (domainChanged || draftChanged || hadFake530) {
+                        c.customDomain = formatted;
+                        c.isDraft = false;
+                        if (hadFake530) {
+                            const hasUnres = (c.todos || []).some(t => !t.done);
+                            if (hasUnres) {
+                                const unres = c.todos.find(t => !t.done);
+                                c.status = 'red';
+                                c.statusReason = 'Offene Aufgabe: ' + unres.text;
+                            } else {
+                                c.status = 'green';
+                                c.statusReason = 'Domain automatisch über Cloudflare verknüpft';
+                            }
+                        }
+
+                        changedCount++;
+                        // Persist update to KV in background
+                        fetch('/api/kunden', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(c)
+                        }).catch(e => console.error('Fehler beim Auto-Sync von Kunde ' + c.name, e));
+                    }
+                }
+            }
+
+            if (changedCount > 0) {
+                console.log('[Gustav CF-Sync] ' + changedCount + ' Kunden-Domains automatisch über Cloudflare synchronisiert.');
+            }
+        }
+
         // --- CLIENTS CRUD ---
         async function loadClients() {
             try {
@@ -3630,6 +3693,7 @@ export default `<!DOCTYPE html>
                     return;
                 }
                 clients = Array.isArray(loaded) ? loaded : [];
+                await syncClientsWithCloudflare();
                 renderClientList();
                 if (activeClient) {
                     // Refresh current active client data
@@ -3985,35 +4049,46 @@ export default `<!DOCTYPE html>
             }
 
             // Look in Workers
-            const workerProj = cfProjects.workers.find(w => w.id === cfName);
+            const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            const cfNorm = norm(cfName);
+            const workerProj = cfProjects.workers.find(w => norm(w.id) === cfNorm);
             if (workerProj) {
                 projectNameEl.innerText = workerProj.id;
                 projectStatusEl.innerText = 'Worker Aktiv';
                 projectStatusEl.style.color = 'var(--color-cyan)';
                 
                 // Find custom domain for this worker service if available
-                const customDomain = (cfProjects.workerDomains || []).find(d => d.service === cfName);
-                if (customDomain && customDomain.hostname && !customDomain.hostname.includes('workers.dev') && !customDomain.hostname.includes('pages.dev')) {
-                    projectUrlEl.innerText = customDomain.hostname;
-                    projectUrlEl.href = 'https://' + customDomain.hostname;
-                    determinedBaseUrl = 'https://' + customDomain.hostname;
+                const customDomains = (cfProjects.workerDomains || []).filter(d => norm(d.service) === norm(workerProj.id) && d.hostname && !d.hostname.includes('workers.dev') && !d.hostname.includes('pages.dev'));
+                let bestDomain = null;
+                for (const cd of customDomains) {
+                    if (!bestDomain || (!cd.hostname.startsWith('www.') && bestDomain.startsWith('www.'))) {
+                        bestDomain = cd.hostname.toLowerCase().trim();
+                    }
+                }
+
+                if (bestDomain) {
+                    const fullUrl = 'https://' + bestDomain + '/';
+                    projectUrlEl.innerText = bestDomain;
+                    projectUrlEl.href = fullUrl;
+                    determinedBaseUrl = fullUrl;
                     // If a real custom domain is active, customer is no longer a draft!
-                    if (client.isDraft) {
+                    if (client.isDraft || !client.customDomain || client.customDomain !== fullUrl) {
                         client.isDraft = false;
+                        client.customDomain = fullUrl;
                         const nameEl = document.getElementById('active-client-name');
                         if (nameEl) nameEl.innerHTML = client.name;
                     }
-                } else if (client.customDomain) {
+                } else if (client.customDomain && !client.customDomain.includes('workers.dev') && !client.customDomain.includes('pages.dev')) {
                     const normUrl = client.customDomain.startsWith('http') ? client.customDomain : 'https://' + client.customDomain;
                     projectUrlEl.innerText = client.customDomain;
                     projectUrlEl.href = normUrl;
                     determinedBaseUrl = normUrl;
                 } else if (cfProjects.workersSubdomain) {
                     // Fallback to default workers.dev subdomain link
-                    const devUrl = workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev';
-                    projectUrlEl.innerText = devUrl;
-                    projectUrlEl.href = 'https://' + devUrl;
-                    determinedBaseUrl = 'https://' + devUrl;
+                    const devUrl = 'https://' + workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev/';
+                    projectUrlEl.innerText = workerProj.id + '.' + cfProjects.workersSubdomain + '.workers.dev';
+                    projectUrlEl.href = devUrl;
+                    determinedBaseUrl = devUrl;
                 } else {
                     projectUrlEl.innerText = 'Worker (Keine Custom Domain)';
                     projectUrlEl.href = '#';
@@ -4601,6 +4676,36 @@ export default `<!DOCTYPE html>
             return bubble;
         }
 
+        function onCloudflareProjectInput(val) {
+            const hint = document.getElementById('modal-cf-auto-domain-hint');
+            const domainInput = document.getElementById('modal-client-domain');
+            if (!val || !val.trim() || !cfProjects || !Array.isArray(cfProjects.workerDomains)) {
+                if (hint) hint.style.display = 'none';
+                return;
+            }
+            const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            const k = norm(val);
+            const matches = cfProjects.workerDomains.filter(d => norm(d.service) === k && d.hostname && !d.hostname.includes('workers.dev') && !d.hostname.includes('pages.dev'));
+            let best = null;
+            for (const m of matches) {
+                if (!best || (!m.hostname.startsWith('www.') && best.startsWith('www.'))) {
+                    best = m.hostname.toLowerCase().trim();
+                }
+            }
+            if (best) {
+                const autoUrl = 'https://' + best + '/';
+                if (domainInput && (!domainInput.value || domainInput.value.includes('workers.dev') || domainInput.value.includes('pages.dev') || !domainInput.value.includes('.'))) {
+                    domainInput.value = autoUrl;
+                }
+                if (hint) {
+                    hint.innerHTML = '<i class="fa-solid fa-circle-check"></i> Live-Domain <strong style="color:#6ee7b7;">https://' + escapeSecHtml(best) + '/</strong> automatisch über Cloudflare erkannt!';
+                    hint.style.display = 'block';
+                }
+            } else {
+                if (hint) hint.style.display = 'none';
+            }
+        }
+
         function openAddClientModal() {
             document.getElementById('modal-title').innerText = "Kunde hinzufügen";
             document.getElementById('modal-client-id').value = "";
@@ -4611,6 +4716,8 @@ export default `<!DOCTYPE html>
             if (phoneInput) phoneInput.value = "";
             const domainInput = document.getElementById('modal-client-domain');
             if (domainInput) domainInput.value = "";
+            const hint = document.getElementById('modal-cf-auto-domain-hint');
+            if (hint) hint.style.display = 'none';
             const passInput = document.getElementById('modal-client-admin-password');
             if (passInput) {
                 passInput.value = "";
@@ -4634,6 +4741,13 @@ export default `<!DOCTYPE html>
             document.getElementById('modal-client-cf').value = activeClient.linkedCloudflareProject || '';
             const domainInput = document.getElementById('modal-client-domain');
             if (domainInput) domainInput.value = activeClient.customDomain || '';
+
+            if (activeClient.linkedCloudflareProject) {
+                onCloudflareProjectInput(activeClient.linkedCloudflareProject);
+            } else {
+                const hint = document.getElementById('modal-cf-auto-domain-hint');
+                if (hint) hint.style.display = 'none';
+            }
 
             const passInput = document.getElementById('modal-client-admin-password');
             if (passInput) {
@@ -4659,9 +4773,31 @@ export default `<!DOCTYPE html>
             const contactPerson = contactInput ? contactInput.value.trim() : '';
             const phoneInput = document.getElementById('modal-client-phone');
             const phone = phoneInput ? phoneInput.value.trim() : '';
-            const linkedCloudflareProject = document.getElementById('modal-client-cf').value;
+            const linkedCloudflareProject = (document.getElementById('modal-client-cf').value || '').trim();
             const domainInput = document.getElementById('modal-client-domain');
-            const customDomain = domainInput ? domainInput.value.trim() : ((activeClient && activeClient.id === id) ? (activeClient.customDomain || '') : '');
+            let customDomain = domainInput ? domainInput.value.trim() : ((activeClient && activeClient.id === id) ? (activeClient.customDomain || '') : '');
+            
+            // Auto-detect custom domain from Cloudflare workerDomains if customDomain is empty
+            if (linkedCloudflareProject && (!customDomain || !customDomain.includes('.'))) {
+                if (cfProjects && Array.isArray(cfProjects.workerDomains)) {
+                    const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                    const k = norm(linkedCloudflareProject);
+                    const match = cfProjects.workerDomains.find(wd => norm(wd.service) === k && wd.hostname && !wd.hostname.includes('workers.dev') && !wd.hostname.includes('pages.dev'));
+                    if (match) {
+                        customDomain = 'https://' + match.hostname.toLowerCase().trim() + '/';
+                    }
+                }
+            }
+
+            if (customDomain && customDomain.includes('.')) {
+                if (!customDomain.startsWith('http://') && !customDomain.startsWith('https://')) {
+                    customDomain = 'https://' + customDomain;
+                }
+                if (!customDomain.endsWith('/')) {
+                    customDomain += '/';
+                }
+            }
+
             const passInput = document.getElementById('modal-client-admin-password');
             const adminPassword = passInput ? passInput.value.trim() : '';
 
@@ -5664,13 +5800,35 @@ export default `<!DOCTYPE html>
             const query = ((document.getElementById('sec-project-search') || {}).value || '').toLowerCase().trim();
             const projects = Array.isArray(securityReportCache.projects) ? securityReportCache.projects : [];
 
+            // Update filter button labels with live counts
+            const liveCount = projects.filter(p => p.category === 'LIVE_DOMAIN' || p.isLiveCustomDomain === true).length;
+            const devCount = projects.filter(p => p.category === 'INTERNAL_DEV' || (p.isLiveCustomDomain === false && p.category !== 'LIVE_DOMAIN')).length;
+            const redCount = projects.filter(p => p.overallStatus === 'RED').length;
+            const yellowCount = projects.filter(p => p.overallStatus === 'YELLOW').length;
+            const greenCount = projects.filter(p => p.overallStatus === 'GREEN').length;
+
+            const btnAll = document.querySelector('.sec-filter-btn[data-filter="ALL"]');
+            if (btnAll) btnAll.innerText = 'Alle (' + projects.length + ')';
+            const btnRed = document.querySelector('.sec-filter-btn[data-filter="RED"]');
+            if (btnRed) btnRed.innerText = '🔴 Kritisch (' + redCount + ')';
+            const btnYellow = document.querySelector('.sec-filter-btn[data-filter="YELLOW"]');
+            if (btnYellow) btnYellow.innerText = '🟡 Hinweise (' + yellowCount + ')';
+            const btnGreen = document.querySelector('.sec-filter-btn[data-filter="GREEN"]');
+            if (btnGreen) btnGreen.innerText = '🟢 Grün (' + greenCount + ')';
+            const btnLive = document.querySelector('.sec-filter-btn[data-filter="LIVE_DOMAIN"]');
+            if (btnLive) btnLive.innerText = '🌐 Live-Domains (' + liveCount + ')';
+            const btnDev = document.querySelector('.sec-filter-btn[data-filter="INTERNAL_DEV"]');
+            if (btnDev) btnDev.innerText = '⚙️ Intern / .dev (' + devCount + ')';
+
             const filtered = projects.filter((p, idx) => {
                 p._origIdx = idx;
                 if (activeSecurityFilter === 'RED' && p.overallStatus !== 'RED') return false;
                 if (activeSecurityFilter === 'YELLOW' && p.overallStatus !== 'YELLOW') return false;
                 if (activeSecurityFilter === 'GREEN' && p.overallStatus !== 'GREEN') return false;
-                if (activeSecurityFilter === 'LIVE_DOMAIN' && p.category !== 'LIVE_DOMAIN') return false;
-                if (activeSecurityFilter === 'INTERNAL_DEV' && p.category !== 'INTERNAL_DEV') return false;
+                
+                const isLive = p.category === 'LIVE_DOMAIN' || p.isLiveCustomDomain === true;
+                if (activeSecurityFilter === 'LIVE_DOMAIN' && !isLive) return false;
+                if (activeSecurityFilter === 'INTERNAL_DEV' && isLive) return false;
 
                 if (query) {
                     const hay = ((p.project || '') + ' ' + (p.clientName || '') + ' ' + (p.liveUrl || '')).toLowerCase();
@@ -6046,132 +6204,129 @@ export default `<!DOCTYPE html>
 
             const normKey = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
-            // 1. Build authoritative target map containing ALL projects
+            const SKIP_PROJECTS = new Set([
+                'friesescholzwebdesign',
+                'preview-hub',
+                'resend-mailer',
+                'saas-autodiscover-worker',
+                'beermann-google-doc-proxy',
+                'huemax-news-api',
+                'gewerbeverin-heemsen-backend',
+                'weymann-backend',
+                'spring-silence-1bfd',
+                'autumn-flower-76fa',
+                'blue-term-4c7a',
+                'calm-tooth-a5d0',
+                'crimson-darkness-17a0',
+                'muddy-recipe-ee21',
+                'noisy-glade-934f',
+                'shrill-fire-65f3',
+                'square-glitter-ed1b',
+                'dashboard',
+                'universe-app'
+            ]);
+
+            const workersSubdomain = (cfProjects && cfProjects.workersSubdomain) || 'friese-scholz';
+
+            // Real Cloudflare website workers map: normKey -> real worker script id
+            const realWorkers = new Map();
+            if (cfProjects && Array.isArray(cfProjects.workers)) {
+                for (const w of cfProjects.workers) {
+                    const wId = (w.id || '').toLowerCase().trim();
+                    if (wId && !SKIP_PROJECTS.has(wId)) {
+                        realWorkers.set(normKey(wId), wId);
+                    }
+                }
+            }
+
+            // Worker domain map: normKey(service) -> hostname (prefer apex)
+            const workerDomainMap = new Map();
+            if (cfProjects && Array.isArray(cfProjects.workerDomains)) {
+                for (const wd of cfProjects.workerDomains) {
+                    if (!wd.service || !wd.hostname) continue;
+                    const k = normKey(wd.service);
+                    const host = wd.hostname.toLowerCase().trim();
+                    if (!workerDomainMap.has(k) || (!host.startsWith('www.') && workerDomainMap.get(k).startsWith('www.'))) {
+                        workerDomainMap.set(k, host);
+                    }
+                }
+            }
+
+            // Authoritative target map
             const targetMap = new Map();
 
-            // A. Seed from securityReportCache (which contains all 44 projects from guardian audit)
-            if (securityReportCache && Array.isArray(securityReportCache.projects)) {
-                for (const p of securityReportCache.projects) {
-                    const k = normKey(p.project || p.clientName || p.clientId);
-                    if (k) {
-                        targetMap.set(k, {
-                            ...p,
-                            url: p.liveUrl || null,
-                            project: p.project,
-                            clientName: p.clientName || p.project,
-                            clientId: p.clientId || null,
-                            isLiveCustomDomain: p.isLiveCustomDomain || false,
-                            cachedResult: p
-                        });
-                    }
+            // A. Clients from DB
+            for (const c of (clients || [])) {
+                const kCf = normKey(c.linkedCloudflareProject);
+                const kName = normKey(c.name);
+                const kId = normKey(c.id);
+
+                // Find matching worker on Cloudflare if any
+                const matchedWorkerId = realWorkers.get(kCf) || realWorkers.get(kId) || realWorkers.get(kName) || null;
+                const cfDomain = (matchedWorkerId && workerDomainMap.get(normKey(matchedWorkerId))) || workerDomainMap.get(kCf) || workerDomainMap.get(kId) || workerDomainMap.get(kName);
+
+                let url = null;
+                let isLiveCustom = false;
+
+                if (c.customDomain && c.customDomain.trim() && c.customDomain.includes('.') && !c.customDomain.includes('workers.dev') && !c.customDomain.includes('pages.dev')) {
+                    url = c.customDomain.trim();
+                    isLiveCustom = true;
+                } else if (cfDomain) {
+                    url = 'https://' + cfDomain + '/';
+                    isLiveCustom = true;
+                } else if (matchedWorkerId) {
+                    url = 'https://' + matchedWorkerId + '.' + workersSubdomain + '.workers.dev/';
+                    isLiveCustom = false;
                 }
+
+                if (!url) continue; // Pure contact without website
+
+                const targetKey = matchedWorkerId ? normKey(matchedWorkerId) : (kCf || kName || kId);
+                targetMap.set(targetKey, {
+                    project: matchedWorkerId || c.linkedCloudflareProject || c.name || c.id,
+                    clientName: c.name || c.id,
+                    clientId: c.id,
+                    url: url.startsWith('http') ? url : 'https://' + url,
+                    isLiveCustomDomain: isLiveCustom,
+                    category: isLiveCustom ? 'LIVE_DOMAIN' : 'INTERNAL_DEV'
+                });
             }
 
-            // B. Merge all clients from DB (ensures newly added clients or updated domains are included)
-            for (const c of (clients || [])) {
-                if (c.isDraft) continue;
-                let k = normKey(c.linkedCloudflareProject) || normKey(c.name) || normKey(c.id);
-                let url = null;
-                let isCustom = false;
-                if (c.customDomain && c.customDomain.trim() && c.customDomain.includes('.')) {
-                    url = c.customDomain.trim();
-                    isCustom = isRealCustomDomainCheck(url);
-                } else if (c.linkedCloudflareProject && c.linkedCloudflareProject.trim()) {
-                    url = 'https://' + c.linkedCloudflareProject.trim() + '.pages.dev';
-                    isCustom = false;
-                }
+            // B. Main Agency Website
+            targetMap.set(normKey('sf-website'), {
+                project: 'sf-website',
+                clientName: 'Scholz & Friese Webdesign',
+                clientId: null,
+                url: 'https://scholz-friese-webdesign.de/',
+                isLiveCustomDomain: true,
+                category: 'LIVE_DOMAIN'
+            });
 
-                if (targetMap.has(k)) {
-                    const existing = targetMap.get(k);
-                    existing.clientId = c.id;
-                    existing.clientName = c.name || existing.clientName;
-                    if (url) {
-                        existing.url = url.startsWith('http') ? url : 'https://' + url;
-                        existing.isLiveCustomDomain = isCustom;
-                    }
-                } else if (k) {
-                    targetMap.set(k, {
-                        project: c.linkedCloudflareProject || c.name || c.id,
-                        clientName: c.name || c.id,
-                        clientId: c.id,
-                        url: url ? (url.startsWith('http') ? url : 'https://' + url) : null,
-                        isLiveCustomDomain: isCustom,
-                        overallStatus: 'GREEN',
-                        sec: { status: 'GREEN', issues: [], warnings: [], details: 'Neu hinzugefügt' },
-                        legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' },
-                        seo: { status: 'SKIPPED', issues: [], warnings: [], details: 'Intern' },
-                        perf: { status: 'GREEN', issues: [], warnings: [], details: 'Neu' }
+            // C. Gustav Agentur-Leitzentrale
+            targetMap.set(normKey('gustav'), {
+                project: 'gustav',
+                clientName: 'Gustav Agentur-Leitzentrale',
+                clientId: null,
+                url: 'https://gustav.' + workersSubdomain + '.workers.dev/',
+                isLiveCustomDomain: false,
+                category: 'INTERNAL_DEV'
+            });
+
+            // D. Any remaining active website Workers from Cloudflare that are not in DB
+            for (const [wk, wId] of realWorkers.entries()) {
+                if (!targetMap.has(wk)) {
+                    const cfDomain = workerDomainMap.get(wk);
+                    const isLive = !!cfDomain;
+                    const url = isLive ? ('https://' + cfDomain + '/') : ('https://' + wId + '.' + workersSubdomain + '.workers.dev/');
+                    targetMap.set(wk, {
+                        project: wId,
+                        clientName: wId,
+                        clientId: null,
+                        url: url,
+                        isLiveCustomDomain: isLive,
+                        category: isLive ? 'LIVE_DOMAIN' : 'INTERNAL_DEV'
                     });
                 }
-            }
-
-            // C. Main Agency Website
-            const sfKey = normKey('sf-website');
-            if (targetMap.has(sfKey)) {
-                const sf = targetMap.get(sfKey);
-                sf.url = 'https://scholz-friese-webdesign.de';
-                sf.isLiveCustomDomain = true;
-            } else {
-                targetMap.set(sfKey, {
-                    project: 'sf-website',
-                    clientName: 'Scholz & Friese Webdesign',
-                    clientId: null,
-                    url: 'https://scholz-friese-webdesign.de',
-                    isLiveCustomDomain: true
-                });
-            }
-
-            // D. Cloudflare Pages
-            if (cfProjects && Array.isArray(cfProjects.pages)) {
-                for (const p of cfProjects.pages) {
-                    if (p.name.includes('preview') || p.name.includes('test')) continue;
-                    const pk = normKey(p.name);
-                    const pUrl = 'https://' + p.subdomain;
-                    if (targetMap.has(pk)) {
-                        const existing = targetMap.get(pk);
-                        if (!existing.url) {
-                            existing.url = pUrl;
-                        }
-                    } else {
-                        targetMap.set(pk, {
-                            project: p.name,
-                            clientName: p.name,
-                            clientId: null,
-                            url: pUrl,
-                            isLiveCustomDomain: false
-                        });
-                    }
-                }
-            }
-
-            // Specific overrides for known agency infrastructure & worker sites
-            const gustavKey = normKey('gustav');
-            if (targetMap.has(gustavKey)) {
-                const g = targetMap.get(gustavKey);
-                g.url = 'https://gustav.friese-scholz.workers.dev/';
-                g.isLiveCustomDomain = false;
-            } else {
-                targetMap.set(gustavKey, {
-                    project: 'gustav',
-                    clientName: 'Gustav Agentur-Leitzentrale',
-                    clientId: null,
-                    url: 'https://gustav.friese-scholz.workers.dev/',
-                    isLiveCustomDomain: false
-                });
-            }
-
-            const huemaxKey = normKey('spvgg-huemax');
-            if (targetMap.has(huemaxKey)) {
-                const h = targetMap.get(huemaxKey);
-                h.url = 'https://spvgg-huemax.friese-scholz.workers.dev/';
-                h.isLiveCustomDomain = false;
-            }
-
-            const weserKey = normKey('gewerbeverein-weser-aue');
-            if (targetMap.has(weserKey)) {
-                const w = targetMap.get(weserKey);
-                w.url = 'https://gewerbeverein-weser-aue.friese-scholz.workers.dev/';
-                w.isLiveCustomDomain = false;
             }
 
             const targets = Array.from(targetMap.values());
@@ -6231,7 +6386,7 @@ export default `<!DOCTYPE html>
                         });
                         const data = await res.json();
                         if (data && data.result) {
-                            const merged = { ...t, ...data.result, legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' } };
+                            const merged = { ...t, ...data.result, isLiveCustomDomain: t.isLiveCustomDomain, category: t.category, legal: { status: 'GREEN', issues: [], warnings: [], details: 'Rechtliches & DSGVO manuell geprüft.' } };
                             auditedResults.push(merged);
                             addScanLogEntry(merged);
                         } else {
@@ -6337,11 +6492,30 @@ export default `<!DOCTYPE html>
 
             let url = null;
             let isCustom = false;
-            if (client.customDomain && client.customDomain.trim() && client.customDomain.includes('.')) {
+            const normKey = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            const workersSubdomain = (cfProjects && cfProjects.workersSubdomain) || 'friese-scholz';
+
+            // Check Cloudflare workerDomains for active custom domain
+            let detectedCfDomain = null;
+            if (cfProjects && Array.isArray(cfProjects.workerDomains)) {
+                const kCf = normKey(client.linkedCloudflareProject);
+                const kId = normKey(client.id);
+                const kName = normKey(client.name);
+                const match = cfProjects.workerDomains.find(d => (normKey(d.service) === kCf || normKey(d.service) === kId || normKey(d.service) === kName) && d.hostname && !d.hostname.includes('workers.dev') && !d.hostname.includes('pages.dev'));
+                if (match) detectedCfDomain = match.hostname.toLowerCase().trim();
+            }
+
+            if (detectedCfDomain) {
+                url = 'https://' + detectedCfDomain + '/';
+                isCustom = true;
+                client.customDomain = url;
+                client.isDraft = false;
+            } else if (client.customDomain && client.customDomain.trim() && client.customDomain.includes('.') && !client.customDomain.includes('workers.dev') && !client.customDomain.includes('pages.dev')) {
                 url = client.customDomain.trim();
                 isCustom = isRealCustomDomainCheck(url);
             } else if (client.linkedCloudflareProject && client.linkedCloudflareProject.trim()) {
-                url = 'https://' + client.linkedCloudflareProject.trim() + '.pages.dev';
+                const proj = client.linkedCloudflareProject.trim().toLowerCase();
+                url = 'https://' + proj + '.' + workersSubdomain + '.workers.dev/';
                 isCustom = false;
             } else if (activeClientSecurityMatch && activeClientSecurityMatch.liveUrl) {
                 url = activeClientSecurityMatch.liveUrl;

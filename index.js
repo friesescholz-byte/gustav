@@ -401,13 +401,21 @@ export default {
                 }
               }
             } else {
-              // Clear draft status if project & custom domain are linked
+              // Clear draft status or legacy scan errors if custom domain is connected
               if (
                 customer.statusReason === 'Kunde ist noch ein Entwurf - Keine Domain verbunden' || 
-                customer.statusReason === 'Bitte wieder beim Kunden melden (Entwurf seit 7 Tagen)'
+                customer.statusReason === 'Bitte wieder beim Kunden melden (Entwurf seit 7 Tagen)' ||
+                (customer.statusReason && (customer.statusReason.includes('pages.dev') || customer.statusReason.includes('HTTP 530')))
               ) {
-                customer.status = 'green';
-                customer.statusReason = 'Website verknüpft';
+                const hasUnres = (customer.todos || []).some(t => !t.done);
+                if (hasUnres) {
+                  const unres = customer.todos.find(t => !t.done);
+                  customer.status = 'red';
+                  customer.statusReason = `Offene Aufgabe: ${unres.text}`;
+                } else {
+                  customer.status = 'green';
+                  customer.statusReason = 'Website verknüpft';
+                }
                 await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
               }
 
@@ -483,6 +491,53 @@ export default {
 
         // Keep or create createdAt timestamp
         finalCustomer.createdAt = finalCustomer.createdAt || new Date().toISOString();
+
+        // Auto-detect custom domain from Cloudflare if linkedCloudflareProject is set and no real domain provided
+        if (finalCustomer.linkedCloudflareProject && (!finalCustomer.customDomain || !finalCustomer.customDomain.includes('.'))) {
+          try {
+            const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+            const apiToken = env.CLOUDFLARE_API_TOKEN;
+            if (accountId && apiToken) {
+              const domainsRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains`, {
+                headers: { Authorization: `Bearer ${apiToken}` }
+              });
+              const domainsData = await domainsRes.json();
+              if (domainsData.success && Array.isArray(domainsData.result)) {
+                const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                const targetK = norm(finalCustomer.linkedCloudflareProject);
+                const matches = domainsData.result.filter(d => norm(d.service) === targetK && d.hostname && !d.hostname.includes('workers.dev') && !d.hostname.includes('pages.dev'));
+                let best = null;
+                for (const m of matches) {
+                  if (!best || (!m.hostname.startsWith('www.') && best.startsWith('www.'))) {
+                    best = m.hostname.toLowerCase().trim();
+                  }
+                }
+                if (best) {
+                  finalCustomer.customDomain = 'https://' + best + '/';
+                }
+              }
+            }
+          } catch (cfErr) {
+            console.error('Error auto-detecting worker domain in POST /api/kunden:', cfErr);
+          }
+        }
+
+        // Normalize customDomain URL
+        if (finalCustomer.customDomain && typeof finalCustomer.customDomain === 'string' && finalCustomer.customDomain.trim().includes('.')) {
+          let cd = finalCustomer.customDomain.trim();
+          if (!cd.startsWith('http://') && !cd.startsWith('https://')) {
+            cd = 'https://' + cd;
+          }
+          if (!cd.endsWith('/')) {
+            cd += '/';
+          }
+          finalCustomer.customDomain = cd;
+        }
+
+        // Clear legacy fake 530 scan errors from statusReason
+        if (finalCustomer.statusReason && (finalCustomer.statusReason.includes('pages.dev') || finalCustomer.statusReason.includes('HTTP 530'))) {
+          delete finalCustomer.statusReason;
+        }
 
         // Apply draft checks on save (requires real custom domain, not *.workers.dev or *.pages.dev):
         const isRealDomain = (d) => d && typeof d === 'string' && d.trim() && !d.includes('workers.dev') && !d.includes('pages.dev');
@@ -828,9 +883,8 @@ export default {
             }
           } else {
             // No unresolved items! Check draft rules:
-            const hasProject = customer.linkedCloudflareProject && customer.linkedCloudflareProject.trim();
             const hasDomain = customer.customDomain && customer.customDomain.trim() && !customer.customDomain.includes('.workers.dev') && !customer.customDomain.includes('.pages.dev');
-            const isDraft = !hasProject || !hasDomain;
+            const isDraft = !hasDomain;
 
             if (isDraft) {
               const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -1601,6 +1655,73 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         });
       }
 
+      // 9b. API: Auto-sync domains from Cloudflare for all clients in KV
+      if (url.pathname === '/api/cloudflare/sync-domains' && method === 'POST') {
+        const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+        const apiToken = env.CLOUDFLARE_API_TOKEN;
+
+        const domainsUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains`;
+        const domainsRes = await fetch(domainsUrl, { headers: { Authorization: `Bearer ${apiToken}` } });
+        const domainsData = await domainsRes.json();
+        const workerDomains = (domainsData.success && Array.isArray(domainsData.result)) ? domainsData.result : [];
+
+        const norm = s => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+        const domainMap = new Map();
+        workerDomains.forEach(wd => {
+          if (!wd.service || !wd.hostname) return;
+          const k = norm(wd.service);
+          const host = wd.hostname.toLowerCase().trim();
+          if (!domainMap.has(k) || (!host.startsWith('www.') && domainMap.get(k).startsWith('www.'))) {
+            domainMap.set(k, host);
+          }
+        });
+
+        const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+        const updatedClients = [];
+
+        for (const key of list.keys) {
+          const raw = await env.KUNDEN_DB.get(key.name);
+          if (raw) {
+            try {
+              const c = JSON.parse(raw);
+              const kCf = norm(c.linkedCloudflareProject);
+              const kId = norm(c.id);
+              const kName = norm(c.name);
+
+              const matchedHost = domainMap.get(kCf) || domainMap.get(kId) || domainMap.get(kName);
+              if (matchedHost) {
+                const formatted = 'https://' + matchedHost + '/';
+                const domainChanged = !c.customDomain || (!c.customDomain.includes(matchedHost) && c.customDomain !== formatted);
+                const draftChanged = c.isDraft === true;
+                const hadFake530 = c.statusReason && (c.statusReason.includes('pages.dev') || c.statusReason.includes('HTTP 530'));
+
+                if (domainChanged || draftChanged || hadFake530) {
+                  c.customDomain = formatted;
+                  c.isDraft = false;
+                  if (hadFake530) {
+                    const hasUnres = (c.todos || []).some(t => !t.done);
+                    if (hasUnres) {
+                      const unres = c.todos.find(t => !t.done);
+                      c.status = 'red';
+                      c.statusReason = `Offene Aufgabe: ${unres.text}`;
+                    } else {
+                      c.status = 'green';
+                      c.statusReason = 'Domain automatisch verknüpft (Erreichbar)';
+                    }
+                  }
+                  await env.KUNDEN_DB.put(key.name, JSON.stringify(c));
+                  updatedClients.push(c);
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true, updatedCount: updatedClients.length, updatedClients }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+
       // 10. Webhook: Email webhook intake (Resend & Hostinger Agentic Mail compatible)
       if (url.pathname === '/api/webhooks/email' && method === 'POST') {
         const payload = await request.json();
@@ -1675,16 +1796,8 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               matchedCustomer.status = 'red';
               matchedCustomer.statusReason = analysis.summary;
             } else {
-              // Check draft status before setting to green
-              const hasProject = matchedCustomer.linkedCloudflareProject && matchedCustomer.linkedCloudflareProject.trim();
-              const hasDomain = matchedCustomer.customDomain && matchedCustomer.customDomain.trim() && !matchedCustomer.customDomain.includes('.workers.dev') && !matchedCustomer.customDomain.includes('.pages.dev');
-              if (!hasProject || !hasDomain) {
-                matchedCustomer.status = 'red';
-                matchedCustomer.statusReason = 'Kunde ist noch ein Entwurf - Keine Domain verbunden';
-              } else {
-                matchedCustomer.status = 'green';
-                matchedCustomer.statusReason = `Info: ${analysis.summary}`;
-              }
+              matchedCustomer.status = 'green';
+              matchedCustomer.statusReason = `Info: ${analysis.summary}`;
             }
           } else {
             // Outgoing mail from us -> reset status to GREEN (we answered!)
@@ -2263,6 +2376,43 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               }
             } catch (err) {
               console.error('Fehler bei Notfall-Task Erstellung:', err);
+            }
+          }
+
+          // Clear legacy security alert status on clients that passed the scan (GREEN or YELLOW)
+          const nonRedProjects = projects.filter(p => p.overallStatus !== 'RED');
+          if (nonRedProjects.length > 0) {
+            try {
+              const listRes = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+              for (const p of nonRedProjects) {
+                const normP = (p.project || p.clientName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                for (const k of (listRes.keys || [])) {
+                  const rawClient = await env.KUNDEN_DB.get(k.name);
+                  if (rawClient) {
+                    try {
+                      const clientObj = JSON.parse(rawClient);
+                      const normCandidates = [clientObj.id, clientObj.name, clientObj.linkedCloudflareProject].filter(Boolean).map(x => x.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                      if (normCandidates.includes(normP) || (p.clientId && p.clientId === clientObj.id)) {
+                        if (clientObj.statusReason && (clientObj.statusReason.includes('Sicherheits-Check fehlgeschlagen') || clientObj.statusReason.includes('HTTP 530'))) {
+                          const hasUnresolved = (clientObj.todos || []).some(td => !td.done);
+                          if (hasUnresolved) {
+                            const unres = clientObj.todos.find(td => !td.done);
+                            clientObj.status = 'red';
+                            clientObj.statusReason = `Offene Aufgabe: ${unres.text}`;
+                          } else {
+                            clientObj.status = 'green';
+                            clientObj.statusReason = 'Website geprüft & sicher (GRÜN)';
+                          }
+                          await env.KUNDEN_DB.put(k.name, JSON.stringify(clientObj));
+                        }
+                        break;
+                      }
+                    } catch (_) {}
+                  }
+                }
+              }
+            } catch (clearErr) {
+              console.error('Fehler beim Bereinigen von behobenen Sicherheits-Status:', clearErr);
             }
           }
 
