@@ -1579,6 +1579,10 @@ export default `<!DOCTYPE html>
                 gap: 8px !important;
                 width: 100% !important;
             }
+            #new-item-type {
+                flex: 1 !important;
+                min-width: 110px !important;
+            }
             #new-todo-input {
                 width: 100% !important;
                 min-width: 0 !important;
@@ -2133,21 +2137,48 @@ export default `<!DOCTYPE html>
                     </div>
 
                     <!-- Notes & Tasks Card -->
-                    <div class="card">
-                        <h3 class="card-title">
-                            <i class="fa-solid fa-list-check"></i> Notizen & Aufgaben
-                        </h3>
+                    <div class="card" id="client-tasks-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+                            <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-list-check" style="color: #10b981;"></i> Aufgaben & Notizen
+                            </h3>
+                            <div id="todo-card-badge" style="font-size: 11.5px; color: var(--text-secondary); font-weight: 600;"></div>
+                        </div>
+
+                        <!-- Pinned Comments / Notes Section (Only shown if comments exist) -->
+                        <div id="pinned-comments-container" style="display: none; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #f59e0b;">
+                                    <i class="fa-solid fa-thumbtack"></i> Angepinnte Notizen & Kommentare
+                                </div>
+                                <span id="pinned-comments-count" style="font-size: 10.5px; color: #f59e0b; opacity: 0.85; font-weight: 600;"></span>
+                            </div>
+                            <div id="pinned-comments-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto;">
+                                <!-- Pinned comments populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Tasks Subhead -->
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Aufgabenliste</span>
+                            <span id="tasks-open-count" style="font-size: 10.5px; color: var(--text-secondary);"></span>
+                        </div>
+
                         <ul class="todo-list" id="todo-list" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; margin-bottom:15px;">
                             <!-- Todos list populated dynamically -->
                         </ul>
-                        <div class="todo-input-area" style="display:flex; gap:8px; align-items:center;">
-                            <input type="text" id="new-todo-input" placeholder="Neue Aufgabe / Notiz hinzufügen..." style="flex:1; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 12px; font-size:13px; outline:none;" onkeydown="if(event.key === 'Enter') addTodo()">
-                            <select id="new-todo-assignee" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; outline:none; cursor:pointer; min-width:90px;">
+                        <div class="todo-input-area" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select id="new-item-type" onchange="onItemTypeChange(this.value)" style="background:rgba(15, 23, 42, 0.7); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; font-weight:600; outline:none; cursor:pointer; flex-shrink:0;">
+                                <option value="todo">✅ Aufgabe</option>
+                                <option value="comment">📌 Kommentar</option>
+                            </select>
+                            <input type="text" id="new-todo-input" placeholder="Neue Aufgabe hinzufügen..." style="flex:1; min-width:160px; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 12px; font-size:13px; outline:none;" onkeydown="if(event.key === 'Enter') handleAddTodoOrComment()">
+                            <select id="new-todo-assignee" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; outline:none; cursor:pointer; min-width:90px; flex-shrink:0;">
                                 <option value="">Keiner</option>
                                 <option value="adrian">Adrian</option>
                                 <option value="basti">Basti</option>
                             </select>
-                            <button class="btn btn-primary" onclick="addTodo()" style="padding:8px 14px; font-size:13px;"><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn btn-primary" id="btn-add-todo" onclick="handleAddTodoOrComment()" style="padding:8px 14px; font-size:13px; flex-shrink:0;" title="Hinzufügen"><i class="fa-solid fa-plus" id="add-item-icon"></i></button>
                         </div>
                     </div>
                 </div>
@@ -3757,6 +3788,17 @@ export default `<!DOCTYPE html>
                 actionBanner.innerHTML = '';
             }
 
+            // Reset task/comment input
+            const todoInput = document.getElementById('new-todo-input');
+            if (todoInput) todoInput.value = '';
+            const itemTypeSelect = document.getElementById('new-item-type');
+            if (itemTypeSelect) {
+                itemTypeSelect.value = 'todo';
+                onItemTypeChange('todo');
+            }
+            const assigneeSelect = document.getElementById('new-todo-assignee');
+            if (assigneeSelect) assigneeSelect.value = '';
+
             // Render Todos & Tasks
             try { renderTodos(client); } catch(e) { console.error("renderTodos error:", e); }
 
@@ -4192,7 +4234,78 @@ export default `<!DOCTYPE html>
 
 
 
+        function renderComments(client) {
+            const container = document.getElementById('pinned-comments-container');
+            const list = document.getElementById('pinned-comments-list');
+            const countEl = document.getElementById('pinned-comments-count');
+            if (!container || !list) return;
+
+            const comments = client.comments || [];
+            if (comments.length === 0) {
+                container.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+
+            container.style.display = 'block';
+            if (countEl) countEl.innerText = comments.length === 1 ? '1 Notiz' : (comments.length + ' Notizen');
+
+            let html = '';
+            comments.forEach(c => {
+                const authorBadge = c.author === 'adrian'
+                    ? '<span style="font-size:9.5px; background:rgba(59, 130, 246, 0.15); border:1px solid rgba(59, 130, 246, 0.3); color:#60a5fa; padding:1px 6px; border-radius:4px; font-weight:700;">Adrian</span>'
+                    : (c.author === 'basti'
+                        ? '<span style="font-size:9.5px; background:rgba(236, 72, 153, 0.15); border:1px solid rgba(244, 114, 182, 0.3); color:#f472b6; padding:1px 6px; border-radius:4px; font-weight:700;">Basti</span>'
+                        : '');
+
+                let dateStr = '';
+                if (c.createdAt) {
+                    try {
+                        const d = new Date(c.createdAt);
+                        dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+                    } catch (_) {
+                        dateStr = c.createdAt;
+                    }
+                }
+
+                const escapedText = escapeSecHtml(c.text || '');
+
+                html += '<div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(245, 158, 11, 0.22); border-left: 3px solid #f59e0b; border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">' +
+                    '<div style="flex: 1; min-width: 0; text-align: left;">' +
+                        '<div style="color: #f3f4f6; font-size: 12.5px; line-height: 1.45; word-break: break-word; white-space: pre-wrap;">' + escapedText + '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 10px; color: var(--text-secondary);">' +
+                            (dateStr ? '<span><i class="fa-solid fa-clock" style="font-size:9px; opacity:0.75; margin-right:3px;"></i>' + escapeSecHtml(dateStr) + '</span>' : '') +
+                            authorBadge +
+                        '</div>' +
+                    '</div>' +
+                    '<button onclick="deleteComment(\'' + client.id + '\', \'' + c.id + '\')" style="background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px 4px; opacity: 0.65; font-size: 12px; flex-shrink: 0; transition: all 0.2s;" onmouseover="this.style.opacity=\'1\'; this.style.color=\'#ef4444\';" onmouseout="this.style.opacity=\'0.65\'; this.style.color=\'#9ca3af\';" title="Notiz entfernen">' +
+                        '<i class="fa-solid fa-xmark"></i>' +
+                    '</button>' +
+                '</div>';
+            });
+            list.innerHTML = html;
+        }
+
         function renderTodos(client) {
+            renderComments(client);
+
+            const badge = document.getElementById('todo-card-badge');
+            if (badge) {
+                const openCount = (client.todos || []).filter(t => !t.done).length;
+                const commCount = (client.comments || []).length;
+                let bParts = [];
+                if (openCount > 0) bParts.push(openCount + (openCount === 1 ? ' Aufgabe offen' : ' Aufgaben offen'));
+                if (commCount > 0) bParts.push('📌 ' + commCount + (commCount === 1 ? ' Notiz' : ' Notizen'));
+                badge.innerText = bParts.join(' • ');
+            }
+
+            const tasksCountEl = document.getElementById('tasks-open-count');
+            if (tasksCountEl) {
+                const openCount = (client.todos || []).filter(t => !t.done).length;
+                const totalCount = (client.todos || []).length;
+                tasksCountEl.innerText = totalCount > 0 ? (openCount + ' / ' + totalCount + ' offen') : '';
+            }
+
             const list = document.getElementById('todo-list');
             list.innerHTML = '';
             
@@ -4245,6 +4358,60 @@ export default `<!DOCTYPE html>
 \`;
                 list.appendChild(item);
             });
+        }
+
+        function onItemTypeChange(val) {
+            const input = document.getElementById('new-todo-input');
+            const icon = document.getElementById('add-item-icon');
+            const btn = document.getElementById('btn-add-todo');
+            if (val === 'comment') {
+                if (input) input.placeholder = 'Wichtigen Kommentar anpinnen...';
+                if (icon) icon.className = 'fa-solid fa-thumbtack';
+                if (btn) btn.title = 'Kommentar anpinnen';
+            } else {
+                if (input) input.placeholder = 'Neue Aufgabe hinzufügen...';
+                if (icon) icon.className = 'fa-solid fa-plus';
+                if (btn) btn.title = 'Aufgabe hinzufügen';
+            }
+        }
+
+        async function handleAddTodoOrComment() {
+            const typeSelect = document.getElementById('new-item-type');
+            const isComment = typeSelect && typeSelect.value === 'comment';
+            if (isComment) {
+                await addComment();
+            } else {
+                await addTodo();
+            }
+        }
+
+        async function addComment() {
+            if (!activeClient) return;
+            const input = document.getElementById('new-todo-input');
+            const text = input ? input.value.trim() : '';
+            if (!text) return;
+
+            const assigneeSelect = document.getElementById('new-todo-assignee');
+            const author = assigneeSelect ? assigneeSelect.value : '';
+
+            activeClient.comments = activeClient.comments || [];
+            activeClient.comments.unshift({
+                id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                text: text,
+                author: author || null,
+                createdAt: new Date().toISOString()
+            });
+
+            if (input) input.value = '';
+            renderTodos(activeClient);
+            await saveClientTodos(activeClient);
+        }
+
+        async function deleteComment(clientId, commentId) {
+            if (!activeClient || activeClient.id !== clientId) return;
+            activeClient.comments = (activeClient.comments || []).filter(c => c.id !== commentId);
+            renderTodos(activeClient);
+            await saveClientTodos(activeClient);
         }
 
         async function addTodo() {
@@ -4318,6 +4485,7 @@ export default `<!DOCTYPE html>
                         activeClient.status = data.customer.status;
                         activeClient.statusReason = data.customer.statusReason;
                         activeClient.todos = data.customer.todos;
+                        activeClient.comments = data.customer.comments || activeClient.comments || [];
                     }
 
                     updateGlobalStats();
