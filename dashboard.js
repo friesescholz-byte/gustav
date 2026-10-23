@@ -4250,40 +4250,61 @@ export default `<!DOCTYPE html>
             container.style.display = 'block';
             if (countEl) countEl.innerText = comments.length === 1 ? '1 Notiz' : (comments.length + ' Notizen');
 
-            let html = '';
+            list.innerHTML = '';
             comments.forEach(c => {
-                const authorBadge = c.author === 'adrian'
-                    ? '<span style="font-size:9.5px; background:rgba(59, 130, 246, 0.15); border:1px solid rgba(59, 130, 246, 0.3); color:#60a5fa; padding:1px 6px; border-radius:4px; font-weight:700;">Adrian</span>'
-                    : (c.author === 'basti'
-                        ? '<span style="font-size:9.5px; background:rgba(236, 72, 153, 0.15); border:1px solid rgba(244, 114, 182, 0.3); color:#f472b6; padding:1px 6px; border-radius:4px; font-weight:700;">Basti</span>'
-                        : '');
+                const item = document.createElement('div');
+                item.style.cssText = 'background: rgba(0,0,0,0.3); border: 1px solid rgba(245, 158, 11, 0.22); border-left: 3px solid #f59e0b; border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;';
 
-                let dateStr = '';
+                const leftCol = document.createElement('div');
+                leftCol.style.cssText = 'flex: 1; min-width: 0; text-align: left;';
+
+                const textDiv = document.createElement('div');
+                textDiv.style.cssText = 'color: #f3f4f6; font-size: 12.5px; line-height: 1.45; word-break: break-word; white-space: pre-wrap;';
+                textDiv.textContent = c.text || '';
+                leftCol.appendChild(textDiv);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 10px; color: var(--text-secondary);';
+
                 if (c.createdAt) {
+                    let dateStr = '';
                     try {
                         const d = new Date(c.createdAt);
                         dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
                     } catch (_) {
                         dateStr = c.createdAt;
                     }
+                    const timeSpan = document.createElement('span');
+                    timeSpan.innerHTML = '<i class="fa-solid fa-clock" style="font-size:9px; opacity:0.75; margin-right:3px;"></i>';
+                    timeSpan.appendChild(document.createTextNode(dateStr));
+                    metaDiv.appendChild(timeSpan);
                 }
 
-                const escapedText = escapeSecHtml(c.text || '');
+                if (c.author === 'adrian') {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = 'font-size:9.5px; background:rgba(59, 130, 246, 0.15); border:1px solid rgba(59, 130, 246, 0.3); color:#60a5fa; padding:1px 6px; border-radius:4px; font-weight:700;';
+                    badge.textContent = 'Adrian';
+                    metaDiv.appendChild(badge);
+                } else if (c.author === 'basti') {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = 'font-size:9.5px; background:rgba(236, 72, 153, 0.15); border:1px solid rgba(244, 114, 182, 0.3); color:#f472b6; padding:1px 6px; border-radius:4px; font-weight:700;';
+                    badge.textContent = 'Basti';
+                    metaDiv.appendChild(badge);
+                }
+                leftCol.appendChild(metaDiv);
+                item.appendChild(leftCol);
 
-                html += '<div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(245, 158, 11, 0.22); border-left: 3px solid #f59e0b; border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">' +
-                    '<div style="flex: 1; min-width: 0; text-align: left;">' +
-                        '<div style="color: #f3f4f6; font-size: 12.5px; line-height: 1.45; word-break: break-word; white-space: pre-wrap;">' + escapedText + '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 10px; color: var(--text-secondary);">' +
-                            (dateStr ? '<span><i class="fa-solid fa-clock" style="font-size:9px; opacity:0.75; margin-right:3px;"></i>' + escapeSecHtml(dateStr) + '</span>' : '') +
-                            authorBadge +
-                        '</div>' +
-                    '</div>' +
-                    '<button onclick="deleteComment(\'' + client.id + '\', \'' + c.id + '\')" style="background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px 4px; opacity: 0.65; font-size: 12px; flex-shrink: 0; transition: all 0.2s;" onmouseover="this.style.opacity=\'1\'; this.style.color=\'#ef4444\';" onmouseout="this.style.opacity=\'0.65\'; this.style.color=\'#9ca3af\';" title="Notiz entfernen">' +
-                        '<i class="fa-solid fa-xmark"></i>' +
-                    '</button>' +
-                '</div>';
+                const delBtn = document.createElement('button');
+                delBtn.style.cssText = 'background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px 4px; opacity: 0.65; font-size: 12px; flex-shrink: 0; transition: all 0.2s;';
+                delBtn.title = 'Notiz entfernen';
+                delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                delBtn.onmouseover = function() { delBtn.style.opacity = '1'; delBtn.style.color = '#ef4444'; };
+                delBtn.onmouseout = function() { delBtn.style.opacity = '0.65'; delBtn.style.color = '#9ca3af'; };
+                delBtn.onclick = function() { deleteComment(client.id, c.id); };
+                item.appendChild(delBtn);
+
+                list.appendChild(item);
             });
-            list.innerHTML = html;
         }
 
         function renderTodos(client) {
