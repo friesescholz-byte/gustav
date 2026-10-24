@@ -3189,6 +3189,28 @@ export default `<!DOCTYPE html>
 
         async function toggleCustomTask(taskId) {
             try {
+                if (Array.isArray(customTasksData)) {
+                    const ct = customTasksData.find(t => t.id === taskId);
+                    if (ct) {
+                        ct.completed = !ct.completed;
+                        if (ct.clientId) {
+                            const c = clients.find(cl => cl.id === ct.clientId);
+                            if (c) {
+                                (c.todos || []).forEach(td => {
+                                    if (td.id === ct.id || td.text === ct.title) td.done = ct.completed;
+                                });
+                                if (!c.todos.some(td => !td.done)) {
+                                    c.status = 'green';
+                                    c.statusReason = 'Alle Aufgaben erledigt';
+                                    c.manualOverride = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                updateGlobalStats();
+                renderClientList();
+
                 const res = await fetch('/api/tasks/toggle', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3199,7 +3221,12 @@ export default `<!DOCTYPE html>
                     if (Array.isArray(data.tasks)) {
                         customTasksData = data.tasks;
                     }
+                    if (data.client) {
+                        const idx = clients.findIndex(c => c.id === data.client.id);
+                        if (idx !== -1) clients[idx] = data.client;
+                    }
                     updateGlobalStats();
+                    renderClientList();
                 }
             } catch(e) {
                 console.error('Error toggling custom task:', e);
@@ -3208,6 +3235,24 @@ export default `<!DOCTYPE html>
 
         async function deleteCustomTask(taskId) {
             try {
+                if (Array.isArray(customTasksData)) {
+                    const ct = customTasksData.find(t => t.id === taskId);
+                    if (ct && ct.clientId) {
+                        const c = clients.find(cl => cl.id === ct.clientId);
+                        if (c && Array.isArray(c.todos)) {
+                            c.todos = c.todos.filter(td => td.id !== ct.id && td.text !== ct.title);
+                            if (!c.todos.some(td => !td.done)) {
+                                c.status = 'green';
+                                c.statusReason = 'Alle Aufgaben erledigt';
+                                c.manualOverride = false;
+                            }
+                        }
+                    }
+                    customTasksData = customTasksData.filter(t => t.id !== taskId);
+                }
+                updateGlobalStats();
+                renderClientList();
+
                 const res = await fetch('/api/tasks/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3218,10 +3263,173 @@ export default `<!DOCTYPE html>
                     if (Array.isArray(data.tasks)) {
                         customTasksData = data.tasks;
                     }
+                    if (data.client) {
+                        const idx = clients.findIndex(c => c.id === data.client.id);
+                        if (idx !== -1) clients[idx] = data.client;
+                    }
                     updateGlobalStats();
+                    renderClientList();
                 }
             } catch(e) {
                 console.error('Error deleting custom task:', e);
+            }
+        }
+
+        async function completeClientTaskDirect(clientId, taskIdOrTodoId, taskText) {
+            const client = (Array.isArray(clients) ? clients : []).find(c => c.id === clientId);
+            if (!client) return;
+
+            // 1. Mark matching todo in client.todos
+            if (Array.isArray(client.todos)) {
+                client.todos.forEach(td => {
+                    if (td.id === taskIdOrTodoId || td.text === taskText) {
+                        td.done = true;
+                    }
+                });
+            }
+
+            // 2. Mark matching task in customTasksData
+            if (Array.isArray(customTasksData)) {
+                customTasksData.forEach(ct => {
+                    if (ct.clientId === clientId && (ct.id === taskIdOrTodoId || ct.title === taskText)) {
+                        ct.completed = true;
+                    }
+                });
+            }
+
+            // 3. Check if all tasks done
+            const hasRemainingTodos = (client.todos || []).some(td => !td.done);
+            const hasRemainingCustom = (customTasksData || []).some(ct => ct.clientId === clientId && !ct.completed);
+
+            if (!hasRemainingTodos && !hasRemainingCustom) {
+                client.status = 'green';
+                client.statusReason = 'Alle Aufgaben erledigt';
+                client.manualOverride = false;
+            } else {
+                const nextTodo = (client.todos || []).find(td => !td.done);
+                if (nextTodo) {
+                    client.statusReason = 'Offene Aufgabe: ' + nextTodo.text;
+                }
+            }
+
+            if (activeClient && activeClient.id === clientId) {
+                activeClient.todos = client.todos;
+                activeClient.status = client.status;
+                activeClient.statusReason = client.statusReason;
+                if (typeof renderTodos === 'function') renderTodos(activeClient);
+            }
+
+            // Immediate UI update
+            updateGlobalStats();
+            renderClientList();
+
+            try {
+                // Save client
+                await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(client)
+                });
+
+                // Also toggle in backend if it was a custom task
+                if (taskIdOrTodoId && taskIdOrTodoId.startsWith('task_')) {
+                    await fetch('/api/tasks/toggle', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: taskIdOrTodoId, clientId: clientId, completed: true })
+                    });
+                }
+            } catch(e) {
+                console.error('Error completing client task direct:', e);
+            }
+        }
+
+        async function deleteClientTaskDirect(clientId, taskIdOrTodoId, taskText) {
+            const client = (Array.isArray(clients) ? clients : []).find(c => c.id === clientId);
+            if (!client) return;
+
+            // 1. Remove from client.todos
+            if (Array.isArray(client.todos)) {
+                client.todos = client.todos.filter(td => td.id !== taskIdOrTodoId && td.text !== taskText);
+            }
+
+            // 2. Mark completed or remove from customTasksData
+            if (Array.isArray(customTasksData)) {
+                customTasksData = customTasksData.filter(ct => !(ct.clientId === clientId && (ct.id === taskIdOrTodoId || ct.title === taskText)));
+            }
+
+            // 3. Check if all tasks done
+            const hasRemainingTodos = (client.todos || []).some(td => !td.done);
+            const hasRemainingCustom = (customTasksData || []).some(ct => ct.clientId === clientId && !ct.completed);
+
+            if (!hasRemainingTodos && !hasRemainingCustom) {
+                client.status = 'green';
+                client.statusReason = 'Alle Aufgaben erledigt';
+                client.manualOverride = false;
+            } else {
+                const nextTodo = (client.todos || []).find(td => !td.done);
+                if (nextTodo) {
+                    client.statusReason = 'Offene Aufgabe: ' + nextTodo.text;
+                }
+            }
+
+            if (activeClient && activeClient.id === clientId) {
+                activeClient.todos = client.todos;
+                activeClient.status = client.status;
+                activeClient.statusReason = client.statusReason;
+                if (typeof renderTodos === 'function') renderTodos(activeClient);
+            }
+
+            // Immediate UI update
+            updateGlobalStats();
+            renderClientList();
+
+            try {
+                // Save client
+                await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(client)
+                });
+
+                // Also delete from custom tasks in backend if custom task
+                if (taskIdOrTodoId && taskIdOrTodoId.startsWith('task_')) {
+                    await fetch('/api/tasks/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: taskIdOrTodoId, clientId: clientId })
+                    });
+                }
+            } catch(e) {
+                console.error('Error deleting client task direct:', e);
+            }
+        }
+
+        async function resolveClientAlertDirect(clientId, action = 'complete') {
+            const client = (Array.isArray(clients) ? clients : []).find(c => c.id === clientId);
+            if (!client) return;
+
+            client.status = 'green';
+            client.statusReason = action === 'dismiss' ? 'Entwurf bestätigt' : 'Erledigt';
+            client.manualOverride = true; // Lock on green so draft timer doesn't flip it back
+
+            if (activeClient && activeClient.id === clientId) {
+                activeClient.status = client.status;
+                activeClient.statusReason = client.statusReason;
+                activeClient.manualOverride = true;
+            }
+
+            updateGlobalStats();
+            renderClientList();
+
+            try {
+                await fetch('/api/kunden', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(client)
+                });
+            } catch(e) {
+                console.error('Error resolving client alert direct:', e);
             }
         }
 
@@ -4447,21 +4655,75 @@ export default `<!DOCTYPE html>
         }
 
         async function toggleTodo(clientId, todoId, checked) {
-            if (!activeClient || activeClient.id !== clientId) return;
-            activeClient.todos = activeClient.todos || [];
-            const todo = activeClient.todos.find(t => t.id === todoId);
+            let targetClient = (activeClient && activeClient.id === clientId) ? activeClient : clients.find(c => c.id === clientId);
+            if (!targetClient) return;
+            targetClient.todos = targetClient.todos || [];
+            const todo = targetClient.todos.find(t => t.id === todoId);
             if (todo) {
                 todo.done = checked;
-                renderTodos(activeClient);
-                await saveClientTodos(activeClient);
+                
+                // Sync with customTasksData
+                if (Array.isArray(customTasksData)) {
+                    customTasksData.forEach(ct => {
+                        if (ct.clientId === clientId && (ct.id === todoId || ct.title === todo.text)) {
+                            ct.completed = checked;
+                        }
+                    });
+                }
+                
+                // If checking off and no open todos left, set green
+                if (checked && !targetClient.todos.some(t => !t.done)) {
+                    targetClient.status = 'green';
+                    targetClient.statusReason = 'Alle Aufgaben erledigt';
+                    targetClient.manualOverride = false;
+                } else if (!checked) {
+                    targetClient.status = 'red';
+                    targetClient.statusReason = 'Offene Aufgabe: ' + todo.text;
+                }
+
+                if (activeClient && activeClient.id === clientId) {
+                    renderTodos(activeClient);
+                }
+                updateGlobalStats();
+                renderClientList();
+                await saveClientTodos(targetClient);
             }
         }
 
         async function deleteTodo(clientId, todoId) {
-            if (!activeClient || activeClient.id !== clientId) return;
-            activeClient.todos = (activeClient.todos || []).filter(t => t.id !== todoId);
-            renderTodos(activeClient);
-            await saveClientTodos(activeClient);
+            let targetClient = (activeClient && activeClient.id === clientId) ? activeClient : clients.find(c => c.id === clientId);
+            if (!targetClient) return;
+            
+            const deletedTodo = (targetClient.todos || []).find(t => t.id === todoId);
+            targetClient.todos = (targetClient.todos || []).filter(t => t.id !== todoId);
+            
+            // Sync with customTasksData
+            if (Array.isArray(customTasksData)) {
+                customTasksData.forEach(ct => {
+                    if (ct.clientId === clientId && (ct.id === todoId || (deletedTodo && ct.title === deletedTodo.text))) {
+                        ct.completed = true;
+                    }
+                });
+            }
+
+            // Check if any open todos remain
+            if (!targetClient.todos.some(t => !t.done)) {
+                targetClient.status = 'green';
+                targetClient.statusReason = 'Alle Aufgaben erledigt';
+                targetClient.manualOverride = false;
+            } else {
+                const nextTodo = targetClient.todos.find(t => !t.done);
+                if (nextTodo) {
+                    targetClient.statusReason = 'Offene Aufgabe: ' + nextTodo.text;
+                }
+            }
+
+            if (activeClient && activeClient.id === clientId) {
+                renderTodos(activeClient);
+            }
+            updateGlobalStats();
+            renderClientList();
+            await saveClientTodos(targetClient);
         }
 
         async function saveClientTodos(client) {
@@ -4479,14 +4741,18 @@ export default `<!DOCTYPE html>
                         clients[idx] = data.customer;
                     }
 
-                    // Sync local customTasksData so completed tasks disappear from Dashboard
+                    // Sync local customTasksData so completed and deleted tasks disappear from Dashboard
                     if (Array.isArray(customTasksData)) {
-                        (data.customer.todos || []).forEach(td => {
-                            customTasksData.forEach(ct => {
-                                if (ct.clientId === client.id && (ct.id === td.id || ct.title === td.text)) {
-                                    ct.completed = td.done;
+                        customTasksData.forEach(ct => {
+                            if (ct.clientId === client.id) {
+                                const matchingTodo = (data.customer.todos || []).find(td => td.id === ct.id || td.text === ct.title);
+                                if (matchingTodo) {
+                                    ct.completed = matchingTodo.done;
+                                } else {
+                                    // Todo was deleted from customer! Mark completed so it disappears from dashboard
+                                    ct.completed = true;
                                 }
-                            });
+                            }
                         });
                     }
 
@@ -5294,71 +5560,108 @@ export default `<!DOCTYPE html>
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; align-self: center;">' +
-                            '<button type="button" class="btn" onclick="openTaskCompleteEmailModal(&quot;' + t.id + '&quot;, &quot;' + escapedTaskTitle + '&quot;, &quot;' + escapedTaskClientName + '&quot;, &quot;' + (t.assignee || '') + '&quot;)" title="Erledigt" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                            '<button type="button" class="btn" onclick="toggleCustomTask(&quot;' + t.id + '&quot;)" title="Als erledigt markieren" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green); cursor: pointer;">' +
                                 '<i class="fa-solid fa-check"></i>' +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="openTaskEmailModal(&quot;' + escapedTaskTitle + '&quot;, &quot;' + escapedTaskClientName + '&quot;, &quot;' + (t.assignee || '') + '&quot;)" title="Per E-Mail senden" style="padding: 5px 8px; font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;">' +
+                            '<button type="button" class="btn" onclick="openTaskEmailModal(&quot;' + escapedTaskTitle + '&quot;, &quot;' + escapedTaskClientName + '&quot;, &quot;' + (t.assignee || '') + '&quot;, { taskId: &quot;' + t.id + '&quot; })" title="Per E-Mail senden" style="padding: 5px 8px; font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; cursor: pointer;">' +
                                 '<i class="fa-solid fa-paper-plane"></i>' +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                            '<button type="button" class="btn" onclick="deleteCustomTask(&quot;' + t.id + '&quot;)" title="Löschen / Wegklicken" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red); cursor: pointer;">' +
                                 '<i class="fa-solid fa-trash"></i>' +
                             '</button>' +
                         '</div>';
                         alertsList.appendChild(taskItem);
                     });
 
-                    // Render filtered red clients
+                    // Render filtered red clients with direct action buttons
                     filteredRedClients.forEach(c => {
                         const alertItem = document.createElement('div');
                         alertItem.className = 'drive-item';
                         alertItem.style.background = 'rgba(239, 68, 68, 0.05)';
-                        alertItem.style.borderColor = 'rgba(239, 68, 68, 0.15)';
-                        alertItem.style.padding = '12px';
+                        alertItem.style.borderColor = 'rgba(239, 68, 68, 0.18)';
+                        alertItem.style.padding = '12px 14px';
                         alertItem.style.display = 'flex';
-                        alertItem.style.alignItems = 'center';
-                        alertItem.style.justifyContent = 'space-between';
-                        alertItem.style.cursor = 'pointer';
+                        alertItem.style.flexDirection = 'column';
+                        alertItem.style.gap = '8px';
                         alertItem.style.marginBottom = '8px';
-                        alertItem.onclick = () => selectClient(c);
                         
                         // Gather all open tasks for this client that match the filter
                         const openClientTodos = (c.todos || []).filter(td => !td.done);
                         const openClientCustom = (customTasksData || []).filter(t => t.clientId === c.id && !t.completed);
                         
-                        let allOpenTasks = [...openClientTodos.map(td => ({ text: td.text, assignee: td.assignee }))];
+                        let allOpenTasks = [];
+                        openClientTodos.forEach(td => {
+                            allOpenTasks.push({ id: td.id, text: td.text, assignee: td.assignee, type: 'todo' });
+                        });
                         openClientCustom.forEach(ct => {
                             if (!allOpenTasks.some(ot => ot.text === ct.title)) {
-                                allOpenTasks.push({ text: ct.title, assignee: ct.assignee });
+                                allOpenTasks.push({ id: ct.id, text: ct.title, assignee: ct.assignee, type: 'custom' });
                             }
                         });
 
                         const matchingTasks = allOpenTasks.filter(ot => taskMatchesFilter(ot.text, ot.assignee, commandCenterTaskFilter));
+                        const escapedClientId = (c.id || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const escapedClientName = (c.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-                        let reasonHtml = '';
+                        // Header row (Client name + Jump button)
+                        let headerHtml = '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
+                            '<div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-grow: 1;">' +
+                                '<i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red); font-size: 13px; flex-shrink: 0;"></i>' +
+                                '<strong onclick="selectClient(&quot;' + escapedClientId + '&quot;)" style="color: var(--text-primary); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;" title="Zum Kunden wechseln">' + c.name + '</strong>' +
+                            '</div>' +
+                            '<button type="button" class="btn" onclick="selectClient(&quot;' + escapedClientId + '&quot;)" style="padding: 3px 8px; font-size: 10.5px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;">' +
+                                '<span>Zum Kunden</span> <i class="fa-solid fa-arrow-right" style="font-size: 9px;"></i>' +
+                            '</button>' +
+                        '</div>';
+
+                        let bodyHtml = '';
                         if (matchingTasks.length > 0) {
-                            reasonHtml = matchingTasks.map(ot => {
+                            bodyHtml = matchingTasks.map(ot => {
+                                const escapedTaskText = (ot.text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                                const taskIdOrTodoId = (ot.id || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                                 const assigneeTag = ot.assignee === 'adrian' 
-                                    ? ' <span style="color: #60a5fa; font-weight: 600;">(Adrian)</span>' 
+                                    ? ' <span style="color: #60a5fa; font-weight: 600; font-size: 10.5px; background: rgba(59, 130, 246, 0.1); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Adrian</span>' 
                                     : (ot.assignee === 'basti' 
-                                        ? ' <span style="color: #f472b6; font-weight: 600;">(Basti)</span>' 
+                                        ? ' <span style="color: #f472b6; font-weight: 600; font-size: 10.5px; background: rgba(236, 72, 153, 0.1); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Basti</span>' 
                                         : '');
-                                return '<div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: 6px;">' +
-                                    '<span style="color: var(--color-red); font-weight: bold; line-height: 1;">&bull;</span>' +
-                                    '<span style="line-height: 1.35;">Offene Aufgabe: ' + ot.text + assigneeTag + '</span>' +
+
+                                return '<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.05); padding: 8px 10px; border-radius: 6px;">' +
+                                    '<div style="min-width: 0; flex-grow: 1; display: flex; align-items: flex-start; gap: 6px;">' +
+                                        '<span style="color: var(--color-red); font-weight: bold; line-height: 1.35; margin-top: 1px;">&bull;</span>' +
+                                        '<div style="font-size: 12px; color: var(--text-primary); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere;">' +
+                                            '<span>' + ot.text + '</span>' + assigneeTag +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">' +
+                                        '<button type="button" class="btn" onclick="completeClientTaskDirect(&quot;' + escapedClientId + '&quot;, &quot;' + taskIdOrTodoId + '&quot;, &quot;' + escapedTaskText + '&quot;)" title="Als erledigt markieren" style="padding: 4px 7px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green); cursor: pointer;">' +
+                                            '<i class="fa-solid fa-check"></i>' +
+                                        '</button>' +
+                                        '<button type="button" class="btn" onclick="openTaskEmailModal(&quot;' + escapedTaskText + '&quot;, &quot;' + escapedClientName + '&quot;, &quot;' + (ot.assignee || '') + '&quot;, { clientId: &quot;' + escapedClientId + '&quot;, todoId: &quot;' + taskIdOrTodoId + '&quot; })" title="Per E-Mail senden" style="padding: 4px 7px; font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; cursor: pointer;">' +
+                                            '<i class="fa-solid fa-paper-plane"></i>' +
+                                        '</button>' +
+                                        '<button type="button" class="btn" onclick="deleteClientTaskDirect(&quot;' + escapedClientId + '&quot;, &quot;' + taskIdOrTodoId + '&quot;, &quot;' + escapedTaskText + '&quot;)" title="Löschen / Wegklicken" style="padding: 4px 7px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red); cursor: pointer;">' +
+                                            '<i class="fa-solid fa-trash"></i>' +
+                                        '</button>' +
+                                    '</div>' +
                                 '</div>';
                             }).join('');
                         } else {
-                            reasonHtml = '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; overflow-wrap: anywhere;">' + (c.statusReason || 'Aktion nötig') + '</div>';
+                            bodyHtml = '<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.05); padding: 8px 10px; border-radius: 6px;">' +
+                                '<div style="font-size: 12px; color: var(--text-secondary); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere; min-width: 0; flex-grow: 1;">' +
+                                    (c.statusReason || 'Aktion nötig') +
+                                '</div>' +
+                                '<div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">' +
+                                    '<button type="button" class="btn" onclick="resolveClientAlertDirect(&quot;' + escapedClientId + '&quot;, &quot;complete&quot;)" title="Als erledigt markieren" style="padding: 4px 8px; font-size: 10.5px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">' +
+                                        '<i class="fa-solid fa-check"></i> <span>Erledigt</span>' +
+                                    '</button>' +
+                                    '<button type="button" class="btn" onclick="resolveClientAlertDirect(&quot;' + escapedClientId + '&quot;, &quot;dismiss&quot;)" title="Wegklicken / Ausblenden" style="padding: 4px 8px; font-size: 10.5px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">' +
+                                        '<i class="fa-solid fa-xmark"></i> <span>Wegklicken</span>' +
+                                    '</button>' +
+                                '</div>' +
+                            '</div>';
                         }
 
-                        alertItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex-grow: 1; margin-right: 8px;">' +
-                            '<div style="margin-top: 2px; flex-shrink: 0;"><i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red);"></i></div>' +
-                            '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
-                                '<strong style="color: var(--text-primary); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + c.name + '</strong>' +
-                                reasonHtml +
-                            '</div>' +
-                        '</div>' +
-                        '<span style="font-size: 10px; color: var(--color-red); font-weight: 700; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; align-self: center;">Aktion</span>';
+                        alertItem.innerHTML = headerHtml + bodyHtml;
                         alertsList.appendChild(alertItem);
                     });
                 }

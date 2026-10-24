@@ -557,10 +557,9 @@ export default {
           // No unresolved items! Check draft rules:
           if (finalCustomer.isDraft) {
             const ageMs = Date.now() - new Date(finalCustomer.createdAt).getTime();
-            if (ageMs > sevenDaysMs) {
-              finalCustomer.status = 'red';
+            if (ageMs > sevenDaysMs && finalCustomer.status === 'red') {
               finalCustomer.statusReason = 'Bitte wieder beim Kunden melden (Entwurf seit 7 Tagen)';
-            } else {
+            } else if (finalCustomer.status !== 'red') {
               finalCustomer.status = 'green';
               finalCustomer.statusReason = 'Neu angelegt (Entwurf)';
             }
@@ -571,11 +570,11 @@ export default {
         }
 
         // Sync custom tasks KV store with completed status of client's todos
-        if (Array.isArray(finalCustomer.todos)) {
-          const rawCustom = await env.KUNDEN_DB.get('tasks:custom');
-          if (rawCustom) {
-            let customList = JSON.parse(rawCustom);
-            let updatedCustom = false;
+        const rawCustom = await env.KUNDEN_DB.get('tasks:custom');
+        if (rawCustom) {
+          let customList = JSON.parse(rawCustom);
+          let updatedCustom = false;
+          if (Array.isArray(finalCustomer.todos)) {
             finalCustomer.todos.forEach(td => {
               customList.forEach(ct => {
                 if (ct.clientId === finalCustomer.id && (ct.id === td.id || ct.title === td.text)) {
@@ -586,9 +585,19 @@ export default {
                 }
               });
             });
-            if (updatedCustom) {
-              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(customList));
-            }
+            // Mark any custom task that was removed from customer todos as completed so it disappears from dashboard
+            customList.forEach(ct => {
+              if (ct.clientId === finalCustomer.id) {
+                const stillExists = finalCustomer.todos.some(td => td.id === ct.id || td.text === ct.title);
+                if (!stillExists && !ct.completed) {
+                  ct.completed = true;
+                  updatedCustom = true;
+                }
+              }
+            });
+          }
+          if (updatedCustom) {
+            await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(customList));
           }
         }
 
@@ -1427,12 +1436,35 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
 
       if (url.pathname === '/api/tasks/delete' && method === 'POST') {
         try {
-          const { id } = await request.json();
+          const { id, clientId } = await request.json();
           const raw = await env.KUNDEN_DB.get('tasks:custom');
           let tasks = raw ? JSON.parse(raw) : [];
+          const taskToDelete = tasks.find(t => t.id === id);
           tasks = tasks.filter(t => t.id !== id);
           await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
-          return new Response(JSON.stringify({ success: true, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+
+          const targetClientId = clientId || (taskToDelete ? taskToDelete.clientId : null);
+          let updatedClient = null;
+          if (targetClientId) {
+            const rawClient = await env.KUNDEN_DB.get(`kunde:${targetClientId}`);
+            if (rawClient) {
+              const clientObj = JSON.parse(rawClient);
+              if (Array.isArray(clientObj.todos)) {
+                clientObj.todos = clientObj.todos.filter(td => td.id !== id && (!taskToDelete || td.text !== taskToDelete.title));
+                const hasOpenTodos = clientObj.todos.some(t => !t.done);
+                const hasOpenCustom = tasks.some(t => t.clientId === targetClientId && !t.completed);
+                if (!hasOpenTodos && !hasOpenCustom) {
+                  clientObj.status = 'green';
+                  clientObj.statusReason = 'Alle Aufgaben erledigt';
+                  clientObj.manualOverride = false;
+                }
+                await env.KUNDEN_DB.put(`kunde:${targetClientId}`, JSON.stringify(clientObj));
+                updatedClient = clientObj;
+              }
+            }
+          }
+
+          return new Response(JSON.stringify({ success: true, tasks, client: updatedClient }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
@@ -1440,16 +1472,47 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
 
       if (url.pathname === '/api/tasks/toggle' && method === 'POST') {
         try {
-          const { id } = await request.json();
+          const { id, clientId, completed } = await request.json();
           const raw = await env.KUNDEN_DB.get('tasks:custom');
           let tasks = raw ? JSON.parse(raw) : [];
           const task = tasks.find(t => t.id === id);
           if (task) {
-            task.completed = !task.completed;
+            task.completed = completed !== undefined ? !!completed : !task.completed;
             task.completedAt = task.completed ? new Date().toISOString() : null;
             await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
           }
-          return new Response(JSON.stringify({ success: true, tasks }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+
+          const targetClientId = clientId || (task ? task.clientId : null);
+          let updatedClient = null;
+          if (targetClientId) {
+            const rawClient = await env.KUNDEN_DB.get(`kunde:${targetClientId}`);
+            if (rawClient) {
+              const clientObj = JSON.parse(rawClient);
+              if (Array.isArray(clientObj.todos)) {
+                const isCompleted = task ? task.completed : (completed !== undefined ? !!completed : true);
+                clientObj.todos.forEach(td => {
+                  if (td.id === id || (task && td.text === task.title)) {
+                    td.done = isCompleted;
+                  }
+                });
+                const hasOpenTodos = clientObj.todos.some(t => !t.done);
+                const hasOpenCustom = tasks.some(t => t.clientId === targetClientId && !t.completed);
+                if (!hasOpenTodos && !hasOpenCustom) {
+                  clientObj.status = 'green';
+                  clientObj.statusReason = 'Alle Aufgaben erledigt';
+                  clientObj.manualOverride = false;
+                } else if (hasOpenTodos) {
+                  const unres = clientObj.todos.find(t => !t.done);
+                  clientObj.status = 'red';
+                  clientObj.statusReason = `Offene Aufgabe: ${unres.text}`;
+                }
+                await env.KUNDEN_DB.put(`kunde:${targetClientId}`, JSON.stringify(clientObj));
+                updatedClient = clientObj;
+              }
+            }
+          }
+
+          return new Response(JSON.stringify({ success: true, tasks, client: updatedClient }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
