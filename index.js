@@ -2582,8 +2582,7 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           let emailSent = false;
           if (newlyCreatedEmergencies.length > 0 && env.RESEND_API_KEY) {
             const targetEmails = [
-              'adrianfriese@scholz-friese-webdesign.de',
-              'bastianscholz@scholz-friese-webdesign.de'
+              'adrianfriese@scholz-friese-webdesign.de'
             ];
 
             const itemsHtml = newlyCreatedEmergencies.map(em => {
