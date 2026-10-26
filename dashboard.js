@@ -2167,18 +2167,21 @@ export default `<!DOCTYPE html>
                         <ul class="todo-list" id="todo-list" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; margin-bottom:15px;">
                             <!-- Todos list populated dynamically -->
                         </ul>
-                        <div class="todo-input-area" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <select id="new-item-type" onchange="onItemTypeChange(this.value)" style="background:rgba(15, 23, 42, 0.7); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; font-weight:600; outline:none; cursor:pointer; flex-shrink:0;">
+                        <div class="todo-input-area" style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                            <select id="new-item-type" onchange="onItemTypeChange(this.value)" style="background:rgba(15, 23, 42, 0.7); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; font-weight:600; outline:none; cursor:pointer; flex-shrink:0; height:37px;">
                                 <option value="todo">✅ Aufgabe</option>
                                 <option value="comment">📌 Kommentar</option>
                             </select>
-                            <input type="text" id="new-todo-input" placeholder="Neue Aufgabe hinzufügen..." style="flex:1; min-width:160px; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 12px; font-size:13px; outline:none;" onkeydown="if(event.key === 'Enter') handleAddTodoOrComment()">
-                            <select id="new-todo-assignee" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; outline:none; cursor:pointer; min-width:90px; flex-shrink:0;">
+                            <div style="flex:1; min-width:180px; display:flex; flex-direction:column; gap:4px;">
+                                <input type="text" id="new-todo-input" placeholder="Neue Aufgabe hinzufügen..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-gramm="false" data-enable-grammarly="false" style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 12px; font-size:13px; outline:none; height:37px;" onkeydown="if(event.key === 'Enter') handleAddTodoOrComment()">
+                                <span id="new-todo-undo-btn" style="display:none; font-size:11px; color:#60a5fa; cursor:pointer; align-items:center; gap:4px; width:fit-content; padding:2px 6px; border-radius:4px; background:rgba(59, 130, 246, 0.1);" title="Klicken, um gelöschten Text wiederherzustellen"></span>
+                            </div>
+                            <select id="new-todo-assignee" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:#fff; padding:8px 10px; font-size:12px; outline:none; cursor:pointer; min-width:90px; flex-shrink:0; height:37px;">
                                 <option value="">Keiner</option>
                                 <option value="adrian">Adrian</option>
                                 <option value="basti">Basti</option>
                             </select>
-                            <button class="btn btn-primary" id="btn-add-todo" onclick="handleAddTodoOrComment()" style="padding:8px 14px; font-size:13px; flex-shrink:0;" title="Hinzufügen"><i class="fa-solid fa-plus" id="add-item-icon"></i></button>
+                            <button class="btn btn-primary" id="btn-add-todo" onclick="handleAddTodoOrComment()" style="padding:8px 14px; font-size:13px; flex-shrink:0; height:37px;" title="Hinzufügen"><i class="fa-solid fa-plus" id="add-item-icon"></i></button>
                         </div>
                     </div>
                 </div>
@@ -2603,7 +2606,8 @@ export default `<!DOCTYPE html>
             <form onsubmit="handleSaveCustomTask(event)" style="display: flex; flex-direction: column; gap: 16px;">
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Aufgaben-Titel *</label>
-                    <input type="text" id="task-title-input" required placeholder="z. B. Neues Banner für Startseite hochladen..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none;">
+                    <input type="text" id="task-title-input" required placeholder="z. B. Neues Banner für Startseite hochladen..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-gramm="false" data-enable-grammarly="false" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none;">
+                    <span id="task-title-undo-btn" style="display:none; margin-top:5px; font-size:11px; color:#60a5fa; cursor:pointer; align-items:center; gap:4px; width:fit-content; padding:2px 6px; border-radius:4px; background:rgba(59, 130, 246, 0.1);" title="Klicken, um gelöschten Text wiederherzustellen"></span>
                 </div>
 
                 <div class="form-group" style="margin: 0;">
@@ -3110,6 +3114,150 @@ export default `<!DOCTYPE html>
             }
         }
 
+        let newTodoGuard = null;
+        let taskTitleGuard = null;
+
+        function attachInputSafeGuard(inputEl, undoBtnEl) {
+            if (!inputEl) return null;
+            let history = [inputEl.value || ''];
+            let historyIndex = 0;
+            let lastNonEmpty = inputEl.value || '';
+            let isInternalUpdate = false;
+            let debounceTimer = null;
+
+            const pushHistory = (val, immediate = false) => {
+                if (history[historyIndex] === val) return;
+                const record = () => {
+                    history = history.slice(0, historyIndex + 1);
+                    history.push(val);
+                    if (history.length > 60) history.shift();
+                    historyIndex = history.length - 1;
+                    if (val && val.trim().length >= 2) {
+                        lastNonEmpty = val;
+                    }
+                    updateUndoBtn();
+                };
+                if (immediate) {
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    record();
+                } else {
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(record, 150);
+                }
+            };
+
+            const updateUndoBtn = () => {
+                if (!undoBtnEl) return;
+                if (!inputEl.value && lastNonEmpty && lastNonEmpty.trim().length >= 2) {
+                    undoBtnEl.style.display = 'inline-flex';
+                    const preview = lastNonEmpty.length > 25 ? lastNonEmpty.substring(0, 22) + '...' : lastNonEmpty;
+                    undoBtnEl.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Wiederherstellen: "' + escapeHtml(preview) + '"';
+                } else {
+                    undoBtnEl.style.display = 'none';
+                }
+            };
+
+            inputEl.addEventListener('input', (e) => {
+                if (isInternalUpdate) return;
+                const val = inputEl.value;
+                if (!val && lastNonEmpty && lastNonEmpty.trim().length >= 2) {
+                    updateUndoBtn();
+                }
+                pushHistory(val, false);
+            });
+
+            inputEl.addEventListener('keydown', (e) => {
+                // Ctrl+Z or Cmd+Z (Undo)
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+                    e.preventDefault();
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        isInternalUpdate = true;
+                        inputEl.value = history[historyIndex];
+                        isInternalUpdate = false;
+                        updateUndoBtn();
+                    } else if (!inputEl.value && lastNonEmpty) {
+                        isInternalUpdate = true;
+                        inputEl.value = lastNonEmpty;
+                        isInternalUpdate = false;
+                        pushHistory(lastNonEmpty, true);
+                    }
+                    return;
+                }
+
+                // Ctrl+Y or Cmd+Shift+Z or Ctrl+Shift+Z (Redo)
+                if (((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+                    ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))) {
+                    e.preventDefault();
+                    if (historyIndex < history.length - 1) {
+                        historyIndex++;
+                        isInternalUpdate = true;
+                        inputEl.value = history[historyIndex];
+                        isInternalUpdate = false;
+                        updateUndoBtn();
+                    }
+                    return;
+                }
+
+                // Ctrl+Backspace or Alt+Backspace: safe delete previous word
+                if (e.key === 'Backspace' && (e.ctrlKey || e.altKey)) {
+                    e.preventDefault();
+                    const start = inputEl.selectionStart;
+                    const end = inputEl.selectionEnd;
+                    const val = inputEl.value;
+                    if (start !== end) {
+                        isInternalUpdate = true;
+                        inputEl.value = val.substring(0, start) + val.substring(end);
+                        inputEl.setSelectionRange(start, start);
+                        isInternalUpdate = false;
+                        pushHistory(inputEl.value, true);
+                    } else if (start > 0) {
+                        let i = start;
+                        while (i > 0 && /\s/.test(val[i - 1])) i--;
+                        while (i > 0 && !/\s/.test(val[i - 1])) i--;
+                        isInternalUpdate = true;
+                        inputEl.value = val.substring(0, i) + val.substring(start);
+                        inputEl.setSelectionRange(i, i);
+                        isInternalUpdate = false;
+                        pushHistory(inputEl.value, true);
+                    }
+                    return;
+                }
+            });
+
+            if (undoBtnEl) {
+                undoBtnEl.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (lastNonEmpty) {
+                        isInternalUpdate = true;
+                        inputEl.value = lastNonEmpty;
+                        isInternalUpdate = false;
+                        pushHistory(lastNonEmpty, true);
+                        inputEl.focus();
+                    }
+                };
+            }
+
+            return {
+                clearHistory: () => {
+                    history = [''];
+                    historyIndex = 0;
+                    lastNonEmpty = '';
+                    if (undoBtnEl) undoBtnEl.style.display = 'none';
+                },
+                restore: () => {
+                    if (lastNonEmpty) {
+                        isInternalUpdate = true;
+                        inputEl.value = lastNonEmpty;
+                        isInternalUpdate = false;
+                        pushHistory(lastNonEmpty, true);
+                        inputEl.focus();
+                    }
+                }
+            };
+        }
+
         function openCustomTaskModal() {
             const select = document.getElementById('task-client-select');
             if (select) {
@@ -3117,7 +3265,10 @@ export default `<!DOCTYPE html>
                     (Array.isArray(clients) ? clients : []).map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
             }
             const titleEl = document.getElementById('task-title-input');
-            if (titleEl) titleEl.value = '';
+            if (titleEl) {
+                titleEl.value = '';
+                if (taskTitleGuard) taskTitleGuard.clearHistory();
+            }
             const assigneeEl = document.getElementById('task-assignee-select');
             if (assigneeEl) assigneeEl.value = '';
             const redCb = document.getElementById('task-set-red-checkbox');
@@ -3125,6 +3276,7 @@ export default `<!DOCTYPE html>
             handleTaskClientSelectChange();
             const modal = document.getElementById('custom-task-modal');
             if (modal) modal.style.display = 'flex';
+            setTimeout(() => { if (titleEl) titleEl.focus(); }, 80);
         }
 
         function closeCustomTaskModal() {
@@ -3178,6 +3330,8 @@ export default `<!DOCTYPE html>
                     if (Array.isArray(data.tasks)) {
                         customTasksData = data.tasks;
                     }
+                    if (titleInput) titleInput.value = '';
+                    if (taskTitleGuard) taskTitleGuard.clearHistory();
                     closeCustomTaskModal();
                     if (typeof loadClients === 'function') await loadClients();
                     updateGlobalStats();
@@ -3809,6 +3963,14 @@ export default `<!DOCTYPE html>
             try { await updateSystemChecklist(); } catch(e) { console.error('System checklist init error:', e); }
             try { await loadSecurityGuardianData(); } catch(e) { console.error('Security Guardian init error:', e); }
             
+            // Attach input safeguards for tasks (protect against accidental wipes, support Ctrl+Z and word deletion)
+            try {
+                newTodoGuard = attachInputSafeGuard(document.getElementById('new-todo-input'), document.getElementById('new-todo-undo-btn'));
+                taskTitleGuard = attachInputSafeGuard(document.getElementById('task-title-input'), document.getElementById('task-title-undo-btn'));
+            } catch(e) {
+                console.error('Input safeguard init error:', e);
+            }
+
             // Sync emails on load and every 5 minutes silently
             try { syncEmails(true); } catch(e) {}
             setInterval(() => { try { syncEmails(true); } catch(e) {} }, 5 * 60 * 1000);
@@ -3911,7 +4073,7 @@ export default `<!DOCTYPE html>
                         // Only refresh client view UI if client view is currently active
                         const clientView = document.getElementById('client-view');
                         if (clientView && clientView.style.display !== 'none') {
-                            selectClient(refreshed);
+                            selectClient(refreshed, true);
                         }
                     }
                 }
@@ -3966,12 +4128,14 @@ export default `<!DOCTYPE html>
         }
 
         // Select client
-        async function selectClient(client) {
+        async function selectClient(client, preserveInputs = false) {
+            const previousClientId = activeClient ? activeClient.id : null;
             if (typeof client === 'string') {
                 const found = clients.find(c => c.id === client);
                 if (found) client = found;
                 else client = { id: client, name: 'Kunde' };
             }
+            const isSameClient = previousClientId === client.id;
             activeClient = client;
             closeMobileDrawers();
 
@@ -4046,16 +4210,21 @@ export default `<!DOCTYPE html>
                 actionBanner.innerHTML = '';
             }
 
-            // Reset task/comment input
+            // Reset task/comment input ONLY if explicitly switching to a different client
+            // AND user is not actively typing/focused and input has no unsaved text
             const todoInput = document.getElementById('new-todo-input');
-            if (todoInput) todoInput.value = '';
-            const itemTypeSelect = document.getElementById('new-item-type');
-            if (itemTypeSelect) {
-                itemTypeSelect.value = 'todo';
-                onItemTypeChange('todo');
+            const shouldResetInput = !preserveInputs && !isSameClient && document.activeElement !== todoInput && (!todoInput || !todoInput.value.trim());
+            if (shouldResetInput && todoInput) {
+                todoInput.value = '';
+                if (newTodoGuard) newTodoGuard.clearHistory();
+                const itemTypeSelect = document.getElementById('new-item-type');
+                if (itemTypeSelect) {
+                    itemTypeSelect.value = 'todo';
+                    onItemTypeChange('todo');
+                }
+                const assigneeSelect = document.getElementById('new-todo-assignee');
+                if (assigneeSelect) assigneeSelect.value = '';
             }
-            const assigneeSelect = document.getElementById('new-todo-assignee');
-            if (assigneeSelect) assigneeSelect.value = '';
 
             // Render Todos & Tasks
             try { renderTodos(client); } catch(e) { console.error("renderTodos error:", e); }
@@ -4619,7 +4788,10 @@ export default `<!DOCTYPE html>
                 createdAt: new Date().toISOString()
             });
 
-            if (input) input.value = '';
+            if (input) {
+                input.value = '';
+                if (newTodoGuard) newTodoGuard.clearHistory();
+            }
             renderTodos(activeClient);
             await saveClientTodos(activeClient);
         }
@@ -4648,7 +4820,10 @@ export default `<!DOCTYPE html>
                 done: false
             });
 
-            if (input) input.value = '';
+            if (input) {
+                input.value = '';
+                if (newTodoGuard) newTodoGuard.clearHistory();
+            }
             if (assigneeSelect) assigneeSelect.value = '';
             renderTodos(activeClient);
             await saveClientTodos(activeClient);
