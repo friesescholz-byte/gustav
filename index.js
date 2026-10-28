@@ -2025,6 +2025,11 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             targetUrl = 'https://' + targetUrl;
           }
 
+          // Sanitize spaces or invalid chars in hostname before URL parsing
+          targetUrl = targetUrl.replace(/^(https?:\/\/)([^/]+)(.*)$/, (match, proto, host, rest) => {
+            return proto + host.replace(/\s+/g, '-').replace(/[^a-z0-9.-]/gi, '') + rest;
+          });
+
           // URL-Normalisierung für Workers/Pages Domains: Immer Root-Origin verwenden
           try {
             const parsedTarget = new URL(targetUrl);

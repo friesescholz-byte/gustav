@@ -6992,7 +6992,9 @@ export default `<!DOCTYPE html>
                 url = client.customDomain.trim();
                 isCustom = isRealCustomDomainCheck(url);
             } else if (client.linkedCloudflareProject && client.linkedCloudflareProject.trim()) {
-                const proj = client.linkedCloudflareProject.trim().toLowerCase();
+                const kCf = normKey(client.linkedCloudflareProject);
+                const matchedWorker = realWorkers.get(kCf) || null;
+                const proj = matchedWorker || client.linkedCloudflareProject.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
                 url = 'https://' + proj + '.' + workersSubdomain + '.workers.dev/';
                 isCustom = false;
             } else if (activeClientSecurityMatch && activeClientSecurityMatch.liveUrl) {
