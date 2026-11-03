@@ -6406,7 +6406,7 @@ export default `<!DOCTYPE html>
                             rHtml += '</div>';
                             rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
                             if (rec.antigravityCommand) {
-                                rHtml += '<button type="button" class="btn" onclick="copyWeeklyPrompt(this, \'' + pId + '\')" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
                             }
                             rHtml += '</div>';
                         });
@@ -6431,7 +6431,7 @@ export default `<!DOCTYPE html>
                             rHtml += '</div>';
                             rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
                             if (rec.antigravityCommand) {
-                                rHtml += '<button type="button" class="btn" onclick="copyWeeklyPrompt(this, \'' + pId + '\')" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
                             }
                             rHtml += '</div>';
                         });
@@ -6608,7 +6608,8 @@ export default `<!DOCTYPE html>
             }
         }
 
-        async function copyWeeklyPrompt(btnEl, promptId) {
+        async function copyWeeklyPrompt(btnEl, maybePromptId) {
+            const promptId = maybePromptId || (btnEl ? btnEl.getAttribute('data-prompt-id') : null);
             const cmd = (window.weeklyPromptsMap && window.weeklyPromptsMap[promptId]) ? window.weeklyPromptsMap[promptId] : null;
             if (!cmd) return;
             try {
