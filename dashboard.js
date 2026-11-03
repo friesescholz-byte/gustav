@@ -6377,20 +6377,68 @@ export default `<!DOCTYPE html>
                 resBadge.outerHTML = '<span id="sec-research-badge">' + getSecStatusBadge(research.status || 'GREEN') + '</span>';
             }
             if (resCont) {
-                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:10px;">' + escapeSecHtml(research.summary || 'Keine kritischen Stack-Schwachstellen gefunden.') + '</div>';
-                const recs = Array.isArray(research.recommendations) ? research.recommendations : [];
-                if (recs.length > 0) {
-                    recs.forEach((rec, idx) => {
-                        rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-top:8px;">';
-                        rHtml += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">';
-                        rHtml += '<strong style="color:#fbbf24; font-size:12.5px;">' + escapeSecHtml(rec.title) + '</strong>';
-                        if (rec.antigravityCommand) {
-                            rHtml += '<button type="button" class="btn" onclick="copyResearchCommand(' + idx + ', this)" style="padding:4px 9px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px;"><i class="fa-solid fa-copy"></i> Befehl für Antigravity kopieren</button>';
-                        }
-                        rHtml += '</div>';
-                        rHtml += '<div style="font-size:12px; color:var(--text-secondary);">' + escapeSecHtml(rec.description) + '</div>';
-                        rHtml += '</div>';
-                    });
+                window.weeklyPromptsMap = {};
+                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:12px; font-size:13px;">' + escapeSecHtml(research.summary || 'Alle Websites entsprechen den aktuellen Sicherheits- und SEO-Standards.') + '</div>';
+
+                const secFindings = Array.isArray(research.securityFindings) ? research.securityFindings : (Array.isArray(research.recommendations) ? research.recommendations : []);
+                const seoFindings = Array.isArray(research.seoGeoFindings) ? research.seoGeoFindings : [];
+
+                if (secFindings.length === 0 && seoFindings.length === 0) {
+                    rHtml += '<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:12px 14px; color:#34d399; font-size:12.5px; display:flex; align-items:center; gap:8px;">';
+                    rHtml += '<i class="fa-solid fa-circle-check"></i> <span><strong>Alles im grünen Bereich:</strong> Keine neuen Sicherheitslücken, Header-Empfehlungen oder SEO-Anpassungen diese Woche erforderlich.</span>';
+                    rHtml += '</div>';
+                } else {
+                    rHtml += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap:16px;">';
+                    
+                    // Column 1: Security & Headers
+                    rHtml += '<div>';
+                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#38bdf8; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-shield-halved"></i> Web-Security & HTTP-Headers (' + secFindings.length + ')</div>';
+                    if (secFindings.length === 0) {
+                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Security-Header, Turnstile & Pakete 100% aktuell</div>';
+                    } else {
+                        secFindings.forEach((rec, idx) => {
+                            const pId = 'sec_p_' + idx;
+                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
+                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
+                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
+                            rHtml += '<strong style="color:#fbbf24; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
+                            rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); white-space:nowrap;">' + escapeSecHtml(rec.severity || 'HINWEIS') + '</span>';
+                            rHtml += '</div>';
+                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
+                            if (rec.antigravityCommand) {
+                                rHtml += '<button type="button" class="btn" onclick="copyWeeklyPrompt(this, \'' + pId + '\')" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                            }
+                            rHtml += '</div>';
+                        });
+                    }
+                    rHtml += '</div>';
+
+                    // Column 2: SEO, GEO & AI-Search
+                    rHtml += '<div>';
+                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#a855f7; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-chart-line"></i> SEO, GEO & AI-Search (' + seoFindings.length + ')</div>';
+                    if (seoFindings.length === 0) {
+                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Schema.org, GEO-Entities & AI-Zitate optimal</div>';
+                    } else {
+                        seoFindings.forEach((rec, idx) => {
+                            const pId = 'seo_p_' + idx;
+                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
+                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
+                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
+                            rHtml += '<strong style="color:#c084fc; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
+                            if (rec.targetWorker) {
+                                rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); white-space:nowrap;">⚡ ' + escapeSecHtml(rec.targetWorker) + '</span>';
+                            }
+                            rHtml += '</div>';
+                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
+                            if (rec.antigravityCommand) {
+                                rHtml += '<button type="button" class="btn" onclick="copyWeeklyPrompt(this, \'' + pId + '\')" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                            }
+                            rHtml += '</div>';
+                        });
+                    }
+                    rHtml += '</div>';
+
+                    rHtml += '</div>';
                 }
                 resCont.innerHTML = rHtml;
             }
@@ -6555,6 +6603,22 @@ export default `<!DOCTYPE html>
                 const orig = btnEl.innerHTML;
                 btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Kopiert!</span>';
                 setTimeout(() => { btnEl.innerHTML = orig; }, 2500);
+            } catch (e) {
+                alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
+        }
+
+        async function copyWeeklyPrompt(btnEl, promptId) {
+            const cmd = (window.weeklyPromptsMap && window.weeklyPromptsMap[promptId]) ? window.weeklyPromptsMap[promptId] : null;
+            if (!cmd) return;
+            try {
+                await navigator.clipboard.writeText(cmd);
+                const orig = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Prompt kopiert!</span>';
+                if (typeof showToast === 'function') {
+                    showToast('Antigravity-Prompt in Zwischenablage kopiert!', 'success');
+                }
+                setTimeout(() => { btnEl.innerHTML = orig; }, 3000);
             } catch (e) {
                 alert('Kopieren fehlgeschlagen: ' + e.message);
             }

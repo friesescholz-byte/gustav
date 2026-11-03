@@ -439,7 +439,7 @@ export default {
     // Check authorization cookie (skip for webhook endpoint & authenticated security guardian bot)
     const isWebhook = url.pathname === '/api/webhooks/email';
     const secTokenHeader = request.headers.get('X-Security-Token') || '';
-    const isSecurityBot = url.pathname === '/api/security/emergency-alert' && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
+    const isSecurityBot = url.pathname.startsWith('/api/security/') && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
     const isAuthorized = isWebhook || isSecurityBot || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
     if (!isAuthorized) {
       if (url.pathname === '/' || url.pathname === '/index.html') {
@@ -2776,6 +2776,191 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           }), {
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/security/weekly-summary' && method === 'POST') {
+        try {
+          const payload = await request.json();
+          const reportId = payload.reportId || ('KW' + new Date().toISOString().slice(0, 10));
+          const research = payload.research || {};
+          const stats = payload.stats || {};
+          const hasImprovements = !!payload.hasImprovements;
+          const secFindings = Array.isArray(research.securityFindings) ? research.securityFindings : [];
+          const seoFindings = Array.isArray(research.seoGeoFindings) ? research.seoGeoFindings : [];
+          const totalFindings = secFindings.length + seoFindings.length;
+
+          const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+          let tasks = rawTasks ? JSON.parse(rawTasks) : [];
+          const emergencyKey = `WEEKLY_CHECK:${reportId}`;
+          let taskCreated = false;
+
+          if (!hasImprovements || totalFindings === 0) {
+            // Case A: Everything green / No action needed
+            const alreadyExists = tasks.some(t => t.emergencyKey === emergencyKey || (t.title && t.title.includes(`Wöchentlicher Sicherheits- & SEO-Check (${reportId})`)));
+            if (!alreadyExists) {
+              const newTask = {
+                id: 'task_weekly_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                title: `Wöchentlicher Sicherheits- & SEO-Check (${reportId}): Alles top - Keine Maßnahmen`,
+                clientId: null,
+                clientName: 'Agenturweit',
+                assignee: 'adrian',
+                priority: 'low',
+                emergencyKey,
+                createdAt: new Date().toISOString(),
+                completed: true,
+                completedAt: new Date().toISOString()
+              };
+              tasks.unshift(newTask);
+              taskCreated = true;
+              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+            }
+
+            // Send Email via Resend
+            let emailSent = false;
+            if (env.RESEND_API_KEY) {
+              const htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f17; color: #e2e8f0; margin: 0; padding: 24px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #10b981; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+    <div style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%); padding: 20px 24px;">
+      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 4px;">Scholz & Friese • Weekly Intelligence Engine</div>
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">🟢 Sicherheits- & SEO/GEO-Check (${reportId}): Alles im grünen Bereich</h1>
+    </div>
+    <div style="padding: 24px;">
+      <p style="font-size: 14.5px; color: #cbd5e1; line-height: 1.6; margin-top: 0;">
+        Hallo Adrian,<br><br>
+        der wöchentliche automatisierte Sicherheits- und SEO/GEO-Audit wurde erfolgreich durchgeführt. 
+        <strong>Alle ${stats.totalProjects || 46} Kunden-Websites entsprechen den aktuellen Best Practices.</strong>
+      </p>
+      <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10b981; border-radius: 6px; padding: 14px 16px; margin: 18px 0;">
+        <div style="font-size: 13.5px; font-weight: 700; color: #34d399; margin-bottom: 4px;">Status: 100% Konformität</div>
+        <div style="font-size: 12.5px; color: #94a3b8; line-height: 1.5;">
+          • Security-Header & SSL: Keine Mängel<br>
+          • SEO & Schema.org / Local GEO: Alle relevanten Daten aktiv<br>
+          • Keine neuen kritischen CVEs oder Sicherheitslücken
+        </div>
+      </div>
+      <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 0;">
+        Im Gustav Dashboard wurde automatisch ein Info-Eintrag hinterlegt. Es ist kein manuelles Eingreifen erforderlich.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+              try {
+                await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${env.RESEND_API_KEY}`
+                  },
+                  body: JSON.stringify({
+                    from: 'Gustav Intelligence <noreply@scholz-friese-webdesign.de>',
+                    to: ['adrianfriese@scholz-friese-webdesign.de'],
+                    subject: `✅ Wöchentlicher Check (${reportId}): Alles top - Keine Optimierungen nötig`,
+                    html: htmlContent
+                  })
+                });
+                emailSent = true;
+              } catch (mailErr) {
+                console.error('Fehler beim E-Mail-Versand via Resend:', mailErr);
+              }
+            }
+
+            return new Response(JSON.stringify({ success: true, hasImprovements: false, taskCreated, emailSent }), {
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+          } else {
+            // Case B: Improvements found
+            const optKey = `WEEKLY_OPT:${reportId}`;
+            const alreadyExists = tasks.some(t => t.emergencyKey === optKey || (!t.completed && t.title && t.title.includes(`Wöchentliche Empfehlungen (${reportId})`)));
+            if (!alreadyExists) {
+              const newTask = {
+                id: 'task_weekly_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                title: `Wöchentliche Empfehlungen (${reportId}): ${totalFindings} Optimierungen (Security & SEO/GEO)`,
+                clientId: null,
+                clientName: 'Agenturweit',
+                assignee: 'adrian',
+                priority: 'medium',
+                emergencyKey: optKey,
+                createdAt: new Date().toISOString(),
+                completed: false
+              };
+              tasks.unshift(newTask);
+              taskCreated = true;
+              await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+            }
+
+            // Send Email via Resend
+            let emailSent = false;
+            if (env.RESEND_API_KEY) {
+              const itemsList = [...secFindings, ...seoFindings].map(f => `
+                <li style="margin-bottom: 8px;">
+                  <strong style="color: #fbbf24;">${f.title || ''}</strong><br>
+                  <span style="font-size: 12.5px; color: #94a3b8;">${f.description || ''}</span>
+                  ${f.targetWorker ? `<br><span style="font-size: 11.5px; color: #38bdf8;">[Zentral via ${f.targetWorker}]</span>` : ''}
+                </li>
+              `).join('');
+
+              const htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f17; color: #e2e8f0; margin: 0; padding: 24px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #f59e0b; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+    <div style="background: linear-gradient(135deg, #78350f 0%, #b45309 100%); padding: 20px 24px;">
+      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 4px;">Scholz & Friese • Weekly Intelligence Engine</div>
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">💡 Neue Empfehlungen (${reportId}): ${totalFindings} Optimierungspotenziale</h1>
+    </div>
+    <div style="padding: 24px;">
+      <p style="font-size: 14.5px; color: #cbd5e1; line-height: 1.6; margin-top: 0;">
+        Hallo Adrian,<br><br>
+        der wöchentliche Check hat <strong>${totalFindings} sinnvolle Optimierungspotenziale</strong> für unsere Websites bzw. den zentralen Worker identifiziert:
+      </p>
+      <ul style="padding-left: 20px; color: #e2e8f0; font-size: 13.5px;">
+        ${itemsList}
+      </ul>
+      <div style="background: #1f2937; border-radius: 8px; padding: 14px 16px; margin: 20px 0; text-align: center;">
+        <a href="https://gustav.friese-scholz.workers.dev/#security-screen" style="display: inline-block; background: #3b82f6; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 13.5px; padding: 10px 20px; border-radius: 6px;">
+          Zum Dashboard & Prompts kopieren &rarr;
+        </a>
+      </div>
+      <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 0;">
+        Im Gustav Dashboard findest du zu jeder Empfehlung den fertigen 1-Klick Antigravity-Prompt.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+              try {
+                await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${env.RESEND_API_KEY}`
+                  },
+                  body: JSON.stringify({
+                    from: 'Gustav Intelligence <noreply@scholz-friese-webdesign.de>',
+                    to: ['adrianfriese@scholz-friese-webdesign.de'],
+                    subject: `💡 Wöchentliche Security & SEO-Empfehlungen (${reportId}): ${totalFindings} Optimierungen`,
+                    html: htmlContent
+                  })
+                });
+                emailSent = true;
+              } catch (mailErr) {
+                console.error('Fehler beim E-Mail-Versand via Resend:', mailErr);
+              }
+            }
+
+            return new Response(JSON.stringify({ success: true, hasImprovements: true, taskCreated, emailSent, count: totalFindings }), {
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+          }
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
