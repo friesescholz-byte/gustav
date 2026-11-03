@@ -2795,44 +2795,81 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- OUTLOOK CONFIG MODAL -->
-    <div class="modal" id="outlook-config-modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
-        <div class="modal-content" style="max-width: 560px; width: 92%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 12px; padding: 26px; box-sizing: border-box;">
+    <!-- OUTLOOK & CALENDAR SYNC MODAL -->
+    <div class="modal" id="outlook-config-modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+        <div class="modal-content" style="max-width: 620px; width: 94%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 14px; padding: 26px; box-sizing: border-box; max-height: 90vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 18px;">
-                <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-brands fa-microsoft" style="color: #00a4ef;"></i> Microsoft Outlook Integration
-                </h3>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-secondary); font-size: 16px;" onclick="closeOutlookConfigModal()"></i>
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-brands fa-microsoft" style="color: #00a4ef;"></i> Outlook & Kalender-Synchronisation
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">Termine und Deadlines nahtlos zwischen Gustav und Outlook spiegeln.</p>
+                </div>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-secondary); font-size: 18px; padding: 4px;" onclick="closeOutlookConfigModal()"></i>
             </div>
 
-            <form onsubmit="handleSaveOutlookConfig(event)" style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; line-height: 1.5; color: #bae6fd;">
-                    <strong><i class="fa-solid fa-info-circle"></i> Microsoft Entra App Setup:</strong><br>
-                    1. Erstelle eine App im <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" style="color: #38bdf8; text-decoration: underline;">Microsoft Entra Portal</a> (Konto-Typ: <em>Multitenant & persönliche Konten</em>).<br>
-                    2. Trage folgende Redirect-URL unter <strong>Web &rarr; Umleitungs-URIs</strong> ein:
-                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 11.5px; color: #fff; word-break: break-all;">
-                        <span id="outlook-redirect-uri-display">https://gustav.friese-scholz.workers.dev/api/auth/microsoft/callback</span>
-                        <button type="button" onclick="copyOutlookRedirectUri()" class="btn" style="padding: 2px 7px; font-size: 10.5px; border-radius: 4px; margin-left: auto; flex-shrink: 0;">Kopieren</button>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- SECTION 1: OUTLOOK -> GUSTAV -->
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-arrow-down-long"></i> 1. Outlook-Termine in Gustav anzeigen
+                        </h4>
+                        <span id="outlook-sync-status-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: none;"></span>
+                    </div>
+
+                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
+                        Deine Termine aus Outlook werden automatisch im Gustav-Kalender eingeblendet.
+                    </p>
+
+                    <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.15); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; color: #bae6fd; margin-bottom: 14px;">
+                        <strong>So holst du deinen Outlook-Kalenderlink (in 30 Sek.):</strong><br>
+                        1. Öffne Outlook im Web (<a href="https://outlook.live.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">outlook.live.com</a> oder <a href="https://outlook.office.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">office.com</a>)<br>
+                        2. Klicke oben rechts auf das <strong>⚙️ Zahnrad (Einstellungen) &rarr; Kalender &rarr; Geteilte Kalender</strong><br>
+                        3. Wähle unter <strong>„Kalender veröffentlichen“</strong> deinen Kalender, wähle <em>„Kann alle Details anzeigen“</em> und klicke auf <strong>„Veröffentlichen“</strong><br>
+                        4. Kopiere den <strong>ICS-Link</strong> und füge ihn hier unten ein:
+                    </div>
+
+                    <form onsubmit="handleSaveOutlookIcs(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="form-group" style="margin: 0;">
+                            <input type="text" id="outlook-ics-url-input" placeholder="https://outlook.live.com/owa/calendar/.../reachcalendar.ics" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; padding: 11px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none; font-family: monospace;">
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" id="btn-disconnect-outlook-ics" class="btn" onclick="handleDisconnectOutlookIcs()" style="display: none; padding: 8px 12px; font-size: 12px; color: var(--color-red); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                                <i class="fa-solid fa-link-slash"></i> Trennen
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="btn-save-outlook-ics" style="padding: 8px 16px; font-size: 12px; font-weight: 700;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Speichern & Termine laden
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- SECTION 2: GUSTAV -> OUTLOOK -->
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #a855f7; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-arrow-up-long"></i> 2. Gustav-Deadlines in Outlook abonnieren
+                    </h4>
+                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
+                        Alle deine Aufgaben mit Fälligkeitsdatum landen automatisch als eigener Kalender in deinem Outlook (auf PC, iPhone, Mac & Android).
+                    </p>
+
+                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
+                        <span id="gustav-feed-url-display" style="font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; flex: 1;">Lädt Kalenderlink...</span>
+                        <button type="button" class="btn" onclick="copyGustavFeedUrl()" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
+                            <i class="fa-regular fa-copy"></i> Kopieren
+                        </button>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                        <i class="fa-solid fa-circle-check" style="color: #10b981; margin-right: 4px;"></i> In Outlook auf <strong>„Kalender hinzufügen“ &rarr; „Aus dem Internet abonnieren“</strong> klicken und diesen Link einfügen. Fertig!
                     </div>
                 </div>
 
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Anwendungs-ID (Client ID) *</label>
-                    <input type="text" id="outlook-client-id-input" required placeholder="z. B. a1b2c3d4-e5f6-7890-abcd-ef1234567890" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 11px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none; font-family: monospace;">
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="closeOutlookConfigModal()" style="padding: 8px 18px; font-size: 12.5px;">Schließen</button>
                 </div>
-
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Geheimer Clientschlüssel (Client Secret) *</label>
-                    <input type="password" id="outlook-client-secret-input" required placeholder="z. B. abc~12345~def67890" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 11px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13.5px; outline: none; font-family: monospace;">
-                </div>
-
-                <div class="modal-actions" style="margin-top: 8px; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" class="btn" onclick="closeOutlookConfigModal()">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary" id="btn-save-outlook-cfg">
-                        <i class="fa-solid fa-save"></i> Speichern & Bereitstellen
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -2858,6 +2895,10 @@ export default `<!DOCTYPE html>
                 <div id="cal-modal-assignee-row" style="display: flex; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-user-check" style="color: #60a5fa; width: 16px; text-align: center;"></i>
                     <span id="cal-modal-assignee" style="color: #fff;"></span>
+                </div>
+                <div id="cal-modal-location-row" style="display: none; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-location-dot" style="color: #ef4444; width: 16px; text-align: center;"></i>
+                    <span id="cal-modal-location" style="color: #fff;"></span>
                 </div>
                 <div id="cal-modal-desc-row" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 8px;">
                     <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Details:</span>
@@ -7512,15 +7553,15 @@ export default `<!DOCTYPE html>
 
         async function fetchOutlookAuthStatus() {
             try {
-                const res = await fetch('/api/calendar/auth/status');
+                const res = await fetch('/api/calendar/settings');
                 if (res.ok) {
                     outlookAuthStatus = await res.json();
                 } else {
-                    outlookAuthStatus = { configured: false, connected: false, email: '' };
+                    outlookAuthStatus = { isConnected: false, outlookIcsUrl: '', eventsCount: 0 };
                 }
             } catch (e) {
-                console.error('Failed to fetch Outlook auth status:', e);
-                outlookAuthStatus = { configured: false, connected: false, email: '' };
+                console.error('Failed to fetch Outlook calendar settings:', e);
+                outlookAuthStatus = { isConnected: false, outlookIcsUrl: '', eventsCount: 0 };
             }
         }
 
@@ -7528,39 +7569,33 @@ export default `<!DOCTYPE html>
             const container = document.getElementById('calendar-outlook-status-container');
             if (!container) return;
 
-            if (outlookAuthStatus.connected) {
-                const displayEmail = outlookAuthStatus.email || 'Verbunden';
-                const escapedEmail = displayEmail.replace(/"/g, '&quot;');
+            if (outlookAuthStatus.isConnected) {
+                const count = (calendarEventsCache.outlookEvents && calendarEventsCache.outlookEvents.length) ? calendarEventsCache.outlookEvents.length : (outlookAuthStatus.eventsCount || 0);
                 container.innerHTML = 
                     '<div style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">' +
                         '<span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>' +
                         '<i class="fa-brands fa-microsoft" style="font-size: 13px;"></i>' +
-                        '<span title="' + escapedEmail + '">' + displayEmail + '</span>' +
+                        '<span>Outlook aktiv' + (count > 0 ? ' (' + count + ')' : '') + '</span>' +
                     '</div>' +
-                    '<button type="button" class="btn" onclick="disconnectOutlook()" title="Outlook-Verbindung trennen" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: var(--text-secondary); background: rgba(255,255,255,0.04); border: 1px solid var(--border-color);">' +
-                        '<i class="fa-solid fa-link-slash"></i> Trennen' +
+                    '<button type="button" class="btn" onclick="refreshCalendarNow()" title="Kalender jetzt aktualisieren" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: #38bdf8; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2);">' +
+                        '<i class="fa-solid fa-arrows-rotate"></i> Aktualisieren' +
                     '</button>' +
-                    '<button type="button" class="btn" onclick="openOutlookConfigModal()" title="API-Einstellungen bearbeiten" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: var(--text-secondary); background: rgba(255,255,255,0.04); border: 1px solid var(--border-color);">' +
-                        '<i class="fa-solid fa-gear"></i>' +
-                    '</button>';
-            } else if (outlookAuthStatus.configured) {
-                container.innerHTML = 
-                    '<div style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24;">' +
-                        '<span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>' +
-                        '<span>Outlook nicht verbunden</span>' +
-                    '</div>' +
-                    '<button type="button" class="btn btn-primary" onclick="handleMicrosoftLogin()" style="padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; background: #0078d4; border-color: #0078d4;">' +
-                        '<i class="fa-brands fa-microsoft"></i> Mit Outlook verbinden' +
-                    '</button>' +
-                    '<button type="button" class="btn" onclick="openOutlookConfigModal()" title="API-Einstellungen bearbeiten" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: var(--text-secondary); background: rgba(255,255,255,0.04); border: 1px solid var(--border-color);">' +
+                    '<button type="button" class="btn" onclick="openOutlookConfigModal()" title="Kalender-Einstellungen bearbeiten" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: var(--text-secondary); background: rgba(255,255,255,0.04); border: 1px solid var(--border-color);">' +
                         '<i class="fa-solid fa-gear"></i>' +
                     '</button>';
             } else {
                 container.innerHTML = 
                     '<button type="button" class="btn" onclick="openOutlookConfigModal()" style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8;">' +
-                        '<i class="fa-brands fa-microsoft"></i> Outlook API einrichten' +
+                        '<i class="fa-brands fa-microsoft"></i> Outlook verbinden' +
                     '</button>';
             }
+        }
+
+        async function refreshCalendarNow() {
+            await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
+            await fetchOutlookAuthStatus();
+            renderOutlookStatusBadge();
+            renderCalendar();
         }
 
         async function fetchCalendarEvents(year, month) {
@@ -8060,6 +8095,17 @@ export default `<!DOCTYPE html>
                 assigneeRow.style.display = 'none';
             }
 
+            const locRow = document.getElementById('cal-modal-location-row');
+            const locEl = document.getElementById('cal-modal-location');
+            if (locRow && locEl) {
+                if (item.location) {
+                    locRow.style.display = 'flex';
+                    locEl.innerText = item.location;
+                } else {
+                    locRow.style.display = 'none';
+                }
+            }
+
             if (item.description || item.bodyPreview) {
                 descRow.style.display = 'flex';
                 descEl.innerText = item.description || item.bodyPreview;
@@ -8113,13 +8159,41 @@ export default `<!DOCTYPE html>
             renderCalendar();
         }
 
-        function openOutlookConfigModal() {
+        async function openOutlookConfigModal() {
             const modal = document.getElementById('outlook-config-modal');
             if (!modal) return;
-            const redirectDisplay = document.getElementById('outlook-redirect-uri-display');
-            if (redirectDisplay) {
-                redirectDisplay.innerText = window.location.origin + '/api/auth/microsoft/callback';
+
+            const feedDisplay = document.getElementById('gustav-feed-url-display');
+            const icsInput = document.getElementById('outlook-ics-url-input');
+            const statusPill = document.getElementById('outlook-sync-status-pill');
+            const disconnectBtn = document.getElementById('btn-disconnect-outlook-ics');
+
+            try {
+                const res = await fetch('/api/calendar/settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (feedDisplay) feedDisplay.innerText = data.feedUrl || (window.location.origin + '/api/calendar/feed.ics');
+                    if (icsInput && !icsInput.value) icsInput.value = data.outlookIcsUrl || '';
+                    if (statusPill) {
+                        if (data.isConnected) {
+                            statusPill.style.display = 'inline-block';
+                            statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
+                            statusPill.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                            statusPill.style.color = '#34d399';
+                            statusPill.innerHTML = '<i class="fa-solid fa-check"></i> Verbunden' + (data.eventsCount ? ' (' + data.eventsCount + ' Termine)' : '');
+                        } else {
+                            statusPill.style.display = 'none';
+                        }
+                    }
+                    if (disconnectBtn) {
+                        disconnectBtn.style.display = data.isConnected ? 'inline-flex' : 'none';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading calendar settings:', err);
+                if (feedDisplay) feedDisplay.innerText = window.location.origin + '/api/calendar/feed.ics';
             }
+
             modal.style.display = 'flex';
         }
 
@@ -8129,78 +8203,76 @@ export default `<!DOCTYPE html>
             modal.style.display = 'none';
         }
 
-        function copyOutlookRedirectUri() {
-            const uri = window.location.origin + '/api/auth/microsoft/callback';
-            navigator.clipboard.writeText(uri).then(() => {
-                alert('Redirect-URI in die Zwischenablage kopiert:\\n' + uri);
+        function copyGustavFeedUrl() {
+            const feedDisplay = document.getElementById('gustav-feed-url-display');
+            const url = feedDisplay ? feedDisplay.innerText : (window.location.origin + '/api/calendar/feed.ics');
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Kalenderlink in Zwischenablage kopiert!\\n\\nIn Outlook: „Kalender hinzufügen“ -> „Aus dem Internet abonnieren“ wählen und diesen Link einfügen.');
             }).catch(() => {
-                prompt('Bitte kopiere diese URI:', uri);
+                prompt('Bitte kopiere diesen Link:', url);
             });
         }
 
-        async function handleSaveOutlookConfig(e) {
+        async function handleSaveOutlookIcs(e) {
             e.preventDefault();
-            const clientId = document.getElementById('outlook-client-id-input').value.trim();
-            const clientSecret = document.getElementById('outlook-client-secret-input').value.trim();
-            const btn = document.getElementById('btn-save-outlook-cfg');
+            const input = document.getElementById('outlook-ics-url-input');
+            const urlVal = input ? input.value.trim() : '';
+            const btn = document.getElementById('btn-save-outlook-ics');
 
-            if (!clientId || !clientSecret) {
-                alert('Bitte trage sowohl Client ID als auch Client Secret ein.');
+            if (!urlVal) {
+                alert('Bitte trage deinen Outlook-Kalenderlink (ICS) ein.');
                 return;
             }
 
             try {
                 if (btn) {
                     btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Speichere...';
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lade Outlook-Termine...';
                 }
 
-                const res = await fetch('/api/calendar/auth/config', {
+                const res = await fetch('/api/calendar/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ clientId, clientSecret })
+                    body: JSON.stringify({ outlookIcsUrl: urlVal })
                 });
 
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    alert(data.message || 'Outlook-Kalender erfolgreich verknüpft!');
                     closeOutlookConfigModal();
+                    await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
                     await fetchOutlookAuthStatus();
                     renderOutlookStatusBadge();
-                    if (confirm('Konfiguration erfolgreich gespeichert!\\n\\nMöchtest du dich jetzt direkt mit Microsoft Outlook verbinden?')) {
-                        handleMicrosoftLogin();
-                    }
+                    renderCalendar();
                 } else {
-                    alert('Fehler beim Speichern: ' + (data.error || 'Unbekannter Fehler'));
+                    alert('Fehler beim Synchronisieren: ' + (data.error || 'Unbekannter Fehler'));
                 }
             } catch (err) {
                 alert('Verbindungsfehler: ' + err.message);
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-save"></i> Speichern & Bereitstellen';
+                    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Speichern & Termine laden';
                 }
             }
         }
 
-        function handleMicrosoftLogin() {
-            window.location.href = '/api/calendar/auth/login';
-        }
-
-        async function disconnectOutlook() {
-            if (!confirm('Möchtest du die Verbindung zu Microsoft Outlook wirklich trennen?')) return;
+        async function handleDisconnectOutlookIcs() {
+            if (!confirm('Möchtest du die Kalender-Synchronisation mit Outlook wirklich trennen?')) return;
             try {
-                const res = await fetch('/api/calendar/auth/disconnect', { method: 'POST' });
+                const res = await fetch('/api/calendar/disconnect', { method: 'POST' });
                 if (res.ok) {
+                    alert('Outlook-Kalender getrennt.');
+                    closeOutlookConfigModal();
+                    await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
                     await fetchOutlookAuthStatus();
                     renderOutlookStatusBadge();
-                    await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
                     renderCalendar();
-                    alert('Outlook erfolgreich getrennt.');
                 } else {
                     alert('Fehler beim Trennen.');
                 }
-            } catch (e) {
-                alert('Fehler: ' + e.message);
+            } catch (err) {
+                alert('Fehler: ' + err.message);
             }
         }
     </script>
