@@ -7962,10 +7962,10 @@ export default `<!DOCTYPE html>
                     let actionsHtml = '';
                     if (item.itemType === 'task') {
                         actionsHtml += 
-                            '<button type="button" class="btn" onclick="toggleCalendarTask(\'' + item.id + '\')" title="Als erledigt markieren" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                            '<button type="button" class="btn" onclick="toggleCalendarTask(&quot;' + item.id + '&quot;)" title="Als erledigt markieren" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i>' +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCalendarTask(\'' + item.id + '\')" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                            '<button type="button" class="btn" onclick="deleteCalendarTask(&quot;' + item.id + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i>' +
                             '</button>';
                     }
@@ -8071,10 +8071,10 @@ export default `<!DOCTYPE html>
                 if (itemType === 'task') {
                     actionsEl.innerHTML = 
                         '<div style="display: flex; gap: 8px;">' +
-                            '<button type="button" class="btn" onclick="toggleCalendarTask(\'' + item.id + '\'); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
+                            '<button type="button" class="btn" onclick="toggleCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i> ' + (item.completed ? 'Als offen markieren' : 'Als erledigt markieren') +
                             '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCalendarTask(\'' + item.id + '\'); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
+                            '<button type="button" class="btn" onclick="deleteCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i> Löschen' +
                             '</button>' +
                         '</div>' +
@@ -8132,7 +8132,7 @@ export default `<!DOCTYPE html>
         function copyOutlookRedirectUri() {
             const uri = window.location.origin + '/api/auth/microsoft/callback';
             navigator.clipboard.writeText(uri).then(() => {
-                alert('Redirect-URI in die Zwischenablage kopiert:\n' + uri);
+                alert('Redirect-URI in die Zwischenablage kopiert:\\n' + uri);
             }).catch(() => {
                 prompt('Bitte kopiere diese URI:', uri);
             });
@@ -8166,7 +8166,7 @@ export default `<!DOCTYPE html>
                     closeOutlookConfigModal();
                     await fetchOutlookAuthStatus();
                     renderOutlookStatusBadge();
-                    if (confirm('Konfiguration erfolgreich gespeichert!\n\nMöchtest du dich jetzt direkt mit Microsoft Outlook verbinden?')) {
+                    if (confirm('Konfiguration erfolgreich gespeichert!\\n\\nMöchtest du dich jetzt direkt mit Microsoft Outlook verbinden?')) {
                         handleMicrosoftLogin();
                     }
                 } else {
