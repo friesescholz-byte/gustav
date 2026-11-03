@@ -2770,7 +2770,7 @@ export default `<!DOCTYPE html>
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
                                 <input type="checkbox" id="task-sync-outlook-checkbox" checked style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
                                 <span style="font-size: 12.5px; color: #e0f2fe; font-weight: 600;">
-                                    <i class="fa-solid fa-arrows-rotate" style="color: #38bdf8; margin-right: 4px;"></i> Automatisch in Microsoft Outlook-Kalender eintragen
+                                    <i class="fa-solid fa-arrows-rotate" style="color: #38bdf8; margin-right: 4px;"></i> In Kalender & Outlook-Feed bereitstellen
                                 </span>
                             </label>
                             <div style="display: flex; align-items: center; gap: 10px; margin-left: 26px;">
@@ -2782,6 +2782,9 @@ export default `<!DOCTYPE html>
                                     <option value="1440">1 Tag vorher</option>
                                     <option value="0">Keine Erinnerung</option>
                                 </select>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary); margin-left: 26px; line-height: 1.4;">
+                                Erscheint im Gustav-Kalender & in deinem abonnierten Outlook-Kalender. (Tipp: Nach dem Speichern kannst du den Termin im Kalender auch mit 1 Klick direkt als .ics in Outlook öffnen).
                             </div>
                         </div>
                     </div>
@@ -2847,22 +2850,40 @@ export default `<!DOCTYPE html>
 
                 <!-- SECTION 2: GUSTAV -> OUTLOOK -->
                 <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;">
-                    <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #a855f7; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-arrow-up-long"></i> 2. Gustav-Deadlines in Outlook abonnieren
-                    </h4>
-                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
-                        Alle deine Aufgaben mit Fälligkeitsdatum landen automatisch als eigener Kalender in deinem Outlook (auf PC, iPhone, Mac & Android).
-                    </p>
-
-                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
-                        <span id="gustav-feed-url-display" style="font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; flex: 1;">Lädt Kalenderlink...</span>
-                        <button type="button" class="btn" onclick="copyGustavFeedUrl()" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
-                            <i class="fa-regular fa-copy"></i> Kopieren
-                        </button>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #a855f7; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-arrow-up-long"></i> 2. Gustav-Termine in Outlook abonnieren
+                        </h4>
+                        <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">
+                            Wichtig für Gustav &rarr; Outlook
+                        </span>
                     </div>
 
-                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-                        <i class="fa-solid fa-circle-check" style="color: #10b981; margin-right: 4px;"></i> In Outlook auf <strong>„Kalender hinzufügen“ &rarr; „Aus dem Internet abonnieren“</strong> klicken und diesen Link einfügen. Fertig!
+                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
+                        Damit Gustav-Aufgaben mit Datum in Outlook auftauchen, muss Outlook diesen Kalender einmalig abonnieren:
+                    </p>
+
+                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <span id="gustav-feed-url-display" style="font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; flex: 1; min-width: 200px;">Lädt Kalenderlink...</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn" onclick="copyGustavFeedUrl()" style="padding: 7px 11px; font-size: 12px; border-radius: 6px; white-space: nowrap; font-weight: 600; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #f3e8ff;">
+                                <i class="fa-regular fa-copy"></i> Link kopieren
+                            </button>
+                            <a id="gustav-webcal-link" href="#" class="btn" style="padding: 7px 11px; font-size: 12px; border-radius: 6px; white-space: nowrap; font-weight: 600; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; text-decoration: none;">
+                                <i class="fa-solid fa-bolt"></i> 1-Klick Abonnieren
+                            </a>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; color: #e9d5ff;">
+                        <strong>Schritt-für-Schritt in Outlook einrichten (dauert 30 Sek.):</strong><br>
+                        1. Öffne Outlook im Web (<a href="https://outlook.live.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">outlook.live.com</a>) oder die Outlook-App auf dem PC.<br>
+                        2. Klicke links in der Kalender-Leiste auf <strong>„Kalender hinzufügen“</strong>.<br>
+                        3. Wähle <strong>„Aus dem Internet abonnieren“</strong>.<br>
+                        4. Füge den Gustav-Link ein, Name <em>„Gustav Deadlines“</em> vergeben und auf <strong>„Importieren“</strong> klicken.<br>
+                        <span style="display: block; margin-top: 6px; font-size: 11px; opacity: 0.85;">
+                            ℹ️ <em>Hinweis: Microsoft gleicht abonnierte Internet-Kalender ca. alle paar Stunden im Hintergrund ab. Für Sofort-Eintragung nutze im Termin einfach „In Outlook öffnen (.ics)“.</em>
+                        </span>
                     </div>
                 </div>
 
@@ -8035,10 +8056,11 @@ export default `<!DOCTYPE html>
         }
 
         function openNewCalendarEventModal(prefilledDate) {
-            openCustomTaskModal(prefilledDate);
+            const dateToUse = prefilledDate || new Date().toISOString().split('T')[0];
+            openCustomTaskModal(dateToUse);
             const content = document.getElementById('task-schedule-content');
             const chevron = document.getElementById('task-schedule-chevron');
-            if (content && content.style.display !== 'flex') {
+            if (content) {
                 content.style.display = 'flex';
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
             }
@@ -8115,11 +8137,19 @@ export default `<!DOCTYPE html>
 
             if (actionsEl) {
                 if (itemType === 'task') {
+                    const hasDate = !!(item.dueDate || item.dueDateTime);
                     actionsEl.innerHTML = 
-                        '<div style="display: flex; gap: 8px;">' +
+                        '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
                             '<button type="button" class="btn" onclick="toggleCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
                                 '<i class="fa-solid fa-check"></i> ' + (item.completed ? 'Als offen markieren' : 'Als erledigt markieren') +
                             '</button>' +
+                            (hasDate ? 
+                                '<button type="button" class="btn btn-primary" onclick="exportTaskToIcs(&quot;' + item.id + '&quot;)" title="Termin direkt als .ics herunterladen und in Outlook öffnen" style="padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">' +
+                                    '<i class="fa-brands fa-microsoft"></i> In Outlook öffnen (.ics)' +
+                                '</button>' +
+                                '<button type="button" class="btn" onclick="openTaskInOutlookWeb(&quot;' + item.id + '&quot;)" title="Direkt in Outlook Web erstellen" style="padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 164, 239, 0.15); border: 1px solid rgba(0, 164, 239, 0.3); color: #38bdf8;">' +
+                                    '<i class="fa-solid fa-arrow-up-right-from-square"></i> Outlook Web' +
+                                '</button>' : '') +
                             '<button type="button" class="btn" onclick="deleteCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
                                 '<i class="fa-solid fa-trash"></i> Löschen' +
                             '</button>' +
@@ -8138,6 +8168,40 @@ export default `<!DOCTYPE html>
             }
 
             modal.style.display = 'flex';
+        }
+
+        function exportTaskToIcs(taskId) {
+            const task = (calendarEventsCache.tasks || []).find(t => t.id === taskId);
+            if (!task) return;
+            const downloadUrl = '/api/calendar/task/' + encodeURIComponent(taskId) + '.ics';
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = (task.title || 'termin').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_') + '.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function openTaskInOutlookWeb(taskId) {
+            const task = (calendarEventsCache.tasks || []).find(t => t.id === taskId);
+            if (!task) return;
+            const date = task.dueDate || (task.dueDateTime ? task.dueDateTime.split('T')[0] : '');
+            const time = task.dueTime || '10:00';
+            const title = encodeURIComponent((task.clientName ? '[' + task.clientName + '] ' : '') + (task.title || 'Aufgabe'));
+            const parts = (time || '10:00').split(':');
+            const h = parseInt(parts[0], 10) || 10;
+            const m = parseInt(parts[1], 10) || 0;
+            const endHour = String(h + 1).padStart(2, '0');
+            const endMinute = String(m).padStart(2, '0');
+            const startDt = date ? encodeURIComponent(date + 'T' + time + ':00') : '';
+            const endDt = date ? encodeURIComponent(date + 'T' + endHour + ':' + endMinute + ':00') : '';
+            const body = encodeURIComponent(
+                (task.clientName ? 'Kunde: ' + task.clientName + '\n' : '') +
+                (task.assignee ? 'Zuständig: ' + (task.assignee === 'adrian' ? 'Adrian' : task.assignee) + '\n' : '') +
+                (task.description || '')
+            );
+            const url = 'https://outlook.live.com/calendar/0/deeplink/compose?subject=' + title + '&startdt=' + startDt + '&enddt=' + endDt + '&body=' + body + '&path=%2Fcalendar%2Faction%2Fcompose';
+            window.open(url, '_blank');
         }
 
         function closeCalendarEventModal() {
@@ -8167,12 +8231,16 @@ export default `<!DOCTYPE html>
             const icsInput = document.getElementById('outlook-ics-url-input');
             const statusPill = document.getElementById('outlook-sync-status-pill');
             const disconnectBtn = document.getElementById('btn-disconnect-outlook-ics');
+            const webcalBtn = document.getElementById('gustav-webcal-link');
 
             try {
                 const res = await fetch('/api/calendar/settings');
                 if (res.ok) {
                     const data = await res.json();
-                    if (feedDisplay) feedDisplay.innerText = data.feedUrl || (window.location.origin + '/api/calendar/feed.ics');
+                    const feedUrl = data.feedUrl || (window.location.origin + '/api/calendar/feed.ics');
+                    const webcalUrl = data.webcalUrl || feedUrl.replace(/^https?:\/\//i, 'webcal://');
+                    if (feedDisplay) feedDisplay.innerText = feedUrl;
+                    if (webcalBtn) webcalBtn.href = webcalUrl;
                     if (icsInput && !icsInput.value) icsInput.value = data.outlookIcsUrl || '';
                     if (statusPill) {
                         if (data.isConnected) {
@@ -8191,7 +8259,9 @@ export default `<!DOCTYPE html>
                 }
             } catch (err) {
                 console.error('Error loading calendar settings:', err);
-                if (feedDisplay) feedDisplay.innerText = window.location.origin + '/api/calendar/feed.ics';
+                const defaultFeed = window.location.origin + '/api/calendar/feed.ics';
+                if (feedDisplay) feedDisplay.innerText = defaultFeed;
+                if (webcalBtn) webcalBtn.href = defaultFeed.replace(/^https?:\/\//i, 'webcal://');
             }
 
             modal.style.display = 'flex';

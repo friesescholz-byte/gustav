@@ -741,7 +741,7 @@ export default {
     // Check authorization cookie (skip for webhook endpoint, authenticated security guardian bot, and Microsoft OAuth callback)
     const isWebhook = url.pathname === '/api/webhooks/email';
     const isMicrosoftCallback = url.pathname === '/api/auth/microsoft/callback' || url.pathname === '/api/calendar/auth/callback';
-    const isIcsFeed = url.pathname === '/api/calendar/feed.ics';
+    const isIcsFeed = url.pathname === '/api/calendar/feed.ics' || (url.pathname.startsWith('/api/calendar/task/') && url.pathname.endsWith('.ics'));
     const secTokenHeader = request.headers.get('X-Security-Token') || '';
     const isSecurityBot = url.pathname === '/api/security/emergency-alert' && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
     const isAuthorized = isWebhook || isSecurityBot || isMicrosoftCallback || isIcsFeed || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
@@ -1988,11 +1988,11 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
       }
 
       // 8.38 API: Calendar & Outlook Sync Endpoints (Native ICS & Graph API)
-      if (url.pathname === '/api/calendar/feed.ics' && method === 'GET') {
+      if (url.pathname === '/api/calendar/feed.ics' && (method === 'GET' || method === 'HEAD')) {
         try {
           const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
           const allTasks = rawTasks ? JSON.parse(rawTasks) : [];
-          const icsBody = generateIcsFeed(allTasks, url.origin);
+          const icsBody = method === 'HEAD' ? '' : generateIcsFeed(allTasks, url.origin);
           return new Response(icsBody, {
             headers: {
               'Content-Type': 'text/calendar; charset=utf-8',
@@ -2003,6 +2003,30 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           });
         } catch (e) {
           return new Response('Error generating calendar feed: ' + e.message, { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        }
+      }
+
+      if (url.pathname.startsWith('/api/calendar/task/') && url.pathname.endsWith('.ics') && (method === 'GET' || method === 'HEAD')) {
+        try {
+          const taskId = decodeURIComponent(url.pathname.replace('/api/calendar/task/', '').replace(/\.ics$/, ''));
+          const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+          const allTasks = rawTasks ? JSON.parse(rawTasks) : [];
+          const task = allTasks.find(t => t.id === taskId);
+          if (!task) {
+            return new Response('Aufgabe nicht gefunden', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          }
+          const icsBody = method === 'HEAD' ? '' : generateIcsFeed([task], url.origin);
+          const safeFilename = (task.title || 'termin').replace(/[^a-zA-Z0-9_-]/g, '_');
+          return new Response(icsBody, {
+            headers: {
+              'Content-Type': 'text/calendar; charset=utf-8',
+              'Content-Disposition': `attachment; filename="${safeFilename}.ics"`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              ...corsHeaders
+            }
+          });
+        } catch (e) {
+          return new Response('Error generating task ics: ' + e.message, { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
         }
       }
 
