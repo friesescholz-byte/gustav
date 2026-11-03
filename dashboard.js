@@ -1660,9 +1660,6 @@ export default `<!DOCTYPE html>
             <button class="nav-item active" id="nav-btn-hub" onclick="showView('hub')">
                 <i class="fa-solid fa-chart-line"></i> Command Center
             </button>
-            <button class="nav-item" id="nav-btn-calendar" onclick="showView('calendar')">
-                <i class="fa-solid fa-calendar-days" style="color: #38bdf8;"></i> Kalender & Termine
-            </button>
             <button class="nav-item" id="nav-btn-routing" onclick="showView('routing')">
                 <i class="fa-solid fa-route" style="color: var(--color-cyan);"></i> E-Mail Verteiler & Hub
             </button>
@@ -2330,104 +2327,6 @@ export default `<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- CALENDAR & DEADLINES SCREEN -->
-        <div id="calendar-screen" style="display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 34px 40px; box-sizing: border-box; gap: 24px;">
-            <!-- Header Bar -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); padding-bottom: 18px;">
-                <div>
-                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 4px;">
-                        <i class="fa-solid fa-calendar-days"></i> Termin- & Fristen-Planung
-                    </div>
-                    <h1 style="font-size: 26px; font-weight: 800; font-family: var(--font-heading); color: var(--text-primary); margin: 0 0 6px 0; letter-spacing: -0.5px;">
-                        Kalender & Termine
-                    </h1>
-                    <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">
-                        Alle Aufgaben-Deadlines, Meilensteine und synchronisierte Microsoft Outlook-Termine im Überblick.
-                    </p>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <!-- Outlook Status Badge & Actions -->
-                    <div id="calendar-outlook-status-container" style="display: flex; align-items: center; gap: 8px;">
-                        <!-- Filled dynamically by renderOutlookStatusBadge() -->
-                    </div>
-
-                    <button type="button" class="btn btn-primary" onclick="openNewCalendarEventModal()" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 13px; font-weight: 700; border-radius: 8px;">
-                        <i class="fa-solid fa-plus"></i> Neuer Termin / Aufgabe
-                    </button>
-                </div>
-            </div>
-
-            <!-- Calendar Controls Bar: Month / Year / Switcher -->
-            <div class="card" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: rgba(17, 24, 39, 0.4); border-color: var(--border-color);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <button type="button" class="btn" onclick="navigateCalendarMonth(-1)" style="padding: 6px 12px; font-size: 13px; border-radius: 6px;" title="Vorheriger Monat">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <button type="button" class="btn" onclick="goToCurrentCalendarMonth()" style="padding: 6px 14px; font-size: 12.5px; font-weight: 600; border-radius: 6px;">
-                        Heute
-                    </button>
-                    <button type="button" class="btn" onclick="navigateCalendarMonth(1)" style="padding: 6px 12px; font-size: 13px; border-radius: 6px;" title="Nächster Monat">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                    <h2 id="calendar-month-title" style="margin: 0 0 0 10px; font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: var(--font-heading); min-width: 170px;">
-                        November 2026
-                    </h2>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <!-- Filter: Alle | Deadlines | Outlook -->
-                    <div style="display: flex; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 3px; gap: 4px;">
-                        <button type="button" class="btn" id="cal-filter-all" onclick="setCalendarFilter('all')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; background: rgba(59, 130, 246, 0.2); color: #fff; border: none;">
-                            Alle
-                        </button>
-                        <button type="button" class="btn" id="cal-filter-tasks" onclick="setCalendarFilter('tasks')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; background: transparent; color: var(--text-secondary); border: none;">
-                            Nur Aufgaben
-                        </button>
-                        <button type="button" class="btn" id="cal-filter-outlook" onclick="setCalendarFilter('outlook')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; background: transparent; color: var(--text-secondary); border: none;">
-                            Nur Outlook
-                        </button>
-                    </div>
-
-                    <!-- View Toggle: Month / Agenda -->
-                    <div style="display: flex; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 3px; gap: 4px;">
-                        <button type="button" class="btn" id="cal-view-month-btn" onclick="setCalendarViewMode('month')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-                            <i class="fa-solid fa-table-cells"></i> Monat
-                        </button>
-                        <button type="button" class="btn" id="cal-view-agenda-btn" onclick="setCalendarViewMode('agenda')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; background: transparent; color: var(--text-secondary); border: 1px solid transparent;">
-                            <i class="fa-solid fa-list-ul"></i> Agenda
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Calendar View Container -->
-            <div id="calendar-grid-view" class="card" style="padding: 16px; background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); overflow: hidden; display: flex; flex-direction: column;">
-                <!-- Day headers: Mo, Di, Mi, Do, Fr, Sa, So -->
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; text-align: center;">
-                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 0; text-transform: uppercase;">Mo</div>
-                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 0; text-transform: uppercase;">Di</div>
-                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 0; text-transform: uppercase;">Mi</div>
-                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 0; text-transform: uppercase;">Do</div>
-                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 0; text-transform: uppercase;">Fr</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #94a3b8; padding: 8px 0; text-transform: uppercase;">Sa</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #94a3b8; padding: 8px 0; text-transform: uppercase;">So</div>
-                </div>
-
-                <!-- 7x5 or 7x6 month days grid -->
-                <div id="calendar-days-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; min-height: 520px;">
-                    <!-- Dynamically rendered days -->
-                </div>
-            </div>
-
-            <!-- Calendar Agenda View (alternative to grid) -->
-            <div id="calendar-agenda-view" class="card" style="display: none; padding: 20px; background: rgba(17, 24, 39, 0.4); border-color: var(--border-color); min-height: 400px; flex-direction: column; gap: 16px;">
-                <div id="calendar-agenda-list" style="display: flex; flex-direction: column; gap: 14px;">
-                    <!-- Dynamically rendered agenda items -->
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <!-- GUSTAV CHAT PANEL -->
@@ -2736,13 +2635,12 @@ export default `<!DOCTYPE html>
                         </span>
                     </label>
                 </div>
-
-                <!-- Ausklappbarer Bereich: Termin & Outlook-Kalender -->
+                <!-- Ausklappbarer Bereich: Fälligkeitsdatum & E-Mail-Erinnerung -->
                 <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.02); margin-top: 2px;">
                     <button type="button" id="task-schedule-accordion-btn" onclick="toggleTaskScheduleAccordion()" style="width: 100%; background: none; border: none; padding: 11px 14px; text-align: left; color: #38bdf8; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none;">
                         <span style="display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-calendar-plus" style="color: #38bdf8;"></i> 
-                            <span id="task-schedule-btn-label">Fälligkeitsdatum & Outlook-Termin (Optional)</span>
+                            <i class="fa-solid fa-clock" style="color: #38bdf8;"></i> 
+                            <span id="task-schedule-btn-label">Fälligkeitsdatum & Erinnerung (Optional)</span>
                         </span>
                         <i class="fa-solid fa-chevron-down" id="task-schedule-chevron" style="transition: transform 0.2s; font-size: 11px; color: #38bdf8;"></i>
                     </button>
@@ -2752,7 +2650,7 @@ export default `<!DOCTYPE html>
                             <button type="button" class="btn" onclick="setTaskQuickDate('today_17')" style="padding: 4px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.06);">Heute 17:00</button>
                             <button type="button" class="btn" onclick="setTaskQuickDate('tomorrow_10')" style="padding: 4px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.06);">Morgen 10:00</button>
                             <button type="button" class="btn" onclick="setTaskQuickDate('friday_12')" style="padding: 4px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.06);">Freitag 12:00</button>
-                            <button type="button" class="btn" onclick="clearTaskSchedule()" style="padding: 4px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; color: #f87171; background: rgba(239,68,68,0.1);">Kein Termin</button>
+                            <button type="button" class="btn" onclick="clearTaskSchedule()" style="padding: 4px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; color: #f87171; background: rgba(239,68,68,0.1);">Keine Deadline</button>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -2768,23 +2666,22 @@ export default `<!DOCTYPE html>
 
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
-                                <input type="checkbox" id="task-sync-outlook-checkbox" checked style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+                                <input type="checkbox" id="task-email-reminder-checkbox" checked style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
                                 <span style="font-size: 12.5px; color: #e0f2fe; font-weight: 600;">
-                                    <i class="fa-solid fa-arrows-rotate" style="color: #38bdf8; margin-right: 4px;"></i> In Kalender & Outlook-Feed bereitstellen
+                                    <i class="fa-solid fa-envelope" style="color: #38bdf8; margin-right: 4px;"></i> Automatische E-Mail-Erinnerung vor Ablauf senden
                                 </span>
                             </label>
                             <div style="display: flex; align-items: center; gap: 10px; margin-left: 26px;">
-                                <span style="font-size: 11.5px; color: var(--text-secondary);">Erinnerung:</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary);">Erinnerungszeitpunkt:</span>
                                 <select id="task-reminder-select" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11.5px; outline: none;">
                                     <option value="15">15 Minuten vorher</option>
-                                    <option value="30" selected>30 Minuten vorher</option>
-                                    <option value="60">1 Stunde vorher</option>
+                                    <option value="30">30 Minuten vorher</option>
+                                    <option value="60" selected>1 Stunde vorher</option>
                                     <option value="1440">1 Tag vorher</option>
-                                    <option value="0">Keine Erinnerung</option>
                                 </select>
                             </div>
-                            <div style="font-size: 11.5px; color: var(--text-secondary); margin-left: 26px; line-height: 1.4;">
-                                Erscheint im Gustav-Kalender & in deinem abonnierten Outlook-Kalender. (Tipp: Nach dem Speichern kannst du den Termin im Kalender auch mit 1 Klick direkt als .ics in Outlook öffnen).
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-left: 26px;">
+                                Sendet automatisch eine Info-Mail an den zugewiesenen Bearbeiter (oder info@scholz-friese-webdesign.de).
                             </div>
                         </div>
                     </div>
@@ -2798,150 +2695,11 @@ export default `<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- OUTLOOK & CALENDAR SYNC MODAL -->
-    <div class="modal" id="outlook-config-modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
-        <div class="modal-content" style="max-width: 620px; width: 94%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 14px; padding: 26px; box-sizing: border-box; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 18px;">
-                <div>
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
-                        <i class="fa-brands fa-microsoft" style="color: #00a4ef;"></i> Outlook & Kalender-Synchronisation
-                    </h3>
-                    <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">Termine und Deadlines nahtlos zwischen Gustav und Outlook spiegeln.</p>
-                </div>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-secondary); font-size: 18px; padding: 4px;" onclick="closeOutlookConfigModal()"></i>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <!-- SECTION 1: OUTLOOK -> GUSTAV -->
-                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-arrow-down-long"></i> 1. Outlook-Termine in Gustav anzeigen
-                        </h4>
-                        <span id="outlook-sync-status-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: none;"></span>
-                    </div>
-
-                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
-                        Deine Termine aus Outlook werden automatisch im Gustav-Kalender eingeblendet.
-                    </p>
-
-                    <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.15); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; color: #bae6fd; margin-bottom: 14px;">
-                        <strong>So holst du deinen Outlook-Kalenderlink (in 30 Sek.):</strong><br>
-                        1. Öffne Outlook im Web (<a href="https://outlook.live.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">outlook.live.com</a> oder <a href="https://outlook.office.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">office.com</a>)<br>
-                        2. Klicke oben rechts auf das <strong>⚙️ Zahnrad (Einstellungen) &rarr; Kalender &rarr; Geteilte Kalender</strong><br>
-                        3. Wähle unter <strong>„Kalender veröffentlichen“</strong> deinen Kalender, wähle <em>„Kann alle Details anzeigen“</em> und klicke auf <strong>„Veröffentlichen“</strong><br>
-                        4. Kopiere den <strong>ICS-Link</strong> und füge ihn hier unten ein:
-                    </div>
-
-                    <form onsubmit="handleSaveOutlookIcs(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                        <div class="form-group" style="margin: 0;">
-                            <input type="text" id="outlook-ics-url-input" placeholder="https://outlook.live.com/owa/calendar/.../reachcalendar.ics" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; padding: 11px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none; font-family: monospace;">
-                        </div>
-                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            <button type="button" id="btn-disconnect-outlook-ics" class="btn" onclick="handleDisconnectOutlookIcs()" style="display: none; padding: 8px 12px; font-size: 12px; color: var(--color-red); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
-                                <i class="fa-solid fa-link-slash"></i> Trennen
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="btn-save-outlook-ics" style="padding: 8px 16px; font-size: 12px; font-weight: 700;">
-                                <i class="fa-solid fa-arrows-rotate"></i> Speichern & Termine laden
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- SECTION 2: GUSTAV -> OUTLOOK -->
-                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #a855f7; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-arrow-up-long"></i> 2. Gustav-Termine in Outlook abonnieren
-                        </h4>
-                        <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">
-                            Wichtig für Gustav &rarr; Outlook
-                        </span>
-                    </div>
-
-                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 12px 0;">
-                        Damit Gustav-Aufgaben mit Datum in Outlook auftauchen, muss Outlook diesen Kalender einmalig abonnieren:
-                    </p>
-
-                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <span id="gustav-feed-url-display" style="font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; flex: 1; min-width: 200px;">Lädt Kalenderlink...</span>
-                        <div style="display: flex; gap: 6px;">
-                            <button type="button" class="btn" onclick="copyGustavFeedUrl()" style="padding: 7px 11px; font-size: 12px; border-radius: 6px; white-space: nowrap; font-weight: 600; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #f3e8ff;">
-                                <i class="fa-regular fa-copy"></i> Link kopieren
-                            </button>
-                            <a id="gustav-webcal-link" href="#" class="btn" style="padding: 7px 11px; font-size: 12px; border-radius: 6px; white-space: nowrap; font-weight: 600; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; text-decoration: none;">
-                                <i class="fa-solid fa-bolt"></i> 1-Klick Abonnieren
-                            </a>
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; color: #e9d5ff;">
-                        <strong>Schritt-für-Schritt in Outlook einrichten (dauert 30 Sek.):</strong><br>
-                        1. Öffne Outlook im Web (<a href="https://outlook.live.com/calendar" target="_blank" style="color: #38bdf8; text-decoration: underline;">outlook.live.com</a>) oder die Outlook-App auf dem PC.<br>
-                        2. Klicke links in der Kalender-Leiste auf <strong>„Kalender hinzufügen“</strong>.<br>
-                        3. Wähle <strong>„Aus dem Internet abonnieren“</strong>.<br>
-                        4. Füge den Gustav-Link ein, Name <em>„Gustav Deadlines“</em> vergeben und auf <strong>„Importieren“</strong> klicken.<br>
-                        <span style="display: block; margin-top: 6px; font-size: 11px; opacity: 0.85;">
-                            ℹ️ <em>Hinweis: Microsoft gleicht abonnierte Internet-Kalender ca. alle paar Stunden im Hintergrund ab. Für Sofort-Eintragung nutze im Termin einfach „In Outlook öffnen (.ics)“.</em>
-                        </span>
-                    </div>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end;">
-                    <button type="button" class="btn" onclick="closeOutlookConfigModal()" style="padding: 8px 18px; font-size: 12.5px;">Schließen</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- CALENDAR EVENT DETAILS MODAL -->
-    <div class="modal" id="calendar-event-modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
-        <div class="modal-content" style="max-width: 480px; width: 90%; background: #0c0f17; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
-                <div id="cal-modal-badge" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;"></div>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-secondary); font-size: 16px;" onclick="closeCalendarEventModal()"></i>
-            </div>
-
-            <h3 id="cal-modal-title" style="margin: 0 0 12px 0; font-size: 18px; font-weight: 800; color: #fff; font-family: var(--font-heading); line-height: 1.4;"></h3>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; margin-bottom: 18px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-regular fa-clock" style="color: #38bdf8; width: 16px; text-align: center;"></i>
-                    <span id="cal-modal-datetime" style="color: #fff; font-weight: 600;"></span>
-                </div>
-                <div id="cal-modal-client-row" style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-user-tag" style="color: #a855f7; width: 16px; text-align: center;"></i>
-                    <span id="cal-modal-client" style="color: #fff;"></span>
-                </div>
-                <div id="cal-modal-assignee-row" style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-user-check" style="color: #60a5fa; width: 16px; text-align: center;"></i>
-                    <span id="cal-modal-assignee" style="color: #fff;"></span>
-                </div>
-                <div id="cal-modal-location-row" style="display: none; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-location-dot" style="color: #ef4444; width: 16px; text-align: center;"></i>
-                    <span id="cal-modal-location" style="color: #fff;"></span>
-                </div>
-                <div id="cal-modal-desc-row" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 8px;">
-                    <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Details:</span>
-                    <span id="cal-modal-desc" style="color: #e2e8f0; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap;"></span>
-                </div>
-            </div>
-
-            <div id="cal-modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <!-- Filled dynamically based on task vs outlook -->
-            </div>
-        </div>
-    </div>
-
     <!-- MOBILE BOTTOM NAVIGATION BAR -->
     <div class="mobile-bottom-nav">
         <button class="mobile-nav-item active" id="mob-nav-hub" onclick="showView('hub'); updateMobileBottomNav('hub');">
             <i class="fa-solid fa-chart-line"></i>
             <span>Dashboard</span>
-        </button>
-        <button class="mobile-nav-item" id="mob-nav-calendar" onclick="showView('calendar'); updateMobileBottomNav('calendar');">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>Kalender</span>
         </button>
         <button class="mobile-nav-item" id="mob-nav-kunden" onclick="toggleMobileSidebar();">
             <i class="fa-solid fa-users"></i>
@@ -3549,7 +3307,65 @@ export default `<!DOCTYPE html>
             };
         }
 
-        function openCustomTaskModal(prefilledDate) {
+        function toggleTaskScheduleAccordion() {
+            const content = document.getElementById('task-schedule-content');
+            const chevron = document.getElementById('task-schedule-chevron');
+            if (!content) return;
+            const isOpen = content.style.display === 'flex';
+            content.style.display = isOpen ? 'none' : 'flex';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        function setTaskQuickDate(type) {
+            const dateInput = document.getElementById('task-due-date-input');
+            const timeInput = document.getElementById('task-due-time-input');
+            if (!dateInput || !timeInput) return;
+
+            const now = new Date();
+            let targetDate = new Date();
+
+            if (type === 'today_17') {
+                timeInput.value = '17:00';
+            } else if (type === 'tomorrow_10') {
+                targetDate.setDate(now.getDate() + 1);
+                timeInput.value = '10:00';
+            } else if (type === 'friday_12') {
+                const day = now.getDay();
+                let diff = (5 - day + 7) % 7;
+                if (diff === 0) diff = 7;
+                targetDate.setDate(now.getDate() + diff);
+                timeInput.value = '12:00';
+            }
+
+            dateInput.value = targetDate.toISOString().split('T')[0];
+            updateScheduleBtnLabel();
+        }
+
+        function clearTaskSchedule() {
+            const dateInput = document.getElementById('task-due-date-input');
+            const timeInput = document.getElementById('task-due-time-input');
+            if (dateInput) dateInput.value = '';
+            if (timeInput) timeInput.value = '10:00';
+            updateScheduleBtnLabel();
+        }
+
+        function updateScheduleBtnLabel() {
+            const dateInput = document.getElementById('task-due-date-input');
+            const timeInput = document.getElementById('task-due-time-input');
+            const label = document.getElementById('task-schedule-btn-label');
+            if (!label) return;
+
+            if (dateInput && dateInput.value) {
+                const parts = dateInput.value.split('-');
+                const formatted = parts[2] + '.' + parts[1] + '.' + parts[0];
+                const timeStr = timeInput && timeInput.value ? ' um ' + timeInput.value + ' Uhr' : '';
+                label.innerHTML = 'Fällig: <strong>' + formatted + timeStr + '</strong>';
+            } else {
+                label.innerText = 'Fälligkeitsdatum & Erinnerung (Optional)';
+            }
+        }
+
+        function openCustomTaskModal() {
             const select = document.getElementById('task-client-select');
             if (select) {
                 select.innerHTML = '<option value="">Kein Kunde (Allgemeine Aufgabe)</option>' +
@@ -3565,32 +3381,11 @@ export default `<!DOCTYPE html>
             const redCb = document.getElementById('task-set-red-checkbox');
             if (redCb) redCb.checked = true;
             handleTaskClientSelectChange();
-
-            // Schedule & Outlook fields reset / prefill
-            const dueDateInput = document.getElementById('task-due-date-input');
-            const dueTimeInput = document.getElementById('task-due-time-input');
-            const syncCb = document.getElementById('task-sync-outlook-checkbox');
-            const reminderSel = document.getElementById('task-reminder-select');
-            const scheduleContent = document.getElementById('task-schedule-content');
-            const scheduleChevron = document.getElementById('task-schedule-chevron');
-            const scheduleLabel = document.getElementById('task-schedule-btn-label');
-
-            if (dueTimeInput) dueTimeInput.value = '10:00';
-            if (syncCb) syncCb.checked = true;
-            if (reminderSel) reminderSel.value = '30';
-
-            if (prefilledDate) {
-                if (dueDateInput) dueDateInput.value = prefilledDate;
-                if (scheduleContent) scheduleContent.style.display = 'flex';
-                if (scheduleChevron) scheduleChevron.style.transform = 'rotate(180deg)';
-                updateScheduleBtnLabel();
-            } else {
-                if (dueDateInput) dueDateInput.value = '';
-                if (scheduleContent) scheduleContent.style.display = 'none';
-                if (scheduleChevron) scheduleChevron.style.transform = 'rotate(0deg)';
-                if (scheduleLabel) scheduleLabel.innerText = 'Fälligkeitsdatum & Outlook-Termin (Optional)';
-            }
-
+            clearTaskSchedule();
+            const schedContent = document.getElementById('task-schedule-content');
+            const schedChevron = document.getElementById('task-schedule-chevron');
+            if (schedContent) schedContent.style.display = 'none';
+            if (schedChevron) schedChevron.style.transform = 'rotate(0deg)';
             const modal = document.getElementById('custom-task-modal');
             if (modal) modal.style.display = 'flex';
             setTimeout(() => { if (titleEl) titleEl.focus(); }, 80);
@@ -3626,13 +3421,13 @@ export default `<!DOCTYPE html>
 
             const dueDateInput = document.getElementById('task-due-date-input');
             const dueTimeInput = document.getElementById('task-due-time-input');
-            const syncCb = document.getElementById('task-sync-outlook-checkbox');
+            const reminderCb = document.getElementById('task-email-reminder-checkbox');
             const reminderSel = document.getElementById('task-reminder-select');
 
             const dueDate = dueDateInput ? dueDateInput.value : '';
             const dueTime = dueTimeInput ? dueTimeInput.value : '';
-            const syncOutlook = (syncCb && dueDate) ? syncCb.checked : false;
-            const reminderMinutes = reminderSel ? parseInt(reminderSel.value, 10) : 30;
+            const sendEmailReminder = (reminderCb && dueDate) ? reminderCb.checked : false;
+            const reminderMinutes = reminderSel ? parseInt(reminderSel.value, 10) : 60;
 
             let dueDateTime = null;
             if (dueDate) {
@@ -3653,7 +3448,7 @@ export default `<!DOCTYPE html>
                     dueDate: dueDate || null,
                     dueTime: dueTime || null,
                     dueDateTime: dueDateTime || null,
-                    syncOutlook,
+                    sendEmailReminder,
                     reminderMinutes
                 };
 
@@ -3673,9 +3468,6 @@ export default `<!DOCTYPE html>
                     closeCustomTaskModal();
                     if (typeof loadClients === 'function') await loadClients();
                     updateGlobalStats();
-                    if (typeof loadCalendarView === 'function') {
-                        loadCalendarView();
-                    }
                 }
             } catch(err) {
                 console.error('Error saving custom task:', err);
@@ -4311,22 +4103,6 @@ export default `<!DOCTYPE html>
             } catch(e) {
                 console.error('Input safeguard init error:', e);
             }
-
-            // Check URL parameters for views and auth status
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('auth') === 'success') {
-                    alert('Microsoft Outlook erfolgreich verbunden! Deine Termine werden jetzt synchronisiert.');
-                    window.history.replaceState({}, document.title, window.location.pathname + (urlParams.get('view') ? '?view=' + urlParams.get('view') : ''));
-                } else if (urlParams.get('auth') === 'error') {
-                    const errorMsg = urlParams.get('error') || 'Verbindung zu Microsoft fehlgeschlagen.';
-                    alert('Fehler bei der Outlook-Verbindung: ' + errorMsg);
-                    window.history.replaceState({}, document.title, window.location.pathname + (urlParams.get('view') ? '?view=' + urlParams.get('view') : ''));
-                }
-                if (urlParams.get('view') === 'calendar') {
-                    showView('calendar');
-                }
-            } catch(_) {}
 
             // Sync emails on load and every 5 minutes silently
             try { syncEmails(true); } catch(e) {}
@@ -5728,19 +5504,12 @@ export default `<!DOCTYPE html>
             document.getElementById('mail-screen').style.display = 'none';
             const secScreen = document.getElementById('security-screen');
             if (secScreen) secScreen.style.display = 'none';
-            const calScreen = document.getElementById('calendar-screen');
-            if (calScreen) calScreen.style.display = 'none';
             
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             
             if (viewName === 'hub') {
                 document.getElementById('welcome-screen').style.display = 'flex';
                 document.getElementById('nav-btn-hub').classList.add('active');
-            } else if (viewName === 'calendar') {
-                if (calScreen) calScreen.style.display = 'flex';
-                const calBtn = document.getElementById('nav-btn-calendar');
-                if (calBtn) calBtn.classList.add('active');
-                loadCalendarView();
             } else if (viewName === 'routing') {
                 if (routingScreen) routingScreen.style.display = 'flex';
                 const routingBtn = document.getElementById('nav-btn-routing');
@@ -6086,7 +5855,18 @@ export default `<!DOCTYPE html>
 
                         let metaText = 'Allgemeine Aufgabe';
                         if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
-                        const deadlineBadge = renderTaskDeadlineBadge(t);
+                        if (t.dueDate) {
+                            const dParts = t.dueDate.split('-');
+                            const dFormatted = dParts[2] + '.' + dParts[1] + '.';
+                            const isOverdue = new Date(t.dueDateTime || (t.dueDate + 'T23:59:59')) < new Date();
+                            const badgeColor = isOverdue ? '#ef4444' : '#38bdf8';
+                            const badgeBg = isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.15)';
+                            const badgeBorder = isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(56, 189, 248, 0.3)';
+                            metaText += ' &bull; <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; color: ' + badgeColor + '; background: ' + badgeBg + '; border: 1px solid ' + badgeBorder + ';">' +
+                                '<i class="fa-regular fa-clock" style="font-size: 9.5px;"></i> Fällig: ' + dFormatted + (t.dueTime ? ' ' + t.dueTime + ' Uhr' : '') +
+                                (isOverdue ? ' (Überfällig)' : '') +
+                            '</span>';
+                        }
 
                         const escapedTaskTitle = (t.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         const taskClientName = t.clientName || '';
@@ -6096,7 +5876,7 @@ export default `<!DOCTYPE html>
                             '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
                             '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
                                 '<strong style="color: var(--text-primary); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.35;">' + t.title + '</strong>' +
-                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;"><span>' + metaText + '</span>' + deadlineBadge + '</div>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + metaText + '</div>' +
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; align-self: center;">' +
@@ -6135,17 +5915,7 @@ export default `<!DOCTYPE html>
                         });
                         openClientCustom.forEach(ct => {
                             if (!allOpenTasks.some(ot => ot.text === ct.title)) {
-                                allOpenTasks.push({
-                                    id: ct.id,
-                                    text: ct.title,
-                                    assignee: ct.assignee,
-                                    type: 'custom',
-                                    dueDate: ct.dueDate,
-                                    dueTime: ct.dueTime,
-                                    dueDateTime: ct.dueDateTime,
-                                    syncOutlook: ct.syncOutlook,
-                                    outlookEventId: ct.outlookEventId
-                                });
+                                allOpenTasks.push({ id: ct.id, text: ct.title, assignee: ct.assignee, type: 'custom' });
                             }
                         });
 
@@ -6174,13 +5944,12 @@ export default `<!DOCTYPE html>
                                     : (ot.assignee === 'basti' 
                                         ? ' <span style="color: #f472b6; font-weight: 600; font-size: 10.5px; background: rgba(236, 72, 153, 0.1); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Basti</span>' 
                                         : '');
-                                const taskDeadlineBadge = renderTaskDeadlineBadge(ot);
 
                                 return '<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.05); padding: 8px 10px; border-radius: 6px;">' +
                                     '<div style="min-width: 0; flex-grow: 1; display: flex; align-items: flex-start; gap: 6px;">' +
                                         '<span style="color: var(--color-red); font-weight: bold; line-height: 1.35; margin-top: 1px;">&bull;</span>' +
                                         '<div style="font-size: 12px; color: var(--text-primary); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere;">' +
-                                            '<span>' + ot.text + '</span>' + assigneeTag + taskDeadlineBadge +
+                                            '<span>' + ot.text + '</span>' + assigneeTag +
                                         '</div>' +
                                     '</div>' +
                                     '<div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">' +
@@ -7430,919 +7199,6 @@ export default `<!DOCTYPE html>
             } catch (e) {
                 alert("Fehler bei der Prüfung: " + e.message);
                 setScanButtonsState(false, 'fa-solid fa-play', 'Prüfen', 'Diese Website jetzt live prüfen');
-            }
-        }
-
-        // ==========================================
-        // CALENDAR & MICROSOFT OUTLOOK CONTROLLER
-        // ==========================================
-        let currentCalendarYear = new Date().getFullYear();
-        let currentCalendarMonth = new Date().getMonth();
-        let calendarViewMode = 'month';
-        let calendarFilter = 'all';
-        let calendarEventsCache = { tasks: [], outlookEvents: [] };
-        let outlookAuthStatus = { configured: false, connected: false, email: '' };
-
-        function formatGermanDate(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return parts[2] + '.' + parts[1] + '.' + parts[0];
-            }
-            return dateStr;
-        }
-
-        const MONTH_NAMES_DE = [
-            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
-        ];
-
-        function renderTaskDeadlineBadge(item) {
-            if (!item || !item.dueDate) return '';
-            try {
-                const dueObj = new Date(item.dueDateTime || (item.dueDate + 'T23:59:59'));
-                const isOverdue = !item.completed && dueObj < new Date();
-                const formattedDate = formatGermanDate(item.dueDate) + (item.dueTime ? ' ' + item.dueTime + ' Uhr' : '');
-                const badgeColor = isOverdue ? '#ef4444' : '#38bdf8';
-                const badgeBg = isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.12)';
-                const badgeBorder = isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(56, 189, 248, 0.25)';
-                let html = '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; color: ' + badgeColor + '; background: ' + badgeBg + '; border: 1px solid ' + badgeBorder + '; margin-left: 6px;">' +
-                    '<i class="fa-regular fa-clock" style="font-size: 10px;"></i> ' + (isOverdue ? 'Überfällig: ' : '') + formattedDate +
-                '</span>';
-                if (item.syncOutlook || item.outlookEventId) {
-                    html += '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); margin-left: 4px;" title="Mit Outlook synchronisiert">' +
-                        '<i class="fa-brands fa-microsoft" style="font-size: 9.5px;"></i> Outlook' +
-                    '</span>';
-                }
-                return html;
-            } catch (_) {
-                return '';
-            }
-        }
-
-        function toggleTaskScheduleAccordion() {
-            const content = document.getElementById('task-schedule-content');
-            const chevron = document.getElementById('task-schedule-chevron');
-            if (!content) return;
-            const isOpen = content.style.display === 'flex';
-            if (isOpen) {
-                content.style.display = 'none';
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-            } else {
-                content.style.display = 'flex';
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            }
-        }
-
-        function updateScheduleBtnLabel() {
-            const dateInput = document.getElementById('task-due-date-input');
-            const timeInput = document.getElementById('task-due-time-input');
-            const label = document.getElementById('task-schedule-btn-label');
-            if (!label) return;
-
-            if (dateInput && dateInput.value) {
-                const parts = dateInput.value.split('-');
-                const dStr = parts.length === 3 ? parts[2] + '.' + parts[1] + '.' : dateInput.value;
-                const tStr = (timeInput && timeInput.value) ? ' ' + timeInput.value + ' Uhr' : '';
-                label.innerText = 'Termin: ' + dStr + tStr;
-                label.style.color = '#38bdf8';
-            } else {
-                label.innerText = 'Fälligkeitsdatum & Outlook-Termin (Optional)';
-                label.style.color = '#38bdf8';
-            }
-        }
-
-        function setTaskQuickDate(type) {
-            const dateInput = document.getElementById('task-due-date-input');
-            const timeInput = document.getElementById('task-due-time-input');
-            const syncCb = document.getElementById('task-sync-outlook-checkbox');
-            const content = document.getElementById('task-schedule-content');
-            const chevron = document.getElementById('task-schedule-chevron');
-            
-            if (content && content.style.display !== 'flex') {
-                content.style.display = 'flex';
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            }
-
-            const now = new Date();
-            let targetDate = new Date();
-
-            if (type === 'today_17') {
-                targetDate = now;
-                if (timeInput) timeInput.value = '17:00';
-                if (syncCb) syncCb.checked = true;
-            } else if (type === 'tomorrow_10') {
-                targetDate.setDate(now.getDate() + 1);
-                if (timeInput) timeInput.value = '10:00';
-                if (syncCb) syncCb.checked = true;
-            } else if (type === 'friday_12') {
-                const day = now.getDay();
-                let diff = (5 - day + 7) % 7;
-                if (diff === 0) diff = 7;
-                targetDate.setDate(now.getDate() + diff);
-                if (timeInput) timeInput.value = '12:00';
-                if (syncCb) syncCb.checked = true;
-            } else if (type === 'clear') {
-                clearTaskSchedule();
-                return;
-            }
-
-            const yyyy = targetDate.getFullYear();
-            const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(targetDate.getDate()).padStart(2, '0');
-            if (dateInput) dateInput.value = yyyy + '-' + mm + '-' + dd;
-
-            updateScheduleBtnLabel();
-        }
-
-        function clearTaskSchedule() {
-            const dateInput = document.getElementById('task-due-date-input');
-            const timeInput = document.getElementById('task-due-time-input');
-            const syncCb = document.getElementById('task-sync-outlook-checkbox');
-            if (dateInput) dateInput.value = '';
-            if (timeInput) timeInput.value = '10:00';
-            if (syncCb) syncCb.checked = false;
-            updateScheduleBtnLabel();
-        }
-
-        async function loadCalendarView() {
-            await fetchOutlookAuthStatus();
-            renderOutlookStatusBadge();
-            await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-            renderCalendar();
-        }
-
-        async function fetchOutlookAuthStatus() {
-            try {
-                const res = await fetch('/api/calendar/settings');
-                if (res.ok) {
-                    outlookAuthStatus = await res.json();
-                } else {
-                    outlookAuthStatus = { isConnected: false, outlookIcsUrl: '', eventsCount: 0 };
-                }
-            } catch (e) {
-                console.error('Failed to fetch Outlook calendar settings:', e);
-                outlookAuthStatus = { isConnected: false, outlookIcsUrl: '', eventsCount: 0 };
-            }
-        }
-
-        function renderOutlookStatusBadge() {
-            const container = document.getElementById('calendar-outlook-status-container');
-            if (!container) return;
-
-            if (outlookAuthStatus.isConnected) {
-                const count = (calendarEventsCache.outlookEvents && calendarEventsCache.outlookEvents.length) ? calendarEventsCache.outlookEvents.length : (outlookAuthStatus.eventsCount || 0);
-                container.innerHTML = 
-                    '<div style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">' +
-                        '<span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>' +
-                        '<i class="fa-brands fa-microsoft" style="font-size: 13px;"></i>' +
-                        '<span>Outlook aktiv' + (count > 0 ? ' (' + count + ')' : '') + '</span>' +
-                    '</div>' +
-                    '<button type="button" class="btn" onclick="refreshCalendarNow()" title="Kalender jetzt aktualisieren" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: #38bdf8; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2);">' +
-                        '<i class="fa-solid fa-arrows-rotate"></i> Aktualisieren' +
-                    '</button>' +
-                    '<button type="button" class="btn" onclick="openOutlookConfigModal()" title="Kalender-Einstellungen bearbeiten" style="padding: 6px 10px; font-size: 11.5px; border-radius: 6px; color: var(--text-secondary); background: rgba(255,255,255,0.04); border: 1px solid var(--border-color);">' +
-                        '<i class="fa-solid fa-gear"></i>' +
-                    '</button>';
-            } else {
-                container.innerHTML = 
-                    '<button type="button" class="btn" onclick="openOutlookConfigModal()" style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8;">' +
-                        '<i class="fa-brands fa-microsoft"></i> Outlook verbinden' +
-                    '</button>';
-            }
-        }
-
-        async function refreshCalendarNow() {
-            await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-            await fetchOutlookAuthStatus();
-            renderOutlookStatusBadge();
-            renderCalendar();
-        }
-
-        async function fetchCalendarEvents(year, month) {
-            try {
-                const res = await fetch('/api/calendar/events?year=' + year + '&month=' + (month + 1));
-                if (res.ok) {
-                    calendarEventsCache = await res.json();
-                } else {
-                    calendarEventsCache = { tasks: [], outlookEvents: [] };
-                }
-            } catch (e) {
-                console.error('Failed to fetch calendar events:', e);
-                calendarEventsCache = { tasks: [], outlookEvents: [] };
-            }
-        }
-
-        function renderCalendar() {
-            const titleEl = document.getElementById('calendar-month-title');
-            if (titleEl) {
-                titleEl.innerText = MONTH_NAMES_DE[currentCalendarMonth] + ' ' + currentCalendarYear;
-            }
-
-            const gridContainer = document.getElementById('calendar-grid-view');
-            const agendaContainer = document.getElementById('calendar-agenda-view');
-            const gridBtn = document.getElementById('cal-view-month-btn');
-            const agendaBtn = document.getElementById('cal-view-agenda-btn');
-
-            if (calendarViewMode === 'month') {
-                if (gridContainer) gridContainer.style.display = 'flex';
-                if (agendaContainer) agendaContainer.style.display = 'none';
-                if (gridBtn) {
-                    gridBtn.style.background = 'rgba(56, 189, 248, 0.18)';
-                    gridBtn.style.color = '#38bdf8';
-                    gridBtn.style.borderColor = 'rgba(56, 189, 248, 0.3)';
-                }
-                if (agendaBtn) {
-                    agendaBtn.style.background = 'transparent';
-                    agendaBtn.style.color = 'var(--text-secondary)';
-                    agendaBtn.style.borderColor = 'transparent';
-                }
-                renderCalendarMonthGrid();
-            } else {
-                if (gridContainer) gridContainer.style.display = 'none';
-                if (agendaContainer) agendaContainer.style.display = 'flex';
-                if (agendaBtn) {
-                    agendaBtn.style.background = 'rgba(56, 189, 248, 0.18)';
-                    agendaBtn.style.color = '#38bdf8';
-                    agendaBtn.style.borderColor = 'rgba(56, 189, 248, 0.3)';
-                }
-                if (gridBtn) {
-                    gridBtn.style.background = 'transparent';
-                    gridBtn.style.color = 'var(--text-secondary)';
-                    gridBtn.style.borderColor = 'transparent';
-                }
-                renderCalendarAgenda();
-            }
-        }
-
-        function navigateCalendarMonth(direction) {
-            currentCalendarMonth += direction;
-            if (currentCalendarMonth < 0) {
-                currentCalendarMonth = 11;
-                currentCalendarYear -= 1;
-            } else if (currentCalendarMonth > 11) {
-                currentCalendarMonth = 0;
-                currentCalendarYear += 1;
-            }
-            loadCalendarView();
-        }
-
-        function goToCurrentCalendarMonth() {
-            currentCalendarYear = new Date().getFullYear();
-            currentCalendarMonth = new Date().getMonth();
-            loadCalendarView();
-        }
-
-        function setCalendarFilter(filter) {
-            calendarFilter = filter;
-            ['all', 'tasks', 'outlook'].forEach(f => {
-                const btn = document.getElementById('cal-filter-' + f);
-                if (!btn) return;
-                if (f === filter) {
-                    btn.style.background = 'rgba(59, 130, 246, 0.25)';
-                    btn.style.color = '#fff';
-                } else {
-                    btn.style.background = 'transparent';
-                    btn.style.color = 'var(--text-secondary)';
-                }
-            });
-            renderCalendar();
-        }
-
-        function setCalendarViewMode(mode) {
-            calendarViewMode = mode;
-            renderCalendar();
-        }
-
-        function getFilteredCalendarItems(dateStr) {
-            const allTasks = calendarEventsCache.tasks || [];
-            const allOutlook = calendarEventsCache.outlookEvents || [];
-
-            let matchingTasks = allTasks.filter(t => t.dueDate === dateStr);
-            let matchingOutlook = allOutlook.filter(o => o.dueDate === dateStr);
-
-            if (calendarFilter === 'tasks') {
-                return { tasks: matchingTasks, outlook: [] };
-            } else if (calendarFilter === 'outlook') {
-                return { tasks: [], outlook: matchingOutlook };
-            }
-            return { tasks: matchingTasks, outlook: matchingOutlook };
-        }
-
-        function renderCalendarMonthGrid() {
-            const container = document.getElementById('calendar-days-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const today = new Date();
-            const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-
-            const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
-            let startDayIndex = firstDay.getDay() - 1;
-            if (startDayIndex === -1) startDayIndex = 6;
-
-            const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
-            const daysInPrevMonth = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
-
-            const totalCells = (startDayIndex + daysInMonth > 35) ? 42 : 35;
-
-            for (let i = 0; i < totalCells; i++) {
-                const cell = document.createElement('div');
-                cell.style.background = 'rgba(0, 0, 0, 0.2)';
-                cell.style.border = '1px solid rgba(255, 255, 255, 0.05)';
-                cell.style.borderRadius = '8px';
-                cell.style.padding = '8px';
-                cell.style.display = 'flex';
-                cell.style.flexDirection = 'column';
-                cell.style.minHeight = '95px';
-                cell.style.position = 'relative';
-                cell.style.transition = 'var(--transition-smooth)';
-                cell.style.boxSizing = 'border-box';
-
-                let dayNumber = 0;
-                let isCurrentMonth = true;
-                let cellDateStr = '';
-
-                if (i < startDayIndex) {
-                    isCurrentMonth = false;
-                    dayNumber = daysInPrevMonth - (startDayIndex - i - 1);
-                    const prevM = currentCalendarMonth === 0 ? 12 : currentCalendarMonth;
-                    const prevY = currentCalendarMonth === 0 ? currentCalendarYear - 1 : currentCalendarYear;
-                    cellDateStr = prevY + '-' + String(prevM).padStart(2, '0') + '-' + String(dayNumber).padStart(2, '0');
-                    cell.style.opacity = '0.35';
-                } else if (i >= startDayIndex + daysInMonth) {
-                    isCurrentMonth = false;
-                    dayNumber = i - (startDayIndex + daysInMonth) + 1;
-                    const nextM = currentCalendarMonth === 11 ? 1 : currentCalendarMonth + 2;
-                    const nextY = currentCalendarMonth === 11 ? currentCalendarYear + 1 : currentCalendarYear;
-                    cellDateStr = nextY + '-' + String(nextM).padStart(2, '0') + '-' + String(dayNumber).padStart(2, '0');
-                    cell.style.opacity = '0.35';
-                } else {
-                    dayNumber = i - startDayIndex + 1;
-                    cellDateStr = currentCalendarYear + '-' + String(currentCalendarMonth + 1).padStart(2, '0') + '-' + String(dayNumber).padStart(2, '0');
-                }
-
-                const isToday = cellDateStr === todayStr;
-                if (isToday) {
-                    cell.style.border = '1px solid rgba(56, 189, 248, 0.5)';
-                    cell.style.background = 'rgba(56, 189, 248, 0.04)';
-                    cell.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.15) inset';
-                }
-
-                const cellHeader = document.createElement('div');
-                cellHeader.style.display = 'flex';
-                cellHeader.style.justifyContent = 'space-between';
-                cellHeader.style.alignItems = 'center';
-                cellHeader.style.marginBottom = '6px';
-
-                const dayNumSpan = document.createElement('span');
-                dayNumSpan.style.fontSize = '12.5px';
-                dayNumSpan.style.fontWeight = isToday ? '800' : '600';
-                dayNumSpan.style.color = isToday ? '#38bdf8' : (isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)');
-                if (isToday) {
-                    dayNumSpan.innerHTML = '<span style="background: #38bdf8; color: #0c0f17; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">' + dayNumber + '</span>';
-                } else {
-                    dayNumSpan.innerText = dayNumber;
-                }
-
-                const addBtn = document.createElement('button');
-                addBtn.type = 'button';
-                addBtn.className = 'btn';
-                addBtn.innerHTML = '<i class="fa-solid fa-plus" style="font-size: 9px;"></i>';
-                addBtn.title = 'Aufgabe / Termin am ' + formatGermanDate(cellDateStr) + ' hinzufügen';
-                addBtn.style.padding = '2px 5px';
-                addBtn.style.borderRadius = '4px';
-                addBtn.style.background = 'rgba(255,255,255,0.05)';
-                addBtn.style.border = 'none';
-                addBtn.style.color = 'var(--text-secondary)';
-                addBtn.style.opacity = '0.5';
-                addBtn.style.cursor = 'pointer';
-                addBtn.onmouseenter = () => { addBtn.style.opacity = '1'; addBtn.style.color = '#38bdf8'; };
-                addBtn.onmouseleave = () => { addBtn.style.opacity = '0.5'; addBtn.style.color = 'var(--text-secondary)'; };
-                addBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openNewCalendarEventModal(cellDateStr);
-                };
-
-                cellHeader.appendChild(dayNumSpan);
-                cellHeader.appendChild(addBtn);
-                cell.appendChild(cellHeader);
-
-                const itemsList = document.createElement('div');
-                itemsList.style.display = 'flex';
-                itemsList.style.flexDirection = 'column';
-                itemsList.style.gap = '4px';
-                itemsList.style.overflowY = 'auto';
-                itemsList.style.maxHeight = '100px';
-
-                const { tasks, outlook } = getFilteredCalendarItems(cellDateStr);
-
-                tasks.forEach(t => {
-                    const pill = document.createElement('div');
-                    pill.style.display = 'flex';
-                    pill.style.alignItems = 'center';
-                    pill.style.gap = '5px';
-                    pill.style.padding = '3px 6px';
-                    pill.style.borderRadius = '5px';
-                    pill.style.fontSize = '11px';
-                    pill.style.cursor = 'pointer';
-                    pill.style.whiteSpace = 'nowrap';
-                    pill.style.overflow = 'hidden';
-                    pill.style.textOverflow = 'ellipsis';
-                    pill.style.boxSizing = 'border-box';
-
-                    const isDone = !!t.completed;
-                    let pillBg = 'rgba(59, 130, 246, 0.15)';
-                    let pillBorder = 'rgba(59, 130, 246, 0.3)';
-                    let pillColor = '#93c5fd';
-                    let iconColor = '#60a5fa';
-
-                    if (t.assignee === 'basti') {
-                        pillBg = 'rgba(236, 72, 153, 0.15)';
-                        pillBorder = 'rgba(244, 114, 182, 0.35)';
-                        pillColor = '#f9a8d4';
-                        iconColor = '#f472b6';
-                    } else if (isDone) {
-                        pillBg = 'rgba(255, 255, 255, 0.05)';
-                        pillBorder = 'rgba(255, 255, 255, 0.1)';
-                        pillColor = 'var(--text-secondary)';
-                        iconColor = 'var(--text-secondary)';
-                    }
-
-                    pill.style.background = pillBg;
-                    pill.style.border = '1px solid ' + pillBorder;
-                    pill.style.color = pillColor;
-                    if (isDone) pill.style.textDecoration = 'line-through';
-
-                    const timePart = t.dueTime ? '<span style="font-weight: 700; opacity: 0.85;">' + t.dueTime + '</span> ' : '';
-                    pill.innerHTML = 
-                        '<i class="fa-solid fa-list-check" style="font-size: 9.5px; color: ' + iconColor + '; flex-shrink: 0;"></i>' +
-                        '<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + timePart + t.title + '</span>';
-                    pill.title = t.title + ' (' + (t.dueTime || 'Keine Uhrzeit') + ')' + (t.clientName ? ' • ' + t.clientName : '');
-
-                    pill.onclick = (e) => {
-                        e.stopPropagation();
-                        openCalendarEventModal(t.id, 'task');
-                    };
-
-                    itemsList.appendChild(pill);
-                });
-
-                outlook.forEach(o => {
-                    const pill = document.createElement('div');
-                    pill.style.display = 'flex';
-                    pill.style.alignItems = 'center';
-                    pill.style.gap = '5px';
-                    pill.style.padding = '3px 6px';
-                    pill.style.borderRadius = '5px';
-                    pill.style.fontSize = '11px';
-                    pill.style.cursor = 'pointer';
-                    pill.style.whiteSpace = 'nowrap';
-                    pill.style.overflow = 'hidden';
-                    pill.style.textOverflow = 'ellipsis';
-                    pill.style.boxSizing = 'border-box';
-                    pill.style.background = 'rgba(0, 120, 212, 0.18)';
-                    pill.style.border = '1px solid rgba(0, 120, 212, 0.35)';
-                    pill.style.color = '#7dd3fc';
-
-                    const timePart = o.dueTime ? '<span style="font-weight: 700; opacity: 0.9;">' + o.dueTime + '</span> ' : '';
-                    pill.innerHTML = 
-                        '<i class="fa-brands fa-microsoft" style="font-size: 10px; color: #38bdf8; flex-shrink: 0;"></i>' +
-                        '<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + timePart + o.title + '</span>';
-                    pill.title = 'Outlook: ' + o.title + ' (' + (o.dueTime || '') + ')';
-
-                    pill.onclick = (e) => {
-                        e.stopPropagation();
-                        openCalendarEventModal(o.id, 'outlook');
-                    };
-
-                    itemsList.appendChild(pill);
-                });
-
-                cell.appendChild(itemsList);
-
-                cell.style.cursor = 'pointer';
-                cell.onclick = () => {
-                    openNewCalendarEventModal(cellDateStr);
-                };
-
-                container.appendChild(cell);
-            }
-        }
-
-        function renderCalendarAgenda() {
-            const container = document.getElementById('calendar-agenda-list');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const allTasks = (calendarEventsCache.tasks || []).map(t => Object.assign({}, t, { itemType: 'task' }));
-            const allOutlook = (calendarEventsCache.outlookEvents || []).map(o => Object.assign({}, o, { itemType: 'outlook' }));
-
-            let combined = [];
-            if (calendarFilter === 'tasks') {
-                combined = allTasks;
-            } else if (calendarFilter === 'outlook') {
-                combined = allOutlook;
-            } else {
-                combined = allTasks.concat(allOutlook);
-            }
-
-            combined.sort((a, b) => {
-                const dateA = (a.dueDate || '') + ' ' + (a.dueTime || '00:00');
-                const dateB = (b.dueDate || '') + ' ' + (b.dueTime || '00:00');
-                return dateA.localeCompare(dateB);
-            });
-
-            if (combined.length === 0) {
-                container.innerHTML = 
-                    '<div style="font-size: 13.5px; color: var(--text-secondary); text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed var(--border-color);">' +
-                        '<i class="fa-solid fa-calendar-xmark" style="font-size: 24px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>' +
-                        'Keine Termine oder Aufgaben für den aktuellen Filter im ' + MONTH_NAMES_DE[currentCalendarMonth] + ' ' + currentCalendarYear + '.' +
-                    '</div>';
-                return;
-            }
-
-            const groups = {};
-            combined.forEach(item => {
-                const d = item.dueDate || 'Ohne Datum';
-                if (!groups[d]) groups[d] = [];
-                groups[d].push(item);
-            });
-
-            Object.keys(groups).forEach(dateKey => {
-                const groupWrapper = document.createElement('div');
-                groupWrapper.style.display = 'flex';
-                groupWrapper.style.flexDirection = 'column';
-                groupWrapper.style.gap = '8px';
-
-                const groupHeader = document.createElement('div');
-                groupHeader.style.display = 'flex';
-                groupHeader.style.alignItems = 'center';
-                groupHeader.style.gap = '8px';
-                groupHeader.style.fontSize = '13px';
-                groupHeader.style.fontWeight = '700';
-                groupHeader.style.color = '#38bdf8';
-                groupHeader.style.padding = '6px 0';
-                groupHeader.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
-
-                const dayName = dateKey !== 'Ohne Datum' ? new Date(dateKey + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'long' }) : '';
-                groupHeader.innerHTML = 
-                    '<i class="fa-regular fa-calendar" style="font-size: 12px;"></i>' +
-                    '<span>' + formatGermanDate(dateKey) + ' ' + (dayName ? '(' + dayName + ')' : '') + '</span>' +
-                    '<span style="font-size: 11px; opacity: 0.6; font-weight: normal;">• ' + groups[dateKey].length + ' Eintrag/Einträge</span>';
-                groupWrapper.appendChild(groupHeader);
-
-                groups[dateKey].forEach(item => {
-                    const row = document.createElement('div');
-                    row.className = 'drive-item';
-                    row.style.display = 'flex';
-                    row.style.alignItems = 'center';
-                    row.style.justifyContent = 'space-between';
-                    row.style.padding = '12px 14px';
-                    row.style.borderRadius = '8px';
-                    row.style.gap = '12px';
-                    row.style.background = item.itemType === 'outlook' ? 'rgba(0, 120, 212, 0.08)' : 'rgba(59, 130, 246, 0.06)';
-                    row.style.borderColor = item.itemType === 'outlook' ? 'rgba(0, 120, 212, 0.25)' : 'rgba(59, 130, 246, 0.2)';
-
-                    const isDone = !!item.completed;
-                    const icon = item.itemType === 'outlook' 
-                        ? '<i class="fa-brands fa-microsoft" style="color: #38bdf8; font-size: 15px;"></i>' 
-                        : '<i class="fa-solid fa-list-check" style="color: #60a5fa; font-size: 15px;"></i>';
-
-                    const meta = [];
-                    if (item.dueTime) meta.push('⏰ ' + item.dueTime + ' Uhr');
-                    if (item.clientName) meta.push('👤 Kunde: ' + item.clientName);
-                    if (item.assignee) meta.push('Bearbeiter: ' + (item.assignee === 'adrian' ? 'Adrian' : 'Basti'));
-                    if (item.itemType === 'outlook') meta.push('📅 Outlook-Termin');
-
-                    let actionsHtml = '';
-                    if (item.itemType === 'task') {
-                        actionsHtml += 
-                            '<button type="button" class="btn" onclick="toggleCalendarTask(&quot;' + item.id + '&quot;)" title="Als erledigt markieren" style="padding: 5px 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
-                                '<i class="fa-solid fa-check"></i>' +
-                            '</button>' +
-                            '<button type="button" class="btn" onclick="deleteCalendarTask(&quot;' + item.id + '&quot;)" title="Löschen" style="padding: 5px 8px; font-size: 11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
-                                '<i class="fa-solid fa-trash"></i>' +
-                            '</button>';
-                    }
-                    if (item.webLink) {
-                        actionsHtml += 
-                            '<a href="' + item.webLink + '" target="_blank" class="btn" title="In Microsoft Outlook öffnen" style="padding: 5px 10px; font-size: 11px; background: rgba(0, 120, 212, 0.15); border: 1px solid rgba(0, 120, 212, 0.3); color: #38bdf8; display: inline-flex; align-items: center; gap: 5px; text-decoration: none;">' +
-                                '<i class="fa-brands fa-microsoft"></i> In Outlook öffnen' +
-                            '</a>';
-                    }
-
-                    row.innerHTML = 
-                        '<div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex-grow: 1;">' +
-                            '<div style="flex-shrink: 0;">' + icon + '</div>' +
-                            '<div style="min-width: 0; flex-grow: 1;">' +
-                                '<div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);' + (isDone ? ' text-decoration: line-through; opacity: 0.6;' : '') + '">' +
-                                    item.title +
-                                '</div>' +
-                                '<div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px;">' +
-                                    meta.join(' &bull; ') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">' +
-                            actionsHtml +
-                        '</div>';
-
-                    groupWrapper.appendChild(row);
-                });
-
-                container.appendChild(groupWrapper);
-            });
-        }
-
-        function openNewCalendarEventModal(prefilledDate) {
-            const dateToUse = prefilledDate || new Date().toISOString().split('T')[0];
-            openCustomTaskModal(dateToUse);
-            const content = document.getElementById('task-schedule-content');
-            const chevron = document.getElementById('task-schedule-chevron');
-            if (content) {
-                content.style.display = 'flex';
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            }
-        }
-
-        function openCalendarEventModal(id, itemType) {
-            const modal = document.getElementById('calendar-event-modal');
-            if (!modal) return;
-
-            let item = null;
-            if (itemType === 'task') {
-                item = (calendarEventsCache.tasks || []).find(t => t.id === id);
-            } else {
-                item = (calendarEventsCache.outlookEvents || []).find(o => o.id === id);
-            }
-
-            if (!item) return;
-
-            const badgeEl = document.getElementById('cal-modal-badge');
-            const titleEl = document.getElementById('cal-modal-title');
-            const datetimeEl = document.getElementById('cal-modal-datetime');
-            const clientRow = document.getElementById('cal-modal-client-row');
-            const clientEl = document.getElementById('cal-modal-client');
-            const assigneeRow = document.getElementById('cal-modal-assignee-row');
-            const assigneeEl = document.getElementById('cal-modal-assignee');
-            const descRow = document.getElementById('cal-modal-desc-row');
-            const descEl = document.getElementById('cal-modal-desc');
-            const actionsEl = document.getElementById('cal-modal-actions');
-
-            if (itemType === 'task') {
-                badgeEl.style.background = 'rgba(59, 130, 246, 0.18)';
-                badgeEl.style.color = '#60a5fa';
-                badgeEl.innerHTML = '<i class="fa-solid fa-list-check"></i> Aufgabe / Deadline';
-            } else {
-                badgeEl.style.background = 'rgba(0, 120, 212, 0.18)';
-                badgeEl.style.color = '#38bdf8';
-                badgeEl.innerHTML = '<i class="fa-brands fa-microsoft"></i> Microsoft Outlook Termin';
-            }
-
-            titleEl.innerText = item.title || item.subject || 'Ohne Titel';
-            datetimeEl.innerText = formatGermanDate(item.dueDate) + (item.dueTime ? ' um ' + item.dueTime + ' Uhr' : '');
-
-            if (item.clientName) {
-                clientRow.style.display = 'flex';
-                clientEl.innerText = item.clientName;
-            } else {
-                clientRow.style.display = 'none';
-            }
-
-            if (item.assignee) {
-                assigneeRow.style.display = 'flex';
-                assigneeEl.innerText = item.assignee === 'adrian' ? 'Adrian' : (item.assignee === 'basti' ? 'Basti' : item.assignee);
-            } else {
-                assigneeRow.style.display = 'none';
-            }
-
-            const locRow = document.getElementById('cal-modal-location-row');
-            const locEl = document.getElementById('cal-modal-location');
-            if (locRow && locEl) {
-                if (item.location) {
-                    locRow.style.display = 'flex';
-                    locEl.innerText = item.location;
-                } else {
-                    locRow.style.display = 'none';
-                }
-            }
-
-            if (item.description || item.bodyPreview) {
-                descRow.style.display = 'flex';
-                descEl.innerText = item.description || item.bodyPreview;
-            } else {
-                descRow.style.display = 'none';
-            }
-
-            if (actionsEl) {
-                if (itemType === 'task') {
-                    const hasDate = !!(item.dueDate || item.dueDateTime);
-                    actionsEl.innerHTML = 
-                        '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
-                            '<button type="button" class="btn" onclick="toggleCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-green);">' +
-                                '<i class="fa-solid fa-check"></i> ' + (item.completed ? 'Als offen markieren' : 'Als erledigt markieren') +
-                            '</button>' +
-                            (hasDate ? 
-                                '<button type="button" class="btn btn-primary" onclick="exportTaskToIcs(&quot;' + item.id + '&quot;)" title="Termin direkt als .ics herunterladen und in Outlook öffnen" style="padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">' +
-                                    '<i class="fa-brands fa-microsoft"></i> In Outlook öffnen (.ics)' +
-                                '</button>' +
-                                '<button type="button" class="btn" onclick="openTaskInOutlookWeb(&quot;' + item.id + '&quot;)" title="Direkt in Outlook Web erstellen" style="padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 164, 239, 0.15); border: 1px solid rgba(0, 164, 239, 0.3); color: #38bdf8;">' +
-                                    '<i class="fa-solid fa-arrow-up-right-from-square"></i> Outlook Web' +
-                                '</button>' : '') +
-                            '<button type="button" class="btn" onclick="deleteCalendarTask(&quot;' + item.id + '&quot;); closeCalendarEventModal();" style="padding: 7px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--color-red);">' +
-                                '<i class="fa-solid fa-trash"></i> Löschen' +
-                            '</button>' +
-                        '</div>' +
-                        '<button type="button" class="btn" onclick="closeCalendarEventModal()">Schließen</button>';
-                } else {
-                    actionsEl.innerHTML = 
-                        '<div>' +
-                            (item.webLink ? 
-                                '<a href="' + item.webLink + '" target="_blank" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; text-decoration: none;">' +
-                                    '<i class="fa-brands fa-microsoft"></i> In Outlook öffnen' +
-                                '</a>' : '') +
-                        '</div>' +
-                        '<button type="button" class="btn" onclick="closeCalendarEventModal()">Schließen</button>';
-                }
-            }
-
-            modal.style.display = 'flex';
-        }
-
-        function exportTaskToIcs(taskId) {
-            const task = (calendarEventsCache.tasks || []).find(t => t.id === taskId);
-            if (!task) return;
-            const downloadUrl = '/api/calendar/task/' + encodeURIComponent(taskId) + '.ics';
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = (task.title || 'termin').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_') + '.ics';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function openTaskInOutlookWeb(taskId) {
-            const task = (calendarEventsCache.tasks || []).find(t => t.id === taskId);
-            if (!task) return;
-            const date = task.dueDate || (task.dueDateTime ? task.dueDateTime.split('T')[0] : '');
-            const time = task.dueTime || '10:00';
-            const title = encodeURIComponent((task.clientName ? '[' + task.clientName + '] ' : '') + (task.title || 'Aufgabe'));
-            const parts = (time || '10:00').split(':');
-            const h = parseInt(parts[0], 10) || 10;
-            const m = parseInt(parts[1], 10) || 0;
-            const endHour = String(h + 1).padStart(2, '0');
-            const endMinute = String(m).padStart(2, '0');
-            const startDt = date ? encodeURIComponent(date + 'T' + time + ':00') : '';
-            const endDt = date ? encodeURIComponent(date + 'T' + endHour + ':' + endMinute + ':00') : '';
-            const body = encodeURIComponent(
-                (task.clientName ? 'Kunde: ' + task.clientName + '\n' : '') +
-                (task.assignee ? 'Zuständig: ' + (task.assignee === 'adrian' ? 'Adrian' : task.assignee) + '\n' : '') +
-                (task.description || '')
-            );
-            const url = 'https://outlook.live.com/calendar/0/deeplink/compose?subject=' + title + '&startdt=' + startDt + '&enddt=' + endDt + '&body=' + body + '&path=%2Fcalendar%2Faction%2Fcompose';
-            window.open(url, '_blank');
-        }
-
-        function closeCalendarEventModal() {
-            const modal = document.getElementById('calendar-event-modal');
-            if (!modal) return;
-            modal.style.display = 'none';
-        }
-
-        async function toggleCalendarTask(taskId) {
-            await toggleCustomTask(taskId);
-            await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-            renderCalendar();
-        }
-
-        async function deleteCalendarTask(taskId) {
-            if (!confirm('Möchtest du diese Aufgabe wirklich löschen?')) return;
-            await deleteCustomTask(taskId);
-            await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-            renderCalendar();
-        }
-
-        async function openOutlookConfigModal() {
-            const modal = document.getElementById('outlook-config-modal');
-            if (!modal) return;
-
-            const feedDisplay = document.getElementById('gustav-feed-url-display');
-            const icsInput = document.getElementById('outlook-ics-url-input');
-            const statusPill = document.getElementById('outlook-sync-status-pill');
-            const disconnectBtn = document.getElementById('btn-disconnect-outlook-ics');
-            const webcalBtn = document.getElementById('gustav-webcal-link');
-
-            try {
-                const res = await fetch('/api/calendar/settings');
-                if (res.ok) {
-                    const data = await res.json();
-                    const feedUrl = data.feedUrl || (window.location.origin + '/api/calendar/feed.ics');
-                    const webcalUrl = data.webcalUrl || feedUrl.replace(/^https?:\/\//i, 'webcal://');
-                    if (feedDisplay) feedDisplay.innerText = feedUrl;
-                    if (webcalBtn) webcalBtn.href = webcalUrl;
-                    if (icsInput && !icsInput.value) icsInput.value = data.outlookIcsUrl || '';
-                    if (statusPill) {
-                        if (data.isConnected) {
-                            statusPill.style.display = 'inline-block';
-                            statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
-                            statusPill.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-                            statusPill.style.color = '#34d399';
-                            statusPill.innerHTML = '<i class="fa-solid fa-check"></i> Verbunden' + (data.eventsCount ? ' (' + data.eventsCount + ' Termine)' : '');
-                        } else {
-                            statusPill.style.display = 'none';
-                        }
-                    }
-                    if (disconnectBtn) {
-                        disconnectBtn.style.display = data.isConnected ? 'inline-flex' : 'none';
-                    }
-                }
-            } catch (err) {
-                console.error('Error loading calendar settings:', err);
-                const defaultFeed = window.location.origin + '/api/calendar/feed.ics';
-                if (feedDisplay) feedDisplay.innerText = defaultFeed;
-                if (webcalBtn) webcalBtn.href = defaultFeed.replace(/^https?:\/\//i, 'webcal://');
-            }
-
-            modal.style.display = 'flex';
-        }
-
-        function closeOutlookConfigModal() {
-            const modal = document.getElementById('outlook-config-modal');
-            if (!modal) return;
-            modal.style.display = 'none';
-        }
-
-        function copyGustavFeedUrl() {
-            const feedDisplay = document.getElementById('gustav-feed-url-display');
-            const url = feedDisplay ? feedDisplay.innerText : (window.location.origin + '/api/calendar/feed.ics');
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Kalenderlink in Zwischenablage kopiert!\\n\\nIn Outlook: „Kalender hinzufügen“ -> „Aus dem Internet abonnieren“ wählen und diesen Link einfügen.');
-            }).catch(() => {
-                prompt('Bitte kopiere diesen Link:', url);
-            });
-        }
-
-        async function handleSaveOutlookIcs(e) {
-            e.preventDefault();
-            const input = document.getElementById('outlook-ics-url-input');
-            const urlVal = input ? input.value.trim() : '';
-            const btn = document.getElementById('btn-save-outlook-ics');
-
-            if (!urlVal) {
-                alert('Bitte trage deinen Outlook-Kalenderlink (ICS) ein.');
-                return;
-            }
-
-            try {
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lade Outlook-Termine...';
-                }
-
-                const res = await fetch('/api/calendar/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ outlookIcsUrl: urlVal })
-                });
-
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    alert(data.message || 'Outlook-Kalender erfolgreich verknüpft!');
-                    closeOutlookConfigModal();
-                    await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-                    await fetchOutlookAuthStatus();
-                    renderOutlookStatusBadge();
-                    renderCalendar();
-                } else {
-                    alert('Fehler beim Synchronisieren: ' + (data.error || 'Unbekannter Fehler'));
-                }
-            } catch (err) {
-                alert('Verbindungsfehler: ' + err.message);
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Speichern & Termine laden';
-                }
-            }
-        }
-
-        async function handleDisconnectOutlookIcs() {
-            if (!confirm('Möchtest du die Kalender-Synchronisation mit Outlook wirklich trennen?')) return;
-            try {
-                const res = await fetch('/api/calendar/disconnect', { method: 'POST' });
-                if (res.ok) {
-                    alert('Outlook-Kalender getrennt.');
-                    closeOutlookConfigModal();
-                    await fetchCalendarEvents(currentCalendarYear, currentCalendarMonth);
-                    await fetchOutlookAuthStatus();
-                    renderOutlookStatusBadge();
-                    renderCalendar();
-                } else {
-                    alert('Fehler beim Trennen.');
-                }
-            } catch (err) {
-                alert('Fehler: ' + err.message);
             }
         }
     </script>
