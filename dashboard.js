@@ -2255,6 +2255,37 @@ export default `<!DOCTYPE html>
                 </div>
             </div>
 
+            <!-- PERSISTENTE AGENTUR-OPTIMIERUNGEN (SECURITY & SEO/GEO) -->
+            <div id="agency-recommendations-card" class="card" style="padding: 22px 24px; border-left: 4px solid var(--color-cyan); display: flex; flex-direction: column; gap: 14px; background: rgba(15, 23, 42, 0.75);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                            <i class="fa-solid fa-lightbulb" style="font-size: 16px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.2px;">
+                                Aktive Agentur-Optimierungen (Security & SEO/GEO)
+                            </h3>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                Bleibt dauerhaft erhalten, unabhängig vom ausgewählten Bericht. Kopiere den Prompt und klicke auf "Erledigt", sobald umgesetzt.
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="agency-recs-count-badge" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                            Lade Optimierungen...
+                        </span>
+                        <button type="button" class="btn" onclick="loadAgencyRecommendations(true)" title="Optimierungen neu laden" style="padding: 6px 10px; font-size: 12px;">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="agency-recommendations-list" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Wird dynamisch befüllt -->
+                </div>
+            </div>
+
             <!-- KPI Summary Row -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px;">
                 <div class="card" style="padding: 18px 20px; border-left: 3px solid var(--color-cyan);">
@@ -6235,8 +6266,184 @@ export default `<!DOCTYPE html>
             return '<span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#94a3b8; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600;">⚪ SKIP (.dev)</span>';
         }
 
+        // --- PERSISTENTE AGENTUR-OPTIMIERUNGEN (SECURITY & SEO/GEO) ---
+        let agencyRecommendationsCache = null;
+
+        async function loadAgencyRecommendations(forceRefresh = false) {
+            const listEl = document.getElementById('agency-recommendations-list');
+            const badgeEl = document.getElementById('agency-recs-count-badge');
+            if (!listEl) return;
+
+            if (agencyRecommendationsCache !== null && !forceRefresh) {
+                renderAgencyRecommendations();
+                return;
+            }
+
+            try {
+                if (badgeEl) badgeEl.innerText = 'Lade...';
+                const res = await fetch('/api/security/recommendations');
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.recommendations)) {
+                    agencyRecommendationsCache = data.recommendations;
+                } else {
+                    agencyRecommendationsCache = [];
+                }
+                renderAgencyRecommendations();
+            } catch (e) {
+                console.error('Fehler beim Laden der persistenten Optimierungen:', e);
+                if (badgeEl) badgeEl.innerText = 'Fehler';
+                if (agencyRecommendationsCache === null) agencyRecommendationsCache = [];
+                renderAgencyRecommendations();
+            }
+        }
+
+        function renderAgencyRecommendations() {
+            const listEl = document.getElementById('agency-recommendations-list');
+            const badgeEl = document.getElementById('agency-recs-count-badge');
+            if (!listEl) return;
+
+            const recs = Array.isArray(agencyRecommendationsCache) ? agencyRecommendationsCache : [];
+            window.agencyPromptsMap = {};
+
+            if (badgeEl) {
+                if (recs.length === 0) {
+                    badgeEl.innerText = '0 Optimierungen';
+                    badgeEl.style.color = '#34d399';
+                    badgeEl.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    badgeEl.style.background = 'rgba(16, 185, 129, 0.12)';
+                } else {
+                    badgeEl.innerText = recs.length + ' offen';
+                    badgeEl.style.color = '#38bdf8';
+                    badgeEl.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                    badgeEl.style.background = 'rgba(56, 189, 248, 0.12)';
+                }
+            }
+
+            if (recs.length === 0) {
+                listEl.innerHTML = '<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 14px 16px; color: #34d399; font-size: 13px; display: flex; align-items: center; gap: 10px;">' +
+                    '<i class="fa-solid fa-circle-check" style="font-size: 18px;"></i>' +
+                    '<div><strong>Alle Optimierungen erledigt:</strong> Aktuell stehen keine offenen Security- oder SEO/GEO-Handlungsempfehlungen aus. Alle Kunden-Websites sind auf dem neuesten Stand.</div>' +
+                    '</div>';
+                return;
+            }
+
+            let html = '';
+            recs.forEach((rec, idx) => {
+                const pId = 'agency_p_' + idx;
+                window.agencyPromptsMap[pId] = rec.antigravityCommand || '';
+
+                const isSeo = (rec.category && rec.category.includes('SEO')) || rec.targetWorker;
+                const cardBg = isSeo ? 'rgba(168, 85, 247, 0.05)' : 'rgba(56, 189, 248, 0.05)';
+                const cardBorder = isSeo ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.25)';
+                const iconClass = isSeo ? 'fa-solid fa-chart-line' : 'fa-solid fa-shield-halved';
+                const accentColor = isSeo ? '#c084fc' : '#38bdf8';
+                const typeLabel = isSeo ? 'SEO, GEO &amp; AI-SEARCH' : 'WEB-SECURITY &amp; HEADERS';
+                const severity = rec.severity || (isSeo ? 'OPTIMIERUNG' : 'HINWEIS');
+                const severityBg = (severity === 'HIGH' || severity === 'KRITISCH') ? 'rgba(239,68,68,0.15)' : ((severity === 'MEDIUM') ? 'rgba(245,158,11,0.15)' : 'rgba(168,85,247,0.15)');
+                const severityColor = (severity === 'HIGH' || severity === 'KRITISCH') ? '#f87171' : ((severity === 'MEDIUM') ? '#fbbf24' : '#c084fc');
+                const severityBorder = (severity === 'HIGH' || severity === 'KRITISCH') ? 'rgba(239,68,68,0.3)' : ((severity === 'MEDIUM') ? 'rgba(245,158,11,0.3)' : 'rgba(168,85,247,0.3)');
+
+                html += '<div style="background: ' + cardBg + '; border: 1px solid ' + cardBorder + '; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">';
+                
+                // Header line
+                html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">';
+                html += '<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
+                html += '<span style="font-size: 11px; font-weight: 700; color: ' + accentColor + '; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 5px;"><i class="' + iconClass + '"></i> ' + typeLabel + '</span>';
+                if (rec.targetWorker) {
+                    html += '<span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3);">⚡ ' + escapeSecHtml(rec.targetWorker) + '</span>';
+                }
+                html += '</div>';
+                html += '<span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: ' + severityBg + '; color: ' + severityColor + '; border: 1px solid ' + severityBorder + ';">' + escapeSecHtml(severity) + '</span>';
+                html += '</div>';
+
+                // Title & Description
+                html += '<div style="font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3;">' + escapeSecHtml(rec.title) + '</div>';
+                html += '<div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;">' + escapeSecHtml(rec.description) + '</div>';
+
+                // Action Buttons Row
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">';
+                
+                // Copy Prompt Button
+                if (rec.antigravityCommand) {
+                    html += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyAgencyPrompt(this)" style="padding: 6px 12px; font-size: 11.5px; font-weight: 700; background: rgba(59,130,246,0.18); border: 1px solid rgba(59,130,246,0.4); color: #60a5fa; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">' +
+                        '<i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren' +
+                        '</button>';
+                } else {
+                    html += '<div></div>';
+                }
+
+                // Dismiss / Erledigt Button
+                const recId = rec.id || '';
+                html += '<button type="button" class="btn" data-rec-id="' + escapeSecHtml(recId) + '" onclick="dismissAgencyRecommendation(this)" style="padding: 6px 12px; font-size: 11.5px; font-weight: 700; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34d399; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">' +
+                    '<i class="fa-solid fa-check"></i> Als erledigt entfernen' +
+                    '</button>';
+
+                html += '</div>';
+
+                html += '</div>';
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function copyAgencyPrompt(btnEl) {
+            const promptId = btnEl ? btnEl.getAttribute('data-prompt-id') : null;
+            const cmd = (window.agencyPromptsMap && window.agencyPromptsMap[promptId]) ? window.agencyPromptsMap[promptId] : null;
+            if (!cmd) return;
+            try {
+                await navigator.clipboard.writeText(cmd);
+                const orig = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34d399;"></i> <span style="color:#34d399;">Prompt kopiert!</span>';
+                if (typeof showToast === 'function') {
+                    showToast('Antigravity-Prompt in Zwischenablage kopiert!', 'success');
+                }
+                setTimeout(() => { btnEl.innerHTML = orig; }, 3000);
+            } catch (e) {
+                alert('Kopieren fehlgeschlagen: ' + e.message);
+            }
+        }
+
+        async function dismissAgencyRecommendation(btnEl) {
+            const recId = btnEl ? btnEl.getAttribute('data-rec-id') : null;
+            if (!recId) return;
+
+            if (!confirm('Diese Optimierung als erledigt markieren und dauerhaft entfernen?')) {
+                return;
+            }
+
+            const origHtml = btnEl.innerHTML;
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entferne...';
+
+            try {
+                const res = await fetch('/api/security/recommendations?id=' + encodeURIComponent(recId), {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    if (Array.isArray(agencyRecommendationsCache)) {
+                        agencyRecommendationsCache = agencyRecommendationsCache.filter(r => r.id !== recId);
+                    }
+                    if (typeof showToast === 'function') {
+                        showToast('Optimierung als erledigt entfernt.', 'success');
+                    }
+                    renderAgencyRecommendations();
+                } else {
+                    alert('Fehler beim Entfernen: ' + ((data && data.error) ? data.error : 'Unbekannter Fehler'));
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                }
+            } catch (e) {
+                alert('Verbindungsfehler: ' + e.message);
+                btnEl.disabled = false;
+                btnEl.innerHTML = origHtml;
+            }
+        }
+
         async function loadSecurityGuardianData(forceRefresh = false) {
             try {
+                loadAgencyRecommendations(forceRefresh);
+
                 if (securityReportCache && !forceRefresh) {
                     renderSecurityScreen();
                     if (activeClient) renderClientSecurityAudit(activeClient);
@@ -6369,7 +6576,7 @@ export default `<!DOCTYPE html>
                 deltaEl.innerHTML = dHtml;
             }
 
-            // Research Container
+            // Research Container (Report Archive Snapshot)
             const resBadge = document.getElementById('sec-research-badge');
             const resCont = document.getElementById('sec-research-container');
             const research = report.research || {};
@@ -6377,68 +6584,21 @@ export default `<!DOCTYPE html>
                 resBadge.outerHTML = '<span id="sec-research-badge">' + getSecStatusBadge(research.status || 'GREEN') + '</span>';
             }
             if (resCont) {
-                window.weeklyPromptsMap = {};
-                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:12px; font-size:13px;">' + escapeSecHtml(research.summary || 'Alle Websites entsprechen den aktuellen Sicherheits- und SEO-Standards.') + '</div>';
-
                 const secFindings = Array.isArray(research.securityFindings) ? research.securityFindings : (Array.isArray(research.recommendations) ? research.recommendations : []);
                 const seoFindings = Array.isArray(research.seoGeoFindings) ? research.seoGeoFindings : [];
+                const totalFindings = secFindings.length + seoFindings.length;
 
-                if (secFindings.length === 0 && seoFindings.length === 0) {
-                    rHtml += '<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:12px 14px; color:#34d399; font-size:12.5px; display:flex; align-items:center; gap:8px;">';
-                    rHtml += '<i class="fa-solid fa-circle-check"></i> <span><strong>Alles im grünen Bereich:</strong> Keine neuen Sicherheitslücken, Header-Empfehlungen oder SEO-Anpassungen diese Woche erforderlich.</span>';
-                    rHtml += '</div>';
+                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:8px; font-size:13px;">' + escapeSecHtml(research.summary || 'Alle Websites entsprechen den aktuellen Sicherheits- und SEO-Standards.') + '</div>';
+
+                if (totalFindings === 0) {
+                    rHtml += '<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:10px 12px; color:#34d399; font-size:12px; display:flex; align-items:center; gap:8px;">' +
+                        '<i class="fa-solid fa-circle-check"></i> <span>In diesem Berichtslauf wurden keine neuen Sicherheitslücken oder SEO-Anpassungen identifiziert.</span>' +
+                        '</div>';
                 } else {
-                    rHtml += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap:16px;">';
-                    
-                    // Column 1: Security & Headers
-                    rHtml += '<div>';
-                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#38bdf8; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-shield-halved"></i> Web-Security & HTTP-Headers (' + secFindings.length + ')</div>';
-                    if (secFindings.length === 0) {
-                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Security-Header, Turnstile & Pakete 100% aktuell</div>';
-                    } else {
-                        secFindings.forEach((rec, idx) => {
-                            const pId = 'sec_p_' + idx;
-                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
-                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
-                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
-                            rHtml += '<strong style="color:#fbbf24; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
-                            rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); white-space:nowrap;">' + escapeSecHtml(rec.severity || 'HINWEIS') + '</span>';
-                            rHtml += '</div>';
-                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
-                            if (rec.antigravityCommand) {
-                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
-                            }
-                            rHtml += '</div>';
-                        });
-                    }
-                    rHtml += '</div>';
-
-                    // Column 2: SEO, GEO & AI-Search
-                    rHtml += '<div>';
-                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#a855f7; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-chart-line"></i> SEO, GEO & AI-Search (' + seoFindings.length + ')</div>';
-                    if (seoFindings.length === 0) {
-                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Schema.org, GEO-Entities & AI-Zitate optimal</div>';
-                    } else {
-                        seoFindings.forEach((rec, idx) => {
-                            const pId = 'seo_p_' + idx;
-                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
-                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
-                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
-                            rHtml += '<strong style="color:#c084fc; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
-                            if (rec.targetWorker) {
-                                rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); white-space:nowrap;">⚡ ' + escapeSecHtml(rec.targetWorker) + '</span>';
-                            }
-                            rHtml += '</div>';
-                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
-                            if (rec.antigravityCommand) {
-                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
-                            }
-                            rHtml += '</div>';
-                        });
-                    }
-                    rHtml += '</div>';
-
-                    rHtml += '</div>';
+                    rHtml += '<div style="font-size:12px; color:var(--text-secondary); background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' +
+                        '<span>📊 Dieser Berichtslauf fand <strong>' + secFindings.length + ' Security/Header</strong> und <strong>' + seoFindings.length + ' SEO/GEO</strong> Optimierungen.</span>' +
+                        '<span style="color:#38bdf8; font-weight:600;">↑ Siehe Kachel oben für Umsetzung &amp; Prompts</span>' +
+                        '</div>';
                 }
                 resCont.innerHTML = rHtml;
             }

@@ -2080,6 +2080,43 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
         }
       }
 
+      if (url.pathname === '/api/security/recommendations' && method === 'GET') {
+        try {
+          const raw = await env.KUNDEN_DB.get('security:recommendations');
+          const recommendations = raw ? JSON.parse(raw) : [];
+          return new Response(JSON.stringify({ success: true, recommendations }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/security/recommendations' && method === 'DELETE') {
+        try {
+          const recId = url.searchParams.get('id');
+          if (!recId) {
+            return new Response(JSON.stringify({ error: 'Recommendation ID is required' }), { status: 400, headers: corsHeaders });
+          }
+          const raw = await env.KUNDEN_DB.get('security:recommendations');
+          let recommendations = raw ? JSON.parse(raw) : [];
+          const initialLength = recommendations.length;
+          recommendations = recommendations.filter(r => r.id !== recId);
+          await env.KUNDEN_DB.put('security:recommendations', JSON.stringify(recommendations));
+
+          return new Response(JSON.stringify({
+            success: true,
+            removedId: recId,
+            remainingCount: recommendations.length,
+            didRemove: recommendations.length < initialLength
+          }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       if (url.pathname === '/api/security/report' && method === 'GET') {
         try {
           const reportId = url.searchParams.get('id');
@@ -2791,6 +2828,30 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const secFindings = Array.isArray(research.securityFindings) ? research.securityFindings : [];
           const seoFindings = Array.isArray(research.seoGeoFindings) ? research.seoGeoFindings : [];
           const totalFindings = secFindings.length + seoFindings.length;
+
+          // Persist incoming recommendations to security:recommendations in KV
+          if (totalFindings > 0) {
+            try {
+              const rawRecs = await env.KUNDEN_DB.get('security:recommendations');
+              let storedRecs = rawRecs ? JSON.parse(rawRecs) : [];
+              const allIncoming = [...secFindings, ...seoFindings];
+              for (const inc of allIncoming) {
+                const incId = inc.id || ('rec_' + (inc.title || '').toLowerCase().replace(/[^a-z0-9]/g, '_'));
+                const alreadyHas = storedRecs.some(r => r.id === incId || r.title === inc.title);
+                if (!alreadyHas) {
+                  storedRecs.push({
+                    ...inc,
+                    id: incId,
+                    createdAt: new Date().toISOString(),
+                    sourceReport: reportId
+                  });
+                }
+              }
+              await env.KUNDEN_DB.put('security:recommendations', JSON.stringify(storedRecs));
+            } catch (recErr) {
+              console.error('Fehler beim Speichern der Empfehlungen:', recErr);
+            }
+          }
 
           const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
           let tasks = rawTasks ? JSON.parse(rawTasks) : [];
