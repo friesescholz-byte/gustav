@@ -2836,6 +2836,11 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
               let storedRecs = rawRecs ? JSON.parse(rawRecs) : [];
               const allIncoming = [...secFindings, ...seoFindings];
               for (const inc of allIncoming) {
+                // Ignore daily scan specific project audits (like NPM CVEs or project Turnstile warnings)
+                // which belong directly in the daily report's Security Researcher card!
+                if (inc.category === 'DEPENDENCY_CVES' || inc.category === 'TURNSTILE_BOT_PROTECTION' || inc.isDailyScan === true) {
+                  continue;
+                }
                 const incId = inc.id || ('rec_' + (inc.title || '').toLowerCase().replace(/[^a-z0-9]/g, '_'));
                 const alreadyHas = storedRecs.some(r => r.id === incId || r.title === inc.title);
                 if (!alreadyHas) {

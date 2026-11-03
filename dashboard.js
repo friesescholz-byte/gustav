@@ -2264,10 +2264,10 @@ export default `<!DOCTYPE html>
                         </div>
                         <div>
                             <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.2px;">
-                                Aktive Agentur-Optimierungen (Security & SEO/GEO)
+                                Aktive Agentur-Optimierungen (Wöchentliche Recherche &amp; Strategie)
                             </h3>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                                Bleibt dauerhaft erhalten, unabhängig vom ausgewählten Bericht. Kopiere den Prompt und klicke auf "Erledigt", sobald umgesetzt.
+                                Getrennt von den täglichen Scans: Übergreifende Optimierungen (SEO/GEO, Worker-Updates, neue Standards). Bleibt dauerhaft erhalten, bis du sie als erledigt entfernst.
                             </div>
                         </div>
                     </div>
@@ -6576,7 +6576,7 @@ export default `<!DOCTYPE html>
                 deltaEl.innerHTML = dHtml;
             }
 
-            // Research Container (Report Archive Snapshot)
+            // Research Container (Daily Scan: Stack, CVEs & Security Findings)
             const resBadge = document.getElementById('sec-research-badge');
             const resCont = document.getElementById('sec-research-container');
             const research = report.research || {};
@@ -6584,21 +6584,68 @@ export default `<!DOCTYPE html>
                 resBadge.outerHTML = '<span id="sec-research-badge">' + getSecStatusBadge(research.status || 'GREEN') + '</span>';
             }
             if (resCont) {
+                window.weeklyPromptsMap = {};
+                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:12px; font-size:13px;">' + escapeSecHtml(research.summary || 'Alle Websites entsprechen den aktuellen Sicherheits- und SEO-Standards.') + '</div>';
+
                 const secFindings = Array.isArray(research.securityFindings) ? research.securityFindings : (Array.isArray(research.recommendations) ? research.recommendations : []);
                 const seoFindings = Array.isArray(research.seoGeoFindings) ? research.seoGeoFindings : [];
-                const totalFindings = secFindings.length + seoFindings.length;
 
-                let rHtml = '<div style="font-weight:600; color:#e2e8f0; margin-bottom:8px; font-size:13px;">' + escapeSecHtml(research.summary || 'Alle Websites entsprechen den aktuellen Sicherheits- und SEO-Standards.') + '</div>';
-
-                if (totalFindings === 0) {
-                    rHtml += '<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:10px 12px; color:#34d399; font-size:12px; display:flex; align-items:center; gap:8px;">' +
-                        '<i class="fa-solid fa-circle-check"></i> <span>In diesem Berichtslauf wurden keine neuen Sicherheitslücken oder SEO-Anpassungen identifiziert.</span>' +
-                        '</div>';
+                if (secFindings.length === 0 && seoFindings.length === 0) {
+                    rHtml += '<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:12px 14px; color:#34d399; font-size:12.5px; display:flex; align-items:center; gap:8px;">';
+                    rHtml += '<i class="fa-solid fa-circle-check"></i> <span><strong>Alles im grünen Bereich:</strong> Keine neuen Sicherheitslücken, Paket-Warnungen oder Header-Probleme in diesem Scan festgestellt.</span>';
+                    rHtml += '</div>';
                 } else {
-                    rHtml += '<div style="font-size:12px; color:var(--text-secondary); background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' +
-                        '<span>📊 Dieser Berichtslauf fand <strong>' + secFindings.length + ' Security/Header</strong> und <strong>' + seoFindings.length + ' SEO/GEO</strong> Optimierungen.</span>' +
-                        '<span style="color:#38bdf8; font-weight:600;">↑ Siehe Kachel oben für Umsetzung &amp; Prompts</span>' +
-                        '</div>';
+                    rHtml += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap:16px;">';
+                    
+                    // Column 1: Web-Security, Pakete & CVEs (Daily Scan)
+                    rHtml += '<div>';
+                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#38bdf8; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-shield-halved"></i> Web-Security, Pakete &amp; CVEs (' + secFindings.length + ')</div>';
+                    if (secFindings.length === 0) {
+                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Security-Header, Turnstile &amp; Pakete 100% aktuell</div>';
+                    } else {
+                        secFindings.forEach((rec, idx) => {
+                            const pId = 'sec_p_' + idx;
+                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
+                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
+                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
+                            rHtml += '<strong style="color:#fbbf24; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
+                            rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); white-space:nowrap;">' + escapeSecHtml(rec.severity || 'HINWEIS') + '</span>';
+                            rHtml += '</div>';
+                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
+                            if (rec.antigravityCommand) {
+                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4); color:#60a5fa; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                            }
+                            rHtml += '</div>';
+                        });
+                    }
+                    rHtml += '</div>';
+
+                    // Column 2: SEO, GEO & AI-Search
+                    rHtml += '<div>';
+                    rHtml += '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#a855f7; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-chart-line"></i> SEO, GEO &amp; AI-Search (' + seoFindings.length + ')</div>';
+                    if (seoFindings.length === 0) {
+                        rHtml += '<div style="font-size:12px; color:var(--text-secondary); padding:8px; background:rgba(255,255,255,0.02); border-radius:6px;">✓ Schema.org, GEO-Entities &amp; AI-Zitate optimal</div>';
+                    } else {
+                        seoFindings.forEach((rec, idx) => {
+                            const pId = 'seo_p_' + idx;
+                            window.weeklyPromptsMap[pId] = rec.antigravityCommand || '';
+                            rHtml += '<div style="background:rgba(0,0,0,0.28); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:8px;">';
+                            rHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">';
+                            rHtml += '<strong style="color:#c084fc; font-size:12px;">' + escapeSecHtml(rec.title) + '</strong>';
+                            if (rec.targetWorker) {
+                                rHtml += '<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); white-space:nowrap;">⚡ ' + escapeSecHtml(rec.targetWorker) + '</span>';
+                            }
+                            rHtml += '</div>';
+                            rHtml += '<div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; line-height:1.4;">' + escapeSecHtml(rec.description) + '</div>';
+                            if (rec.antigravityCommand) {
+                                rHtml += '<button type="button" class="btn" data-prompt-id="' + pId + '" onclick="copyWeeklyPrompt(this)" style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-copy"></i> Antigravity-Prompt kopieren</button>';
+                            }
+                            rHtml += '</div>';
+                        });
+                    }
+                    rHtml += '</div>';
+
+                    rHtml += '</div>';
                 }
                 resCont.innerHTML = rHtml;
             }
