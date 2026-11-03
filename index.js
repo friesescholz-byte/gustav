@@ -287,6 +287,240 @@ function getCookie(request, name) {
   return null;
 }
 
+// ==========================================
+// MICROSOFT GRAPH & OUTLOOK CALENDAR HELPERS
+// ==========================================
+async function getMicrosoftConfig(env) {
+  let clientId = env.MICROSOFT_CLIENT_ID;
+  let clientSecret = env.MICROSOFT_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    try {
+      const raw = await env.KUNDEN_DB.get('settings:microsoft_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.clientId) clientId = parsed.clientId;
+        if (parsed.clientSecret) clientSecret = parsed.clientSecret;
+      }
+    } catch (_) {}
+  }
+  return { clientId: clientId ? clientId.trim() : null, clientSecret: clientSecret ? clientSecret.trim() : null };
+}
+
+async function getMicrosoftTokens(env) {
+  try {
+    const raw = await env.KUNDEN_DB.get('settings:microsoft_oauth');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function getValidMicrosoftAccessToken(env) {
+  const tokens = await getMicrosoftTokens(env);
+  if (!tokens || !tokens.refreshToken) {
+    return null;
+  }
+
+  // If token is still valid for at least 2 minutes, return it
+  if (tokens.accessToken && tokens.expiresAt && tokens.expiresAt > Date.now() + 120000) {
+    return tokens.accessToken;
+  }
+
+  const cfg = await getMicrosoftConfig(env);
+  if (!cfg.clientId || !cfg.clientSecret) {
+    return null;
+  }
+
+  try {
+    const tokenParams = new URLSearchParams({
+      client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: tokens.refreshToken,
+      scope: 'offline_access Calendars.ReadWrite User.Read'
+    });
+
+    const resp = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams.toString()
+    });
+
+    if (!resp.ok) {
+      console.error('Failed to refresh Microsoft token:', await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    const updated = {
+      ...tokens,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || tokens.refreshToken,
+      expiresAt: Date.now() + ((data.expires_in || 3600) * 1000)
+    };
+
+    await env.KUNDEN_DB.put('settings:microsoft_oauth', JSON.stringify(updated));
+    return updated.accessToken;
+  } catch (err) {
+    console.error('Error refreshing Microsoft token:', err);
+    return null;
+  }
+}
+
+async function createOutlookEvent(env, { title, description, startDateTime, endDateTime, isAllDay, reminderMinutes, assignee, clientName }) {
+  const token = await getValidMicrosoftAccessToken(env);
+  if (!token) return null;
+
+  try {
+    let startIso = startDateTime;
+    let endIso = endDateTime;
+    if (!endIso && startIso) {
+      const d = new Date(startIso);
+      d.setHours(d.getHours() + 1);
+      endIso = d.toISOString();
+    }
+
+    const assigneeFormatted = assignee === 'adrian' ? 'Adrian' : (assignee === 'basti' ? 'Basti' : (assignee || 'Team'));
+    const bodyHtml = `
+      <div style="font-family: sans-serif; font-size: 14px; line-height: 1.5; color: #111827;">
+        <h3 style="margin-top: 0; color: #0284c7;">Aufgabe aus Gustav Dashboard: ${title || 'Neue Aufgabe'}</h3>
+        ${clientName ? `<p><strong>Kunde:</strong> ${clientName}</p>` : ''}
+        ${assignee ? `<p><strong>Zuständig:</strong> ${assigneeFormatted}</p>` : ''}
+        ${description ? `<p style="margin-top: 10px; background: #f3f4f6; padding: 10px; border-radius: 6px;">${description.replace(/\n/g, '<br>')}</p>` : ''}
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 16px 0;">
+        <p style="font-size: 11px; color: #6b7280; margin: 0;">Erstellt im Scholz & Friese Dashboard (Gustav)</p>
+      </div>
+    `;
+
+    const eventPayload = {
+      subject: `[SF] ${title}`,
+      body: {
+        contentType: 'HTML',
+        content: bodyHtml
+      },
+      start: {
+        dateTime: startIso.replace('Z', ''),
+        timeZone: 'Europe/Berlin'
+      },
+      end: {
+        dateTime: endIso.replace('Z', ''),
+        timeZone: 'Europe/Berlin'
+      },
+      isAllDay: !!isAllDay,
+      isReminderOn: typeof reminderMinutes === 'number' ? reminderMinutes > 0 : true,
+      reminderMinutesBeforeStart: typeof reminderMinutes === 'number' ? reminderMinutes : 30,
+      categories: ['Scholz & Friese']
+    };
+
+    const resp = await fetch('https://graph.microsoft.com/v1.0/me/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(eventPayload)
+    });
+
+    if (!resp.ok) {
+      console.error('Microsoft Graph create event error:', await resp.text());
+      return null;
+    }
+
+    const created = await resp.json();
+    return { id: created.id, webLink: created.webLink };
+  } catch (err) {
+    console.error('Error creating Outlook event:', err);
+    return null;
+  }
+}
+
+async function updateOutlookEvent(env, eventId, { title, description, startDateTime, endDateTime, isAllDay, reminderMinutes, assignee, clientName, completed }) {
+  const token = await getValidMicrosoftAccessToken(env);
+  if (!token || !eventId) return null;
+
+  try {
+    let startIso = startDateTime;
+    let endIso = endDateTime;
+    if (startIso && !endIso) {
+      const d = new Date(startIso);
+      d.setHours(d.getHours() + 1);
+      endIso = d.toISOString();
+    }
+
+    const patchPayload = {};
+    if (title !== undefined) {
+      patchPayload.subject = completed ? `✅ [ERLEDIGT] ${title}` : `[SF] ${title}`;
+    }
+    if (startIso && endIso) {
+      patchPayload.start = { dateTime: startIso.replace('Z', ''), timeZone: 'Europe/Berlin' };
+      patchPayload.end = { dateTime: endIso.replace('Z', ''), timeZone: 'Europe/Berlin' };
+    }
+    if (isAllDay !== undefined) {
+      patchPayload.isAllDay = !!isAllDay;
+    }
+    if (completed !== undefined) {
+      patchPayload.categories = completed ? ['Scholz & Friese', 'Erledigt'] : ['Scholz & Friese'];
+    }
+
+    const resp = await fetch(`https://graph.microsoft.com/v1.0/me/events/${eventId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(patchPayload)
+    });
+
+    return resp.ok;
+  } catch (err) {
+    console.error('Error updating Outlook event:', err);
+    return null;
+  }
+}
+
+async function deleteOutlookEvent(env, eventId) {
+  const token = await getValidMicrosoftAccessToken(env);
+  if (!token || !eventId) return null;
+
+  try {
+    const resp = await fetch(`https://graph.microsoft.com/v1.0/me/events/${eventId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return resp.ok;
+  } catch (err) {
+    console.error('Error deleting Outlook event:', err);
+    return null;
+  }
+}
+
+async function fetchOutlookEvents(env, startIso, endIso) {
+  const token = await getValidMicrosoftAccessToken(env);
+  if (!token) return [];
+
+  try {
+    const url = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${encodeURIComponent(startIso)}&endDateTime=${encodeURIComponent(endIso)}&$top=250&$select=id,subject,bodyPreview,start,end,isAllDay,webLink,categories,isCancelled`;
+    const resp = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Prefer': 'outlook.timezone="Europe/Berlin"'
+      }
+    });
+
+    if (!resp.ok) {
+      console.error('Error fetching Outlook calendarView:', await resp.text());
+      return [];
+    }
+
+    const data = await resp.json();
+    return (data.value || []).filter(e => !e.isCancelled);
+  } catch (err) {
+    console.error('Error in fetchOutlookEvents:', err);
+    return [];
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -331,11 +565,12 @@ export default {
       }
     }
 
-    // Check authorization cookie (skip for webhook endpoint & authenticated security guardian bot)
+    // Check authorization cookie (skip for webhook endpoint, authenticated security guardian bot, and Microsoft OAuth callback)
     const isWebhook = url.pathname === '/api/webhooks/email';
+    const isMicrosoftCallback = url.pathname === '/api/auth/microsoft/callback' || url.pathname === '/api/calendar/auth/callback';
     const secTokenHeader = request.headers.get('X-Security-Token') || '';
     const isSecurityBot = url.pathname === '/api/security/emergency-alert' && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
-    const isAuthorized = isWebhook || isSecurityBot || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
+    const isAuthorized = isWebhook || isSecurityBot || isMicrosoftCallback || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
     if (!isAuthorized) {
       if (url.pathname === '/' || url.pathname === '/index.html') {
         return new Response(loginHtml, {
@@ -1381,6 +1616,43 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const raw = await env.KUNDEN_DB.get('tasks:custom');
           let tasks = raw ? JSON.parse(raw) : [];
 
+          // Outlook Sync if requested and due date is set
+          if (taskData.syncOutlook && (taskData.dueDate || taskData.dueDateTime)) {
+            try {
+              let startIso = taskData.dueDateTime;
+              if (!startIso && taskData.dueDate) {
+                const time = taskData.dueTime || '10:00';
+                startIso = new Date(`${taskData.dueDate}T${time}:00`).toISOString();
+              }
+              taskData.dueDateTime = startIso;
+
+              if (taskData.outlookEventId) {
+                await updateOutlookEvent(env, taskData.outlookEventId, {
+                  title: taskData.title,
+                  startDateTime: startIso,
+                  assignee: taskData.assignee,
+                  clientName: taskData.clientName,
+                  reminderMinutes: taskData.reminderMinutes,
+                  completed: taskData.completed
+                });
+              } else {
+                const createdEv = await createOutlookEvent(env, {
+                  title: taskData.title,
+                  startDateTime: startIso,
+                  assignee: taskData.assignee,
+                  clientName: taskData.clientName,
+                  reminderMinutes: taskData.reminderMinutes
+                });
+                if (createdEv && createdEv.id) {
+                  taskData.outlookEventId = createdEv.id;
+                  taskData.outlookWebLink = createdEv.webLink;
+                }
+              }
+            } catch (err) {
+              console.error('Outlook sync error on task save:', err);
+            }
+          }
+
           if (taskData.id) {
             const idx = tasks.findIndex(t => t.id === taskData.id);
             if (idx >= 0) {
@@ -1411,10 +1683,14 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
                   text: taskData.title,
                   assignee: taskData.assignee || null,
                   done: false,
+                  dueDate: taskData.dueDate || null,
+                  dueTime: taskData.dueTime || null,
                   createdAt: new Date().toISOString()
                 });
               } else {
                 clientObj.todos[existingIdx].assignee = taskData.assignee || clientObj.todos[existingIdx].assignee || null;
+                if (taskData.dueDate) clientObj.todos[existingIdx].dueDate = taskData.dueDate;
+                if (taskData.dueTime) clientObj.todos[existingIdx].dueTime = taskData.dueTime;
               }
               if (taskData.setRed) {
                 clientObj.status = 'red';
@@ -1442,6 +1718,14 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           const taskToDelete = tasks.find(t => t.id === id);
           tasks = tasks.filter(t => t.id !== id);
           await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+
+          if (taskToDelete && taskToDelete.outlookEventId) {
+            try {
+              await deleteOutlookEvent(env, taskToDelete.outlookEventId);
+            } catch (err) {
+              console.error('Outlook sync error on task delete:', err);
+            }
+          }
 
           const targetClientId = clientId || (taskToDelete ? taskToDelete.clientId : null);
           let updatedClient = null;
@@ -1480,6 +1764,17 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
             task.completed = completed !== undefined ? !!completed : !task.completed;
             task.completedAt = task.completed ? new Date().toISOString() : null;
             await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+
+            if (task.outlookEventId) {
+              try {
+                await updateOutlookEvent(env, task.outlookEventId, {
+                  title: task.title,
+                  completed: task.completed
+                });
+              } catch (err) {
+                console.error('Outlook sync error on task toggle:', err);
+              }
+            }
           }
 
           const targetClientId = clientId || (task ? task.clientId : null);
@@ -1513,6 +1808,148 @@ Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nic
           }
 
           return new Response(JSON.stringify({ success: true, tasks, client: updatedClient }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8.38 API: Calendar & Microsoft Graph OAuth Endpoints
+      if (url.pathname === '/api/calendar/auth/status' && method === 'GET') {
+        const tokens = await getMicrosoftTokens(env);
+        const cfg = await getMicrosoftConfig(env);
+        return new Response(JSON.stringify({
+          connected: !!(tokens && tokens.refreshToken),
+          email: tokens ? (tokens.email || tokens.userPrincipalName || 'info@scholz-friese-webdesign.de') : null,
+          displayName: tokens ? (tokens.displayName || 'Scholz & Friese') : null,
+          hasConfig: !!(cfg.clientId && cfg.clientSecret),
+          clientIdPreview: cfg.clientId ? `${cfg.clientId.substring(0, 8)}...` : null
+        }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+
+      if (url.pathname === '/api/calendar/auth/config' && method === 'POST') {
+        try {
+          const { clientId, clientSecret } = await request.json();
+          if (!clientId || !clientSecret) {
+            return new Response(JSON.stringify({ error: 'Client-ID und Client-Secret erforderlich.' }), { status: 400, headers: corsHeaders });
+          }
+          await env.KUNDEN_DB.put('settings:microsoft_config', JSON.stringify({
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim(),
+            updatedAt: new Date().toISOString()
+          }));
+          return new Response(JSON.stringify({ success: true, message: 'Microsoft-Zugangsdaten erfolgreich gespeichert.' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === '/api/calendar/auth/login' && method === 'GET') {
+        const cfg = await getMicrosoftConfig(env);
+        if (!cfg.clientId) {
+          return new Response('Microsoft Client-ID nicht konfiguriert. Bitte erst in den Kalender-Einstellungen hinterlegen.', { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        }
+        const redirectUri = `${url.origin}/api/auth/microsoft/callback`;
+        const state = Math.random().toString(36).substring(2, 15);
+        const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(cfg.clientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=offline_access%20Calendars.ReadWrite%20User.Read&state=${state}`;
+        return Response.redirect(authUrl, 302);
+      }
+
+      if ((url.pathname === '/api/auth/microsoft/callback' || url.pathname === '/api/calendar/auth/callback') && method === 'GET') {
+        const code = url.searchParams.get('code');
+        const error = url.searchParams.get('error');
+        const errorDesc = url.searchParams.get('error_description');
+
+        if (error) {
+          return new Response(`Microsoft Login Fehler: ${error} - ${errorDesc}`, { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        }
+
+        if (!code) {
+          return new Response('Kein Autorisierungscode übergeben.', { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        }
+
+        const cfg = await getMicrosoftConfig(env);
+        const redirectUri = `${url.origin}/api/auth/microsoft/callback`;
+
+        const tokenParams = new URLSearchParams({
+          client_id: cfg.clientId,
+          client_secret: cfg.clientSecret,
+          code,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+          scope: 'offline_access Calendars.ReadWrite User.Read'
+        });
+
+        const tokenResp = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: tokenParams.toString()
+        });
+
+        if (!tokenResp.ok) {
+          const errBody = await tokenResp.text();
+          return new Response(`Token-Austausch fehlgeschlagen: ${errBody}`, { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        }
+
+        const tokenData = await tokenResp.json();
+        let userEmail = 'info@scholz-friese-webdesign.de';
+        let userName = 'Scholz & Friese';
+
+        try {
+          const userResp = await fetch('https://graph.microsoft.com/v1.0/me', {
+            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+          });
+          if (userResp.ok) {
+            const userData = await userResp.json();
+            userEmail = userData.mail || userData.userPrincipalName || userEmail;
+            userName = userData.displayName || userName;
+          }
+        } catch (_) {}
+
+        await env.KUNDEN_DB.put('settings:microsoft_oauth', JSON.stringify({
+          connected: true,
+          email: userEmail,
+          displayName: userName,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresAt: Date.now() + ((tokenData.expires_in || 3600) * 1000),
+          updatedAt: new Date().toISOString()
+        }));
+
+        return Response.redirect(`${url.origin}/?view=calendar&auth=success`, 302);
+      }
+
+      if (url.pathname === '/api/calendar/auth/disconnect' && method === 'POST') {
+        await env.KUNDEN_DB.delete('settings:microsoft_oauth');
+        return new Response(JSON.stringify({ success: true, message: 'Microsoft Outlook erfolgreich getrennt.' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+
+      if (url.pathname === '/api/calendar/events' && method === 'GET') {
+        try {
+          const startParam = url.searchParams.get('start');
+          const endParam = url.searchParams.get('end');
+
+          const now = new Date();
+          const startIso = startParam || new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+          const endIso = endParam || new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59).toISOString();
+
+          // 1. Fetch tasks with deadlines
+          const rawTasks = await env.KUNDEN_DB.get('tasks:custom');
+          let allTasks = rawTasks ? JSON.parse(rawTasks) : [];
+          const datedTasks = allTasks.filter(t => t.dueDate || t.dueDateTime);
+
+          // 2. Fetch Outlook events if connected
+          let outlookEvents = [];
+          const tokens = await getMicrosoftTokens(env);
+          if (tokens && tokens.refreshToken) {
+            outlookEvents = await fetchOutlookEvents(env, startIso, endIso);
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            tasks: datedTasks,
+            outlookEvents,
+            isOutlookConnected: !!(tokens && tokens.refreshToken)
+          }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         } catch (e) {
           return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
         }
