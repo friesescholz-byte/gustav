@@ -457,7 +457,12 @@ export default {
       // 1. Serve Dashboard HTML
       if (url.pathname === '/' || url.pathname === '/index.html') {
         return new Response(dashboardHtml, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
         });
       }
 
@@ -476,6 +481,22 @@ export default {
             if (!customer.createdAt) {
               customer.createdAt = new Date().toISOString();
               await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
+            }
+
+            // Ensure every todo has createdAt
+            if (customer.todos && Array.isArray(customer.todos)) {
+              for (const t of customer.todos) {
+                if (!t.createdAt) {
+                  const m = String(t.id).match(/(\d{10,14})/);
+                  if (m) {
+                    let ts = parseInt(m[1], 10);
+                    if (ts < 10000000000) ts = ts * 1000;
+                    t.createdAt = new Date(ts).toISOString();
+                  } else {
+                    t.createdAt = customer.createdAt || new Date().toISOString();
+                  }
+                }
+              }
             }
 
             // Check draft logic: Only marked as non-draft if a real custom domain (not *.workers.dev or *.pages.dev) is connected
@@ -596,6 +617,22 @@ export default {
 
         // Keep or create createdAt timestamp
         finalCustomer.createdAt = finalCustomer.createdAt || new Date().toISOString();
+
+        // Ensure every todo has createdAt
+        if (finalCustomer.todos && Array.isArray(finalCustomer.todos)) {
+          for (const t of finalCustomer.todos) {
+            if (!t.createdAt) {
+              const m = String(t.id).match(/(\d{10,14})/);
+              if (m) {
+                let ts = parseInt(m[1], 10);
+                if (ts < 10000000000) ts = ts * 1000;
+                t.createdAt = new Date(ts).toISOString();
+              } else {
+                t.createdAt = new Date().toISOString();
+              }
+            }
+          }
+        }
 
         // Auto-detect custom domain from Cloudflare if linkedCloudflareProject is set and no real domain provided
         if (finalCustomer.linkedCloudflareProject && (!finalCustomer.customDomain || !finalCustomer.customDomain.includes('.'))) {

@@ -2769,7 +2769,7 @@ export default `<!DOCTYPE html>
                 d = new Date(dateInput);
             } else if (typeof dateInput === 'string') {
                 const num = Number(dateInput);
-                if (!isNaN(num) && num > 1500000000000) {
+                if (!isNaN(num) && num > 1000000000000) {
                     d = new Date(num);
                 } else {
                     d = new Date(dateInput);
@@ -2781,10 +2781,12 @@ export default `<!DOCTYPE html>
 
             const now = Date.now();
             const diffMs = now - d.getTime();
+            const exactStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+
             if (diffMs < 0) {
                 return {
                     relativeStr: 'gerade eben',
-                    exactStr: d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+                    exactStr: exactStr
                 };
             }
 
@@ -2812,18 +2814,18 @@ export default `<!DOCTYPE html>
                 relativeStr = 'vor ' + (diffYears <= 1 ? '1 Jahr' : diffYears + ' Jahren');
             }
 
-            const exactStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
             return { relativeStr, exactStr };
         }
 
         function getItemTimeAgo(item) {
             if (!item) return null;
-            let rawDate = item.createdAt || item.date || null;
+            let rawDate = item.createdAt || item.date || item.timestamp || null;
             if (!rawDate && item.id) {
-                const m = String(item.id).match(/_(\d{10,13})(_|$)/);
+                const m = String(item.id).match(/(\d{10,14})/);
                 if (m) {
-                    const ts = parseInt(m[1], 10);
-                    if (!isNaN(ts) && ts > 1500000000000 && ts < 2500000000000) {
+                    let ts = parseInt(m[1], 10);
+                    if (ts < 10000000000) ts = ts * 1000;
+                    if (!isNaN(ts) && ts > 1000000000000 && ts < 3000000000000) {
                         rawDate = ts;
                     }
                 }
@@ -4863,7 +4865,7 @@ export default `<!DOCTYPE html>
                     const timeHeader = document.createElement('div');
                     timeHeader.style.cssText = 'font-size: 9.5px; color: #f59e0b; opacity: 0.85; margin-bottom: 3px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;';
                     timeHeader.title = timeInfo.exactStr;
-                    timeHeader.innerHTML = '<i class="fa-regular fa-clock" style="font-size: 8.5px;"></i> ' + timeInfo.relativeStr;
+                    timeHeader.innerHTML = '<i class="fa-regular fa-clock" style="font-size: 8.5px;"></i> Erstellt ' + timeInfo.relativeStr;
                     leftCol.appendChild(timeHeader);
                 }
 
@@ -4956,7 +4958,7 @@ export default `<!DOCTYPE html>
 
                 const timeInfo = getItemTimeAgo(t);
                 const timeHtml = timeInfo
-                    ? '<span style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; color:var(--text-muted); line-height:1.2; margin-bottom:2px;" title="' + timeInfo.exactStr + '"><i class="fa-regular fa-clock" style="font-size:8.5px; opacity:0.75;"></i>' + timeInfo.relativeStr + '</span>'
+                    ? '<span style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; color:var(--text-muted); line-height:1.2; margin-bottom:2px;" title="' + timeInfo.exactStr + '"><i class="fa-regular fa-clock" style="font-size:8.5px; opacity:0.75;"></i> Erstellt ' + timeInfo.relativeStr + '</span>'
                     : '';
 
                 item.innerHTML = \`

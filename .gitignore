@@ -5,3 +5,4 @@ check_esbuild.js
 test_gustav_backend.js
 
 .env
+backup_*.json
