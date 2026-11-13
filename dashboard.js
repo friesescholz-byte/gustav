@@ -2762,6 +2762,76 @@ export default `<!DOCTYPE html>
                 .replace(/'/g, '&#039;');
         }
 
+        function formatTimeAgo(dateInput) {
+            if (!dateInput) return null;
+            let d;
+            if (typeof dateInput === 'number') {
+                d = new Date(dateInput);
+            } else if (typeof dateInput === 'string') {
+                const num = Number(dateInput);
+                if (!isNaN(num) && num > 1500000000000) {
+                    d = new Date(num);
+                } else {
+                    d = new Date(dateInput);
+                }
+            } else if (dateInput instanceof Date) {
+                d = dateInput;
+            }
+            if (!d || isNaN(d.getTime())) return null;
+
+            const now = Date.now();
+            const diffMs = now - d.getTime();
+            if (diffMs < 0) {
+                return {
+                    relativeStr: 'gerade eben',
+                    exactStr: d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+                };
+            }
+
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHours = Math.floor(diffMin / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            const diffMonths = Math.floor(diffDays / 30);
+            const diffYears = Math.floor(diffDays / 365);
+
+            let relativeStr = '';
+            if (diffMin < 1) relativeStr = 'gerade eben';
+            else if (diffMin === 1) relativeStr = 'vor 1 Min.';
+            else if (diffMin < 60) relativeStr = 'vor ' + diffMin + ' Min.';
+            else if (diffHours === 1) relativeStr = 'vor 1 Std.';
+            else if (diffHours < 24) relativeStr = 'vor ' + diffHours + ' Std.';
+            else if (diffDays === 1) relativeStr = 'gestern';
+            else if (diffDays < 7) relativeStr = 'vor ' + diffDays + ' Tagen';
+            else if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                relativeStr = 'vor ' + weeks + (weeks === 1 ? ' Woche' : ' Wochen');
+            } else if (diffMonths < 12) {
+                relativeStr = 'vor ' + (diffMonths <= 1 ? '1 Monat' : diffMonths + ' Monaten');
+            } else {
+                relativeStr = 'vor ' + (diffYears <= 1 ? '1 Jahr' : diffYears + ' Jahren');
+            }
+
+            const exactStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+            return { relativeStr, exactStr };
+        }
+
+        function getItemTimeAgo(item) {
+            if (!item) return null;
+            let rawDate = item.createdAt || item.date || null;
+            if (!rawDate && item.id) {
+                const m = String(item.id).match(/_(\d{10,13})(_|$)/);
+                if (m) {
+                    const ts = parseInt(m[1], 10);
+                    if (!isNaN(ts) && ts > 1500000000000 && ts < 2500000000000) {
+                        rawDate = ts;
+                    }
+                }
+            }
+            if (!rawDate) return null;
+            return formatTimeAgo(rawDate);
+        }
+
         // --- OUTBOUND MAIL SYSTEM STATE & LOGIC ---
         let selectedMailRecipients = [];
         let resendMailLogData = [];
@@ -3480,7 +3550,8 @@ export default `<!DOCTYPE html>
                     dueTime: dueTime || null,
                     dueDateTime: dueDateTime || null,
                     sendEmailReminder,
-                    reminderMinutes
+                    reminderMinutes,
+                    createdAt: new Date().toISOString()
                 };
 
                 const res = await fetch('/api/tasks/save', {
@@ -4787,6 +4858,15 @@ export default `<!DOCTYPE html>
                 const leftCol = document.createElement('div');
                 leftCol.style.cssText = 'flex: 1; min-width: 0; text-align: left;';
 
+                const timeInfo = getItemTimeAgo(c);
+                if (timeInfo) {
+                    const timeHeader = document.createElement('div');
+                    timeHeader.style.cssText = 'font-size: 9.5px; color: #f59e0b; opacity: 0.85; margin-bottom: 3px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;';
+                    timeHeader.title = timeInfo.exactStr;
+                    timeHeader.innerHTML = '<i class="fa-regular fa-clock" style="font-size: 8.5px;"></i> ' + timeInfo.relativeStr;
+                    leftCol.appendChild(timeHeader);
+                }
+
                 const textDiv = document.createElement('div');
                 textDiv.style.cssText = 'color: #f3f4f6; font-size: 12.5px; line-height: 1.45; word-break: break-word; white-space: pre-wrap;';
                 textDiv.textContent = c.text || '';
@@ -4794,20 +4874,6 @@ export default `<!DOCTYPE html>
 
                 const metaDiv = document.createElement('div');
                 metaDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 10px; color: var(--text-secondary);';
-
-                if (c.createdAt) {
-                    let dateStr = '';
-                    try {
-                        const d = new Date(c.createdAt);
-                        dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
-                    } catch (_) {
-                        dateStr = c.createdAt;
-                    }
-                    const timeSpan = document.createElement('span');
-                    timeSpan.innerHTML = '<i class="fa-solid fa-clock" style="font-size:9px; opacity:0.75; margin-right:3px;"></i>';
-                    timeSpan.appendChild(document.createTextNode(dateStr));
-                    metaDiv.appendChild(timeSpan);
-                }
 
                 if (c.author === 'adrian') {
                     const badge = document.createElement('span');
@@ -4820,7 +4886,9 @@ export default `<!DOCTYPE html>
                     badge.textContent = 'Basti';
                     metaDiv.appendChild(badge);
                 }
-                leftCol.appendChild(metaDiv);
+                if (metaDiv.children.length > 0) {
+                    leftCol.appendChild(metaDiv);
+                }
                 item.appendChild(leftCol);
 
                 const delBtn = document.createElement('button');
@@ -4886,15 +4954,25 @@ export default `<!DOCTYPE html>
                 const escapedText = (t.text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const escapedClientName = (client.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
+                const timeInfo = getItemTimeAgo(t);
+                const timeHtml = timeInfo
+                    ? '<span style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; color:var(--text-muted); line-height:1.2; margin-bottom:2px;" title="' + timeInfo.exactStr + '"><i class="fa-regular fa-clock" style="font-size:8.5px; opacity:0.75;"></i>' + timeInfo.relativeStr + '</span>'
+                    : '';
+
                 item.innerHTML = \`
-                    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:10px;">
                         <div style="display:flex; align-items:center; gap:12px; flex:1; text-align: left; min-width: 0;">
                             \${t.done 
-                                ? \`<button onclick="toggleTodo('\${client.id}', '\${t.id}', false)" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:600;" title="Aufgabe wiedereröffnen"><i class="fa-solid fa-circle-check"></i> Erledigt</button>\`
-                                : \`<button onclick="openTaskCompleteEmailModal('\${t.id}', '\${escapedText}', '\${escapedClientName}', '\${t.assignee || ''}', '\${client.id}', '\${t.id}')" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
+                                ? \`<button onclick="toggleTodo('\${client.id}', '\${t.id}', false)" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:600; flex-shrink: 0;" title="Aufgabe wiedereröffnen"><i class="fa-solid fa-circle-check"></i> Erledigt</button>\`
+                                : \`<button onclick="openTaskCompleteEmailModal('\${t.id}', '\${escapedText}', '\${escapedClientName}', '\${t.assignee || ''}', '\${client.id}', '\${t.id}')" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight:700; flex-shrink: 0;" title="Als erledigt markieren"><i class="fa-solid fa-circle-exclamation"></i> Offen</button>\`
                             }
-                            <span style="\${t.done ? 'text-decoration:line-through; color:var(--text-secondary);' : 'color:#fff;'}">\${t.text}</span>
-                            \${assigneeBadge}
+                            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+                                \${timeHtml}
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <span style="\${t.done ? 'text-decoration:line-through; color:var(--text-secondary);' : 'color:#fff;'}">\${t.text}</span>
+                                    \${assigneeBadge}
+                                </div>
+                            </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                             <button onclick="openTaskEmailModal('\${escapedText}', '\${escapedClientName}', '\${t.assignee || ''}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 10px; display: inline-flex; align-items: center;" title="Per E-Mail senden">
@@ -4981,7 +5059,8 @@ export default `<!DOCTYPE html>
                 id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
                 text: text,
                 assignee: assignee || null,
-                done: false
+                done: false,
+                createdAt: new Date().toISOString()
             });
 
             if (input) {
@@ -5903,9 +5982,17 @@ export default `<!DOCTYPE html>
                         const taskClientName = t.clientName || '';
                         const escapedTaskClientName = taskClientName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
+                        const timeInfo = getItemTimeAgo(t);
+                        const timeHtml = timeInfo 
+                            ? '<div style="font-size: 9.5px; color: var(--text-muted); margin-bottom: 3px; display: inline-flex; align-items: center; gap: 3px;" title="' + timeInfo.exactStr + '">' +
+                                '<i class="fa-regular fa-clock" style="font-size: 8.5px; opacity: 0.75;"></i> Erstellt ' + timeInfo.relativeStr +
+                              '</div>' 
+                            : '';
+
                         taskItem.innerHTML = '<div style="display: flex; align-items: flex-start; gap: 10px; flex-grow: 1; min-width: 0; margin-right: 8px;">' +
                             '<div style="margin-top: 2px; flex-shrink: 0;">' + iconHtml + '</div>' +
                             '<div style="min-width: 0; flex-grow: 1; flex-shrink: 1; overflow: hidden;">' +
+                                timeHtml +
                                 '<strong style="color: var(--text-primary); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.35;">' + t.title + '</strong>' +
                                 '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + metaText + '</div>' +
                             '</div>' +
@@ -5942,11 +6029,11 @@ export default `<!DOCTYPE html>
                         
                         let allOpenTasks = [];
                         openClientTodos.forEach(td => {
-                            allOpenTasks.push({ id: td.id, text: td.text, assignee: td.assignee, type: 'todo' });
+                            allOpenTasks.push({ id: td.id, text: td.text, assignee: td.assignee, createdAt: td.createdAt, type: 'todo' });
                         });
                         openClientCustom.forEach(ct => {
                             if (!allOpenTasks.some(ot => ot.text === ct.title)) {
-                                allOpenTasks.push({ id: ct.id, text: ct.title, assignee: ct.assignee, type: 'custom' });
+                                allOpenTasks.push({ id: ct.id, text: ct.title, assignee: ct.assignee, createdAt: ct.createdAt, type: 'custom' });
                             }
                         });
 
@@ -5976,11 +6063,19 @@ export default `<!DOCTYPE html>
                                         ? ' <span style="color: #f472b6; font-weight: 600; font-size: 10.5px; background: rgba(236, 72, 153, 0.1); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Basti</span>' 
                                         : '');
 
+                                const timeInfo = getItemTimeAgo(ot);
+                                const timeHtml = timeInfo 
+                                    ? '<div style="font-size: 9.5px; color: var(--text-muted); margin-bottom: 2px; display: inline-flex; align-items: center; gap: 3px;" title="' + timeInfo.exactStr + '">' +
+                                        '<i class="fa-regular fa-clock" style="font-size: 8.5px; opacity: 0.75;"></i> Erstellt ' + timeInfo.relativeStr +
+                                      '</div>' 
+                                    : '';
+
                                 return '<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.05); padding: 8px 10px; border-radius: 6px;">' +
                                     '<div style="min-width: 0; flex-grow: 1; display: flex; align-items: flex-start; gap: 6px;">' +
                                         '<span style="color: var(--color-red); font-weight: bold; line-height: 1.35; margin-top: 1px;">&bull;</span>' +
-                                        '<div style="font-size: 12px; color: var(--text-primary); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere;">' +
-                                            '<span>' + ot.text + '</span>' + assigneeTag +
+                                        '<div style="font-size: 12px; color: var(--text-primary); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere; display: flex; flex-direction: column;">' +
+                                            timeHtml +
+                                            '<div><span>' + ot.text + '</span>' + assigneeTag + '</div>' +
                                         '</div>' +
                                     '</div>' +
                                     '<div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">' +
