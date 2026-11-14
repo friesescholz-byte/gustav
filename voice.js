@@ -402,6 +402,9 @@ export default `<!DOCTYPE html>
         let voiceOutput = true;
         let sheetExpanded = false;
         let recognition = null;
+        let isManualRecording = false;
+        let accumulatedTranscript = '';
+        let currentSessionTranscript = '';
         let synth = window.speechSynthesis;
 
         const orbStage = document.getElementById('orb-trigger');
@@ -502,43 +505,64 @@ export default `<!DOCTYPE html>
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
-            recognition.continuous = false;
+            recognition.continuous = true;
             recognition.interimResults = true;
 
             recognition.onstart = () => {
                 setState('listening');
-                statusCaption.textContent = 'Ich höre dir zu...';
-                livePreview.textContent = '...';
+                statusCaption.textContent = 'Ich höre zu... Tippe zum Absenden';
                 livePreview.classList.add('visible');
             };
 
             recognition.onresult = (event) => {
                 let interim = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    interim += event.results[i][0].transcript;
-                }
-                livePreview.textContent = interim || '...';
-
-                if (event.results[0].isFinal) {
-                    const finalTranscript = event.results[0][0].transcript;
-                    if (finalTranscript && finalTranscript.trim()) {
-                        processUserInput(finalTranscript.trim());
+                let finalized = '';
+                for (let i = 0; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalized += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim += event.results[i][0].transcript;
                     }
                 }
+                currentSessionTranscript = (finalized + interim).trim();
+                const fullText = (accumulatedTranscript + ' ' + currentSessionTranscript).trim();
+                livePreview.textContent = fullText || '...';
             };
 
             recognition.onerror = (e) => {
-                console.warn('Recognition error:', e);
-                setState('idle');
-                statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
-                livePreview.classList.remove('visible');
-            };
-
-            recognition.onend = () => {
-                if (state === 'listening') {
+                console.warn('Recognition error:', e.error);
+                if (e.error === 'no-speech') {
+                    return;
+                }
+                if (e.error !== 'aborted') {
+                    isManualRecording = false;
                     setState('idle');
                     statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
                     livePreview.classList.remove('visible');
+                }
+            };
+
+            recognition.onend = () => {
+                if (isManualRecording) {
+                    // Browser stopped due to pause/silence, but user has not clicked stop yet:
+                    // Preserve accumulated transcript and auto-restart so pauses don't cut off recording
+                    accumulatedTranscript = (accumulatedTranscript + ' ' + currentSessionTranscript).trim();
+                    currentSessionTranscript = '';
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        setTimeout(() => {
+                            if (isManualRecording) {
+                                try { recognition.start(); } catch(err) {}
+                            }
+                        }, 100);
+                    }
+                } else {
+                    if (state === 'listening') {
+                        setState('idle');
+                        statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
+                        livePreview.classList.remove('visible');
+                    }
                 }
             };
         }
@@ -551,8 +575,24 @@ export default `<!DOCTYPE html>
                 return;
             }
 
-            if (state === 'listening') {
-                if (recognition) recognition.stop();
+            if (state === 'listening' || isManualRecording) {
+                // User clicked stop to submit recording
+                isManualRecording = false;
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                }
+
+                const fullText = (accumulatedTranscript + ' ' + currentSessionTranscript).trim();
+                accumulatedTranscript = '';
+                currentSessionTranscript = '';
+
+                if (fullText) {
+                    processUserInput(fullText);
+                } else {
+                    setState('idle');
+                    statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
+                    livePreview.classList.remove('visible');
+                }
                 return;
             }
 
@@ -562,10 +602,23 @@ export default `<!DOCTYPE html>
                 return;
             }
 
+            // Start manual recording
+            isManualRecording = true;
+            accumulatedTranscript = '';
+            currentSessionTranscript = '';
+            livePreview.textContent = '...';
+            livePreview.classList.add('visible');
+            statusCaption.textContent = 'Ich höre zu... Tippe zum Absenden';
+
             try {
                 recognition.start();
             } catch(e) {
-                recognition.stop();
+                try {
+                    recognition.stop();
+                    setTimeout(() => {
+                        if (isManualRecording) recognition.start();
+                    }, 100);
+                } catch(err) {}
             }
         }
 
@@ -574,7 +627,8 @@ export default `<!DOCTYPE html>
             orbStage.className = 'orb-stage ' + newState;
 
             if (newState === 'listening') {
-                orbIcon.className = 'fa-solid fa-waveform-lines fa-fade orb-center-icon';
+                orbIcon.className = 'fa-solid fa-stop orb-center-icon';
+                statusCaption.textContent = 'Ich höre zu... Tippe zum Absenden';
             } else if (newState === 'thinking') {
                 orbIcon.className = 'fa-solid fa-spinner fa-spin orb-center-icon';
                 statusCaption.textContent = 'Gustav denkt nach...';
@@ -583,6 +637,7 @@ export default `<!DOCTYPE html>
                 statusCaption.textContent = 'Gustav spricht...';
             } else {
                 orbIcon.className = 'fa-solid fa-microphone orb-center-icon';
+                statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
             }
         }
 
