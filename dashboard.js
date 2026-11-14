@@ -2385,10 +2385,10 @@ export default `<!DOCTYPE html>
     </div>
 
     <!-- GUSTAV CHAT PANEL -->
-    <div class="chat-panel">
+    <div class="chat-panel collapsed">
         <!-- Collapse/Expand handle for Desktop -->
         <div class="chat-toggle-handle" onclick="toggleChatCollapse()" title="Chat ein-/ausklappen">
-            <i class="fa-solid fa-chevron-right" id="chat-toggle-chevron"></i>
+            <i class="fa-solid fa-chevron-left" id="chat-toggle-chevron"></i>
         </div>
         <div class="chat-header">
             <div class="chat-title">
@@ -4215,13 +4215,18 @@ export default `<!DOCTYPE html>
             updateClock();
             setInterval(updateClock, 1000);
 
-            // Restore chat collapse state
-            const chatCollapsed = localStorage.getItem('chat_collapsed') === '1';
-            if (chatCollapsed) {
-                const cp = document.querySelector('.chat-panel');
-                const chevron = document.getElementById('chat-toggle-chevron');
-                if (cp) cp.classList.add('collapsed');
-                if (chevron) chevron.className = 'fa-solid fa-chevron-left';
+            // Restore chat collapse state (default: collapsed)
+            const chatOpen = localStorage.getItem('chat_collapsed') === '0';
+            const cp = document.querySelector('.chat-panel');
+            const chevron = document.getElementById('chat-toggle-chevron');
+            if (cp && chevron) {
+                if (chatOpen) {
+                    cp.classList.remove('collapsed');
+                    chevron.className = 'fa-solid fa-chevron-right';
+                } else {
+                    cp.classList.add('collapsed');
+                    chevron.className = 'fa-solid fa-chevron-left';
+                }
             }
 
             try { await loadCloudflareProjects(); } catch(e) { console.error('CF projects init error:', e); }
@@ -4232,7 +4237,9 @@ export default `<!DOCTYPE html>
             try { await loadImapSettings(); } catch(e) { console.error('IMAP settings init error:', e); }
             try { await updateSystemChecklist(); } catch(e) { console.error('System checklist init error:', e); }
             try { await loadSecurityGuardianData(); } catch(e) { console.error('Security Guardian init error:', e); }
-            try { await loadDashboardChatHistory(); } catch(e) { console.error('Chat history init error:', e); }
+            if (chatOpen) {
+                try { await loadDashboardChatHistory(); } catch(e) { console.error('Chat history init error:', e); }
+            }
             
             // Attach input safeguards for tasks (protect against accidental wipes, support Ctrl+Z and word deletion)
             try {
@@ -5354,18 +5361,14 @@ export default `<!DOCTYPE html>
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
-            // Code blocks
-            s = s.replace(new RegExp('\\x60\\x60\\x60([\\s\\S]*?)\\x60\\x60\\x60', 'g'), function(match, p1) {
-                return '<pre style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; font-family: monospace; font-size: 11.5px; line-height: 1.4;"><code>' + p1 + '</code></pre>';
-            });
-            // Inline code
-            s = s.replace(new RegExp('\\x60([^\\x60]+)\\x60', 'g'), '<code style="background: rgba(255,255,255,0.08); padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 11.5px;">$1</code>');
-            // Bold
-            s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Bullet points
-            s = s.replace(/^[*-]\s+(.+)$/gm, '<li style="margin-left: 14px; margin-bottom: 2px;">$1</li>');
-            // Line breaks
-            s = s.replace(/\n/g, '<br>');
+            const b = String.fromCharCode(96);
+            const codeBlockRegex = new RegExp(b + b + b + '([\\s\\S]*?)' + b + b + b, 'g');
+            const inlineCodeRegex = new RegExp(b + '([^' + b + ']+)' + b, 'g');
+            s = s.replace(codeBlockRegex, '<pre style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; font-family: monospace; font-size: 11.5px; line-height: 1.4;"><code>$1</code></pre>');
+            s = s.replace(inlineCodeRegex, '<code style="background: rgba(255,255,255,0.08); padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 11.5px;">$1</code>');
+            s = s.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
+            s = s.replace(/^[*-]\\s+(.+)$/gm, '<li style="margin-left: 14px; margin-bottom: 2px;">$1</li>');
+            s = s.replace(/\\n/g, '<br>');
             return s;
         }
 
