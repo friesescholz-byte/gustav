@@ -8,6 +8,9 @@ const loginHtml = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gustav Login – Scholz & Friese</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -524,6 +527,56 @@ export default {
           headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
       }
+    }
+
+    // Public Static Manifest & Icons (Allowed before auth check for PWA & Homescreen install)
+    if (url.pathname === '/manifest.json') {
+      const manifest = {
+        name: "Gustav Voice – Scholz & Friese",
+        short_name: "Gustav",
+        description: "Dein persönlicher KI-Assistent & Sprachbegleiter bei Scholz & Friese",
+        start_url: "/voice",
+        scope: "/",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#05070b",
+        theme_color: "#05070b",
+        icons: [
+          {
+            src: "https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
+          }
+        ]
+      };
+      return new Response(JSON.stringify(manifest), {
+        headers: {
+          'Content-Type': 'application/manifest+json; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+          ...corsHeaders
+        }
+      });
+    }
+
+    if (url.pathname === '/favicon.ico') {
+      return Response.redirect('https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/favicon-32x32.png', 302);
+    }
+
+    if (url.pathname === '/apple-touch-icon.png' || url.pathname === '/apple-touch-icon-precomposed.png') {
+      return Response.redirect('https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png', 302);
     }
 
     // Check authorization cookie (skip for webhook endpoint, handy bridge daemon & authenticated security guardian bot)

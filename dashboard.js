@@ -4,6 +4,11 @@ export default `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gustav - Scholz & Friese Jarvis</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
     <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1656,7 +1661,7 @@ export default `<!DOCTYPE html>
             <i class="fa-solid fa-bars"></i>
         </button>
         <div class="logo" style="font-size: 18px; display: flex; align-items: center; gap: 6px;">
-            <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav Logo" style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
+            <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-avatar.webp" alt="Gustav Logo" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
             <span>Gustav</span>
         </div>
         <button class="mobile-toggle-btn" onclick="toggleMobileChat()" title="Gustav KI Chat öffnen">
@@ -1668,7 +1673,7 @@ export default `<!DOCTYPE html>
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="logo" style="display: flex; align-items: center; gap: 8px;">
-                <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav Logo" style="width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
+                <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-avatar.webp" alt="Gustav Logo" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--color-primary); object-fit: cover;">
                 <span>Gustav</span>
             </div>
             <div style="display:flex; gap: 6px; align-items:center;">
@@ -2392,7 +2397,7 @@ export default `<!DOCTYPE html>
         </div>
         <div class="chat-header">
             <div class="chat-title">
-                <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/scholz-friese-gbr-c95bc9f6.png" alt="Gustav" style="width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--color-cyan); object-fit: cover;">
+                <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-avatar.webp" alt="Gustav" style="width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--color-cyan); object-fit: cover;">
                 <div style="display: flex; flex-direction: column;">
                     <span style="font-size: 13.5px; font-weight: 700; color: #fff; line-height: 1.2;">Gustav</span>
                     <span style="font-size: 10px; color: #10b981; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">

@@ -5,6 +5,13 @@ export default `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gustav Voice – Scholz & Friese</title>
     
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    
     <!-- PWA & Mobile Web App Meta -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -346,8 +353,14 @@ export default `<!DOCTYPE html>
     <!-- Minimal Header -->
     <header>
         <div class="header-title">
-            <div class="status-dot"></div>
-            <h1>Gustav Voice</h1>
+            <img src="https://pub-b33108412309406a9a941ddc51e9a5b9.r2.dev/gustav/gustav-avatar.webp" alt="Gustav" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--cyan); object-fit: cover; box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);">
+            <div style="display: flex; flex-direction: column;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div class="status-dot"></div>
+                    <h1>Gustav Voice</h1>
+                </div>
+                <span style="font-size: 10px; color: #10b981; font-weight: 500; line-height: 1.2;">🟢 Antigravity Live</span>
+            </div>
         </div>
         <div style="display: flex; gap: 8px;">
             <button class="header-btn" id="voice-mute-btn" onclick="toggleMute()" title="Sprachausgabe stumm">
