@@ -1,5 +1,6 @@
 import { connect } from 'cloudflare:sockets';
 import dashboardHtml from './dashboard.js';
+import voiceHtml from './voice.js';
 
 const loginHtml = `<!DOCTYPE html>
 <html lang="de">
@@ -389,6 +390,95 @@ async function checkAndSendTaskReminders(env) {
   }
 }
 
+async function handleBotActions(env, botResponse) {
+  let cleanResponse = botResponse || '';
+  if (!botResponse || !botResponse.includes('```action')) {
+    return { cleanResponse: cleanResponse.trim(), actionsExecuted: [] };
+  }
+
+  const actionsExecuted = [];
+  try {
+    const actionMatch = botResponse.match(/```action\s*([\s\S]*?)\s*```/);
+    if (actionMatch && actionMatch[1]) {
+      const action = JSON.parse(actionMatch[1]);
+      actionsExecuted.push(action);
+      if (action.type === 'create_task' && action.title) {
+        const raw = await env.KUNDEN_DB.get('tasks:custom');
+        let tasks = raw ? JSON.parse(raw) : [];
+        const newTask = {
+          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          title: action.title,
+          clientName: action.clientName || null,
+          assignee: action.assignee || 'team',
+          dueDate: action.dueDate || null,
+          dueTime: action.dueDate ? '10:00' : null,
+          dueDateTime: action.dueDate ? new Date(`${action.dueDate}T10:00:00`).toISOString() : null,
+          createdAt: new Date().toISOString(),
+          completed: false
+        };
+        tasks.unshift(newTask);
+        await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+      } else if (action.type === 'project_action' && action.project) {
+        const rawQueue = await env.KUNDEN_DB.get('queue:project_actions');
+        let queue = rawQueue ? JSON.parse(rawQueue) : [];
+        const queueItem = {
+          id: 'paction_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          project: action.project,
+          instruction: action.instruction || '',
+          createdAt: new Date().toISOString(),
+          status: 'pending'
+        };
+        queue.unshift(queueItem);
+        await env.KUNDEN_DB.put('queue:project_actions', JSON.stringify(queue.slice(0, 50)));
+
+        const raw = await env.KUNDEN_DB.get('tasks:custom');
+        let tasks = raw ? JSON.parse(raw) : [];
+        tasks.unshift({
+          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          title: `💻 [Code-Auftrag]: ${action.project} – ${action.instruction.substring(0, 90)}`,
+          clientName: action.project,
+          assignee: 'gustav',
+          priority: 'high',
+          createdAt: new Date().toISOString(),
+          completed: false
+        });
+        await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+      } else if (action.type === 'update_task' && action.search) {
+        const raw = await env.KUNDEN_DB.get('tasks:custom');
+        let tasks = raw ? JSON.parse(raw) : [];
+        const searchLower = action.search.toLowerCase();
+        const idx = tasks.findIndex(t => (t.title && t.title.toLowerCase().includes(searchLower)) || (t.clientName && t.clientName.toLowerCase().includes(searchLower)));
+        if (idx >= 0) {
+          if (action.title) tasks[idx].title = action.title;
+          if (action.dueDate) {
+            tasks[idx].dueDate = action.dueDate;
+            tasks[idx].dueTime = action.dueTime || '10:00';
+            tasks[idx].dueDateTime = new Date(`${action.dueDate}T${tasks[idx].dueTime}:00`).toISOString();
+          }
+          if (action.assignee) tasks[idx].assignee = action.assignee;
+          tasks[idx].updatedAt = new Date().toISOString();
+          await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+        }
+      } else if (action.type === 'complete_task' && action.search) {
+        const raw = await env.KUNDEN_DB.get('tasks:custom');
+        let tasks = raw ? JSON.parse(raw) : [];
+        const searchLower = action.search.toLowerCase();
+        const idx = tasks.findIndex(t => (t.title && t.title.toLowerCase().includes(searchLower)) || (t.clientName && t.clientName.toLowerCase().includes(searchLower)));
+        if (idx >= 0) {
+          tasks[idx].completed = true;
+          tasks[idx].completedAt = new Date().toISOString();
+          await env.KUNDEN_DB.put('tasks:custom', JSON.stringify(tasks));
+        }
+      }
+    }
+  } catch (e) {
+    console.error('handleBotActions error:', e);
+  }
+
+  cleanResponse = cleanResponse.replace(/```action[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').trim();
+  return { cleanResponse, actionsExecuted };
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (ctx && typeof ctx.waitUntil === 'function') {
@@ -436,13 +526,15 @@ export default {
       }
     }
 
-    // Check authorization cookie (skip for webhook endpoint & authenticated security guardian bot)
+    // Check authorization cookie (skip for webhook endpoint, handy bridge daemon & authenticated security guardian bot)
     const isWebhook = url.pathname === '/api/webhooks/email';
     const secTokenHeader = request.headers.get('X-Security-Token') || '';
     const isSecurityBot = url.pathname.startsWith('/api/security/') && secTokenHeader && (secTokenHeader === env.CLOUDFLARE_API_TOKEN || secTokenHeader === env.Passwort);
-    const isAuthorized = isWebhook || isSecurityBot || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
+    const authHeaderToken = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    const isHandyBridge = url.pathname.startsWith('/api/handy/') && env.HANDY_BRIDGE_SECRET && authHeaderToken === env.HANDY_BRIDGE_SECRET.trim();
+    const isAuthorized = isWebhook || isSecurityBot || isHandyBridge || getCookie(request, 'Authorization') === 'GustavAuthorizedToken';
     if (!isAuthorized) {
-      if (url.pathname === '/' || url.pathname === '/index.html') {
+      if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/voice') {
         return new Response(loginHtml, {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
@@ -457,6 +549,18 @@ export default {
       // 1. Serve Dashboard HTML
       if (url.pathname === '/' || url.pathname === '/index.html') {
         return new Response(dashboardHtml, {
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+        });
+      }
+
+      // 1.1 Serve Mobile Voice & Chat Interface
+      if (url.pathname === '/voice') {
+        return new Response(voiceHtml, {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1103,101 +1207,172 @@ export default {
       }
 
 
-      // 8. API: Gustav Workers AI Chat
-      if (url.pathname === '/api/chat' && method === 'POST') {
-        const { message, clientId } = await request.json();
+      // 8. API: Gustav Handy Bridge & Unified Antigravity Chat
 
-        // Build context about clients
-        const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
-        let clientsContext = '';
-        for (const key of list.keys) {
-          const raw = await env.KUNDEN_DB.get(key.name);
-          if (raw) {
-            const c = JSON.parse(raw);
-            clientsContext += `- Name: ${c.name}, E-Mail: ${c.email}, Status: ${c.status} (${c.statusReason || ''}), Cloudflare Project: ${c.linkedCloudflareProject || 'none'}, Custom Domain: ${c.customDomain || 'keine'}, Admin-Passwort (/admin): ${c.adminPassword || 'nicht hinterlegt'}, Notizen: ${c.notes || ''}\n`;
-          }
+      // 8.01 Handy Daemon Poll (Server-Bridge asks for pending messages)
+      if (url.pathname === '/api/handy/poll' && method === 'GET') {
+        const auth = request.headers.get('Authorization') || '';
+        const token = auth.replace(/^Bearer\s+/i, '').trim();
+        const secret = (env.HANDY_BRIDGE_SECRET || '').trim();
+        if (!secret || token !== secret) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
         }
 
-        let activeClientMails = '';
-        if (clientId) {
-          const rawMails = await env.KUNDEN_DB.get(`emails:${clientId}`);
-          if (rawMails) {
-            const mails = JSON.parse(rawMails).slice(0, 10); // top 10 mails
-            activeClientMails = `Aktueller E-Mail-Verlauf für diesen Kunden (Kunden-ID: ${clientId}):\n` + mails.map(m => {
-              const directionLabel = m.direction === 'incoming' 
-                ? 'EINGEHEND (Vom Kunden an uns/Scholz & Friese gesendet)' 
-                : 'AUSGEHEND (Von uns/Scholz & Friese an den Kunden gesendet)';
-              return `  - Am ${new Date(m.date).toLocaleString('de-DE')}: ${directionLabel}\n    Betreff: "${m.subject}"\n    Inhalt: "${m.body.substring(0, 300)}..."`;
-            }).join('\n') + '\n';
-          } else {
-            activeClientMails = `Für diesen Kunden (${clientId}) liegt noch kein E-Mail-Verlauf vor.\n`;
-          }
-        } else {
-          // Global context: Fetch emails across all clients
-          const mailList = await env.KUNDEN_DB.list({ prefix: 'emails:' });
-          let allMails = [];
-          for (const key of mailList.keys) {
-            const cId = key.name.split(':')[1];
-            const clientRaw = await env.KUNDEN_DB.get(`kunde:${cId}`);
-            let clientName = cId;
-            if (clientRaw) {
-              try {
-                clientName = JSON.parse(clientRaw).name;
-              } catch(e) {}
-            }
-            const rawMails = await env.KUNDEN_DB.get(key.name);
-            if (rawMails) {
-              try {
-                const mails = JSON.parse(rawMails);
-                mails.forEach(m => {
-                  allMails.push({ ...m, clientName, clientId: cId });
-                });
-              } catch(e) {}
-            }
-          }
-          // Sort allMails newest first
-          allMails.sort((a, b) => new Date(b.date) - new Date(a.date));
-          const topMails = allMails.slice(0, 10);
-          if (topMails.length > 0) {
-            activeClientMails = `Letzte E-Mails über alle Kunden hinweg (chronologisch, neueste zuerst):\n` + topMails.map(m => {
-              const directionLabel = m.direction === 'incoming' 
-                ? `EINGEHEND (Vom Kunden ${m.clientName} an uns/Scholz & Friese)` 
-                : `AUSGEHEND (Von uns/Scholz & Friese an Kunden ${m.clientName})`;
-              return `  - Am ${new Date(m.date).toLocaleString('de-DE')}: ${directionLabel}\n    Kunde: ${m.clientName} (ID: ${m.clientId})\n    Betreff: "${m.subject}"\n    Inhalt: "${m.body.substring(0, 300)}..."`;
-            }).join('\n') + '\n';
-          } else {
-            activeClientMails = `Es sind noch überhaupt keine E-Mails im System hinterlegt.\n`;
-          }
+        const rawQueue = await env.CHAT_KV.get('handy:queue');
+        let queue = rawQueue ? JSON.parse(rawQueue) : [];
+        if (!Array.isArray(queue) || queue.length === 0) {
+          return new Response(JSON.stringify({ pending: false }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         }
 
-        const systemPrompt = `Du bist Gustav, der intelligente, absolut kompetente und treue Jarvis-ähnliche KI-Assistent der Webdesign-Agentur Scholz & Friese.
-Dein Job ist es, alle Informationen über Kunden, Verträge und Webseiten zu verwalten und bei Fragen Rede und Antwort zu stehen.
-Sprich den Benutzer mit Du an. Antworte professionell, hilfsbereit, aber locker und mit feinem Humor, passend zu einem coolen Jarvis.
+        const nextId = queue[0];
+        const rawMsg = await env.CHAT_KV.get(`handy:msg:${nextId}`);
+        if (!rawMsg) {
+          queue.shift();
+          await env.CHAT_KV.put('handy:queue', JSON.stringify(queue));
+          return new Response(JSON.stringify({ pending: false }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
 
-WICHTIGSTE REGEL ZU DEINER IDENTITÄT UND DEINEM CHATPARTNER:
-- Du sprichst mit deinen Entwickler-Kollegen/Chefs von Scholz & Friese (den Betreibern der Webdesign-Agentur). 
-- Die Person, mit der du chattest, ist NIEMALS der Kunde selbst! Sie ist dein Kollege/Chef von Scholz & Friese. Sprich sie immer direkt und locker mit "Du" an.
-- Der Kunde (z. B. Weymann Gebäudetechnik) ist eine dritte Partei. Sprich immer ÜBER den Kunden in der 3. Person (z. B. "Der Kunde Weymann hat uns geschrieben..."). Sprich deinen Chatpartner niemals mit "Sehr geehrter Herr Weymann" oder "Sie" an!
-- Wenn der Benutzer fragt "was habe ich gesendet", "unsere E-Mails", "letzte gesendete Mail" oder Ähnliches, meint er E-Mails, die AUSGEHEND (von uns/Scholz & Friese an den Kunden) gesendet wurden.
-- Wenn der Benutzer fragt "was habe ich bekommen", "letzte Mail die ich bekommen habe", "letzte eingegangene Mail", "was hat der Kunde gesendet" oder Ähnliches, meint er E-Mails, die EINGEHEND (vom Kunden an uns/Scholz & Friese) empfangen wurden.
-- Wenn der Benutzer nach "der letzten Mail" fragt, fass die chronologisch allerneueste Mail zusammen (entweder aus dem Verlauf des ausgewählten Kunden oder aus dem globalen Verlauf, je nachdem welche Daten unten vorliegen). Sag ihm genau, von wem sie kam, wann sie ankam und was der Inhalt/Betreff ist.
-
-Hier ist das aktuelle Firmenwissen über alle Kunden von Scholz & Friese:
-${clientsContext}
-
-${activeClientMails}
-
-Antworte kurz, strukturiert und präzise auf Deutsch. Falls du Informationen nicht hast, sag das ehrlich.`;
-
-        const response = await env.AI.run('@cf/meta/llama-3.2-1b-instruct', {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
-          ]
+        const msgData = JSON.parse(rawMsg);
+        return new Response(JSON.stringify({ pending: true, item: msgData }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
+      }
 
-        return new Response(JSON.stringify(response), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      // 8.02 Handy Daemon Reply (Server-Bridge delivers response or progress)
+      if (url.pathname === '/api/handy/reply' && method === 'POST') {
+        const auth = request.headers.get('Authorization') || '';
+        const token = auth.replace(/^Bearer\s+/i, '').trim();
+        const secret = (env.HANDY_BRIDGE_SECRET || '').trim();
+        if (!secret || token !== secret) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        }
+
+        const { id, response, progress } = await request.json();
+        if (!id) {
+          return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400, headers: corsHeaders });
+        }
+
+        const rawMsg = await env.CHAT_KV.get(`handy:msg:${id}`);
+        let msgData = rawMsg ? JSON.parse(rawMsg) : { id, message: '' };
+
+        if (progress) {
+          msgData.progress = progress;
+          msgData.updatedAt = new Date().toISOString();
+          await env.CHAT_KV.put(`handy:msg:${id}`, JSON.stringify(msgData), { expirationTtl: 86400 });
+          return new Response(JSON.stringify({ ok: true, type: 'progress' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
+
+        if (response !== undefined) {
+          const { cleanResponse } = await handleBotActions(env, response);
+          msgData.status = 'completed';
+          msgData.response = cleanResponse || 'Erledigt.';
+          msgData.completedAt = new Date().toISOString();
+          await env.CHAT_KV.put(`handy:msg:${id}`, JSON.stringify(msgData), { expirationTtl: 86400 });
+
+          // Remove from queue
+          const rawQueue = await env.CHAT_KV.get('handy:queue');
+          let queue = rawQueue ? JSON.parse(rawQueue) : [];
+          queue = queue.filter(qId => qId !== id);
+          await env.CHAT_KV.put('handy:queue', JSON.stringify(queue));
+
+          // Append to handy:history
+          const rawHistory = await env.CHAT_KV.get('handy:history');
+          let history = rawHistory ? JSON.parse(rawHistory) : [];
+          if (msgData.message) {
+            history.push({ role: 'user', text: msgData.message, timestamp: msgData.createdAt || new Date().toISOString() });
+          }
+          history.push({ role: 'gustav', text: msgData.response, timestamp: msgData.completedAt });
+          if (history.length > 40) history = history.slice(-40);
+          await env.CHAT_KV.put('handy:history', JSON.stringify(history));
+
+          return new Response(JSON.stringify({ ok: true, type: 'completed' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+
+      // 8.03 Chat Status Check (Polling for mobile app)
+      if (url.pathname === '/api/chat/status' && method === 'GET') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400, headers: corsHeaders });
+        }
+
+        const rawMsg = await env.CHAT_KV.get(`handy:msg:${id}`);
+        if (!rawMsg) {
+          return new Response(JSON.stringify({ status: 'not_found' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
+
+        const d = JSON.parse(rawMsg);
+        return new Response(JSON.stringify({
+          status: d.status,
+          response: d.response || null,
+          progress: d.progress || null
+        }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+
+      // 8.04 Chat History (For Mobile App drawer)
+      if (url.pathname === '/api/chat/history' && method === 'GET') {
+        const raw = await env.CHAT_KV.get('handy:history');
+        const history = raw ? JSON.parse(raw) : [];
+        return new Response(JSON.stringify({ history }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+
+      // 8.05 Unified Chat Submission (Used by Mobile Voice & Dashboard)
+      if (url.pathname === '/api/chat' && method === 'POST') {
+        const { message, user, clientId } = await request.json();
+        if (!message || !message.trim()) {
+          return new Response(JSON.stringify({ error: 'Empty message' }), { status: 400, headers: corsHeaders });
+        }
+
+        const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const msgObj = {
+          id: msgId,
+          user: user || 'Adrian',
+          message: message.trim(),
+          clientId: clientId || null,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+
+        // 1. Enqueue in CHAT_KV
+        await env.CHAT_KV.put(`handy:msg:${msgId}`, JSON.stringify(msgObj), { expirationTtl: 86400 });
+
+        const rawQueue = await env.CHAT_KV.get('handy:queue');
+        let queue = rawQueue ? JSON.parse(rawQueue) : [];
+        queue.push(msgId);
+        await env.CHAT_KV.put('handy:queue', JSON.stringify(queue));
+
+        // 2. Wait up to 20s for Antigravity bridge daemon response
+        let responseText = null;
+        const maxWaitMs = 20000;
+        const pollStepMs = 400;
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < maxWaitMs) {
+          await new Promise(r => setTimeout(r, pollStepMs));
+          const checkRaw = await env.CHAT_KV.get(`handy:msg:${msgId}`);
+          if (checkRaw) {
+            const checkData = JSON.parse(checkRaw);
+            if (checkData.status === 'completed') {
+              responseText = checkData.response;
+              break;
+            }
+          }
+        }
+
+        if (responseText) {
+          return new Response(JSON.stringify({ id: msgId, status: 'completed', response: responseText }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        return new Response(JSON.stringify({ id: msgId, status: 'pending', response: null }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
       }
 
