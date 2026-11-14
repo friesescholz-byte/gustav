@@ -1313,10 +1313,15 @@ export default {
         });
       }
 
-      // 8.04 Chat History (For Mobile App drawer)
+      // 8.04 Chat History (For Mobile App drawer & Dashboard, lean & performant)
       if (url.pathname === '/api/chat/history' && method === 'GET') {
         const raw = await env.CHAT_KV.get('handy:history');
-        const history = raw ? JSON.parse(raw) : [];
+        let history = raw ? JSON.parse(raw) : [];
+        const limitParam = url.searchParams.get('limit');
+        const limit = limitParam ? parseInt(limitParam, 10) : 10;
+        if (!isNaN(limit) && limit > 0 && history.length > limit) {
+          history = history.slice(-limit);
+        }
         return new Response(JSON.stringify({ history }), {
           headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });

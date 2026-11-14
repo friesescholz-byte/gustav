@@ -5391,7 +5391,7 @@ export default `<!DOCTYPE html>
             const historyEl = document.getElementById('chat-history');
             if (!historyEl) return;
             try {
-                const res = await fetch('/api/chat/history');
+                const res = await fetch('/api/chat/history?limit=10');
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.history && Array.isArray(data.history) && data.history.length > 0) {

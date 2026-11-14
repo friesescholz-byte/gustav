@@ -766,10 +766,28 @@ export default `<!DOCTYPE html>
             }
         }
 
+        let historyLoaded = false;
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/chat/history?limit=10');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+                        sheetMessages.innerHTML = '';
+                        data.history.forEach(item => {
+                            appendMsg(item.text, item.role === 'gustav' ? 'gustav' : 'user');
+                        });
+                    }
+                    historyLoaded = true;
+                }
+            } catch(e) {}
+        }
+
         function toggleSheet() {
             sheetExpanded = !sheetExpanded;
             if (sheetExpanded) {
                 bottomSheet.classList.add('expanded');
+                if (!historyLoaded) loadHistory();
             } else {
                 bottomSheet.classList.remove('expanded');
             }
@@ -797,22 +815,6 @@ export default `<!DOCTYPE html>
         function handleKey(e) {
             if (e.key === 'Enter') sendKeyboardMessage();
         }
-
-        async function loadHistory() {
-            try {
-                const res = await fetch('/api/chat/history');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.history && Array.isArray(data.history) && data.history.length > 0) {
-                        sheetMessages.innerHTML = '';
-                        data.history.forEach(item => {
-                            appendMsg(item.text, item.role === 'gustav' ? 'gustav' : 'user');
-                        });
-                    }
-                }
-            } catch(e) {}
-        }
-        loadHistory();
     </script>
 </body>
 </html>
