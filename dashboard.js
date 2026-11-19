@@ -1904,9 +1904,12 @@ export default `<!DOCTYPE html>
             <div style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
                 <div class="card mail-form-card">
                     <!-- Tab-Leiste -->
-                    <div style="display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 15px; margin-bottom: 15px; flex-wrap: wrap;">
                         <button class="mail-tab-btn active" id="mail-tab-compose" onclick="switchMailTab('compose')">
                             <i class="fa-solid fa-pen-to-square"></i> E-Mail verfassen
+                        </button>
+                        <button class="mail-tab-btn" id="mail-tab-newsletter" onclick="switchMailTab('newsletter')">
+                            <i class="fa-solid fa-bullhorn"></i> Newsletter
                         </button>
                         <button class="mail-tab-btn" id="mail-tab-log" onclick="switchMailTab('log')">
                             <i class="fa-solid fa-clock-rotate-left"></i> Gesendete E-Mails
@@ -2011,6 +2014,112 @@ export default `<!DOCTYPE html>
                             <div id="mail-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
                             <button type="button" class="btn btn-primary" id="btn-send-mail" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendMail()">
                                 <i class="fa-solid fa-paper-plane" id="mail-send-icon"></i> <span id="mail-send-btn-text">E-Mail senden</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- NEWSLETTER VIEW (HTML & Multi-Select Dropdown, ohne Unterschrift) -->
+                    <div id="mail-newsletter-view" style="display: none; flex-direction: column; gap: 20px; width: 100%;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: end;">
+                            <!-- Absender -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Absenderadresse (Sender)</label>
+                                <select id="newsletter-sender" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                                    <option value="info@scholz-friese-webdesign.de">info@scholz-friese-webdesign.de</option>
+                                    <option value="adrianfriese@scholz-friese-webdesign.de">adrianfriese@scholz-friese-webdesign.de</option>
+                                    <option value="bastianscholz@scholz-friese-webdesign.de">bastianscholz@scholz-friese-webdesign.de</option>
+                                </select>
+                            </div>
+
+                            <!-- Kunden-Auswahl Dropdown -->
+                            <div class="form-group" style="margin: 0; position: relative;" id="newsletter-dropdown-wrapper">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin: 0;">Kunden / Empfänger</label>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 600;" onclick="selectAllNewsletterClients(true)">
+                                            <i class="fa-solid fa-check-double"></i> Alle auswählen
+                                        </button>
+                                        <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 600; color: var(--color-red); border-color: rgba(239,68,68,0.2);" onclick="selectAllNewsletterClients(false)">
+                                            <i class="fa-solid fa-xmark"></i> Alle abwählen
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button type="button" id="newsletter-dropdown-trigger" onclick="toggleNewsletterDropdown(event)" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px 14px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: var(--transition-smooth); text-align: left;">
+                                    <span style="display: inline-flex; align-items: center; gap: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <i class="fa-solid fa-users" style="color: var(--color-cyan);"></i>
+                                        <span id="newsletter-selected-count-label">Kunden im Dropdown auswählen (0 ausgewählt)</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down" id="newsletter-dropdown-chevron" style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s ease;"></i>
+                                </button>
+
+                                <!-- Schickes Multi-Select Dropdown Panel -->
+                                <div id="newsletter-clients-dropdown" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #0c0f17; border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 10px; box-shadow: 0 18px 45px rgba(0,0,0,0.8); z-index: 250; overflow: hidden;">
+                                    <div style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(15, 23, 42, 0.9); display: flex; flex-direction: column; gap: 8px;">
+                                        <input type="text" id="newsletter-client-search" placeholder="Kunde oder E-Mail im Dropdown suchen..." oninput="renderNewsletterClientsDropdown()" style="background: rgba(0,0,0,0.45); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; outline: none;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span id="newsletter-dropdown-stats" style="font-size: 11.5px; color: var(--text-secondary);">0 Kunden ausgewählt</span>
+                                            <div style="display: flex; gap: 6px;">
+                                                <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 600; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3); color: var(--color-cyan);" onclick="selectAllNewsletterClients(true)">
+                                                    Alle auswählen
+                                                </button>
+                                                <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 600;" onclick="selectAllNewsletterClients(false)">
+                                                    Alle abwählen
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="newsletter-clients-list" style="max-height: 290px; overflow-y: auto; padding: 6px;">
+                                        <!-- Dynamische Checkbox-Liste aller Kunden -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ausgewählte Kunden Pills -->
+                        <div id="newsletter-recipients-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 8px; box-sizing: border-box; align-items: center;">
+                            <span style="font-size: 12px; color: var(--text-secondary);">Noch keine Kunden für den Newsletter ausgewählt. Öffne das Dropdown oder klicke auf „Alle auswählen“.</span>
+                        </div>
+
+                        <!-- Betreff -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Betreff (Subject)</label>
+                            <input type="text" id="newsletter-subject" placeholder="Betreff des Newsletters eingeben..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; transition: var(--transition-smooth);">
+                        </div>
+
+                        <!-- HTML Inhalt + Vorschau Toggle -->
+                        <div class="form-group" style="margin: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin: 0;">
+                                    <i class="fa-solid fa-code" style="color: var(--color-cyan); margin-right: 5px;"></i> Newsletter HTML-Code (Ohne zusätzliche Signatur)
+                                </label>
+                                <button type="button" class="btn" id="btn-toggle-newsletter-preview" onclick="toggleNewsletterPreview()" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.3); color: var(--color-cyan);">
+                                    <i class="fa-solid fa-eye"></i> <span>HTML-Vorschau einblenden</span>
+                                </button>
+                            </div>
+                            <textarea id="newsletter-html-body" oninput="updateNewsletterPreview()" placeholder="Füge hier deinen kompletten HTML-Code für den Newsletter ein (z. B. <!DOCTYPE html><html>...</html>)..." style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); color: #e2e8f0; padding: 16px; border-radius: 8px; width: 100%; height: 300px; box-sizing: border-box; font-size: 13px; line-height: 1.5; outline: none; font-family: 'JetBrains Mono', 'Fira Code', monospace; resize: vertical; transition: var(--transition-smooth);"></textarea>
+                            
+                            <!-- Live HTML Preview Container -->
+                            <div id="newsletter-preview-box" style="display: none; margin-top: 12px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 10px; overflow: hidden; background: #ffffff;">
+                                <div style="background: #0f172a; padding: 8px 14px; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
+                                    <span><i class="fa-solid fa-desktop" style="color: var(--color-cyan); margin-right: 6px;"></i> Live-Vorschau des HTML-Newsletters</span>
+                                    <span style="font-size: 11px; opacity: 0.7;">1:1 Darstellung ohne zusätzliche Signatur</span>
+                                </div>
+                                <iframe id="newsletter-preview-iframe" sandbox="allow-same-origin" style="width: 100%; height: 420px; border: none; display: block; background: #ffffff;"></iframe>
+                            </div>
+                        </div>
+
+                        <!-- Hinweis ohne Signatur -->
+                        <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; background: rgba(6, 182, 212, 0.05); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.18);">
+                            <i class="fa-solid fa-circle-info" style="color: var(--color-cyan);"></i>
+                            <span>Beim Newsletter wird <strong>keine Standard-Unterschrift</strong> angehängt – dein eingefügtes HTML wird exakt so wie es ist einzeln an jeden ausgewählten Kunden gesendet.</span>
+                        </div>
+
+                        <!-- Senden-Bereich -->
+                        <div class="mail-send-bar" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 10px;">
+                            <div id="newsletter-status-message" style="font-size: 13.5px; font-weight: 500;"></div>
+                            <button type="button" class="btn btn-primary" id="btn-send-newsletter" style="padding: 12px 30px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;" onclick="sendNewsletter()">
+                                <i class="fa-solid fa-paper-plane" id="newsletter-send-icon"></i> <span id="newsletter-send-btn-text">Newsletter absenden</span>
                             </button>
                         </div>
                     </div>
@@ -2916,23 +3025,33 @@ export default `<!DOCTYPE html>
 
         // --- OUTBOUND MAIL SYSTEM STATE & LOGIC ---
         let selectedMailRecipients = [];
+        let selectedNewsletterRecipients = [];
         let resendMailLogData = [];
 
         function switchMailTab(tabName) {
             document.querySelectorAll('.mail-tab-btn').forEach(btn => btn.classList.remove('active'));
             
             const composeTabBtn = document.getElementById('mail-tab-compose');
+            const newsletterTabBtn = document.getElementById('mail-tab-newsletter');
             const logTabBtn = document.getElementById('mail-tab-log');
             const composeView = document.getElementById('mail-compose-view');
+            const newsletterView = document.getElementById('mail-newsletter-view');
             const logView = document.getElementById('mail-log-view');
+
+            if (composeView) composeView.style.display = 'none';
+            if (newsletterView) newsletterView.style.display = 'none';
+            if (logView) logView.style.display = 'none';
 
             if (tabName === 'compose') {
                 if (composeTabBtn) composeTabBtn.classList.add('active');
                 if (composeView) composeView.style.display = 'flex';
-                if (logView) logView.style.display = 'none';
+            } else if (tabName === 'newsletter') {
+                if (newsletterTabBtn) newsletterTabBtn.classList.add('active');
+                if (newsletterView) newsletterView.style.display = 'flex';
+                renderNewsletterClientsDropdown();
+                renderNewsletterRecipientTags();
             } else if (tabName === 'log') {
                 if (logTabBtn) logTabBtn.classList.add('active');
-                if (composeView) composeView.style.display = 'none';
                 if (logView) logView.style.display = 'flex';
                 loadResendMailLog();
             }
@@ -3227,14 +3346,282 @@ export default `<!DOCTYPE html>
             addMailRecipient(name, val, id);
         }
 
-        // Click outside listener for dropdown
+        // Click outside listener for dropdowns
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('mail-suggestions-dropdown');
             const input = document.getElementById('mail-recipient-input');
             if (dropdown && e.target !== input && !dropdown.contains(e.target)) {
                 dropdown.style.display = 'none';
             }
+
+            const nlWrapper = document.getElementById('newsletter-dropdown-wrapper');
+            const nlDropdown = document.getElementById('newsletter-clients-dropdown');
+            const nlChevron = document.getElementById('newsletter-dropdown-chevron');
+            if (nlDropdown && nlWrapper && !nlWrapper.contains(e.target)) {
+                nlDropdown.style.display = 'none';
+                if (nlChevron) nlChevron.style.transform = 'rotate(0deg)';
+            }
         });
+
+        function toggleNewsletterDropdown(event) {
+            if (event) event.stopPropagation();
+            const nlDropdown = document.getElementById('newsletter-clients-dropdown');
+            const nlChevron = document.getElementById('newsletter-dropdown-chevron');
+            if (!nlDropdown) return;
+            const isOpen = nlDropdown.style.display === 'block';
+            if (isOpen) {
+                nlDropdown.style.display = 'none';
+                if (nlChevron) nlChevron.style.transform = 'rotate(0deg)';
+            } else {
+                renderNewsletterClientsDropdown();
+                nlDropdown.style.display = 'block';
+                if (nlChevron) nlChevron.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function renderNewsletterClientsDropdown() {
+            const listEl = document.getElementById('newsletter-clients-list');
+            const searchEl = document.getElementById('newsletter-client-search');
+            const statsEl = document.getElementById('newsletter-dropdown-stats');
+            const countLabel = document.getElementById('newsletter-selected-count-label');
+            if (!listEl) return;
+
+            const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const allClients = Array.isArray(clients) ? [...clients] : [];
+            allClients.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de'));
+
+            const validEmailClients = allClients.filter(c => c && c.email && c.email.trim());
+            const totalWithEmail = validEmailClients.length;
+            const selectedCount = selectedNewsletterRecipients.length;
+
+            if (statsEl) {
+                statsEl.innerText = selectedCount + ' von ' + totalWithEmail + ' Kunden mit E-Mail ausgewählt';
+            }
+            if (countLabel) {
+                countLabel.innerText = selectedCount > 0
+                    ? (selectedCount + ' von ' + totalWithEmail + ' Kunden ausgewählt')
+                    : ('Kunden im Dropdown auswählen (0 von ' + totalWithEmail + ')');
+            }
+
+            const filtered = allClients.filter(c => {
+                if (!c) return false;
+                if (!query) return true;
+                const name = (c.name || '').toLowerCase();
+                const email = (c.email || '').toLowerCase();
+                const person = (c.contactPerson || '').toLowerCase();
+                return name.includes(query) || email.includes(query) || person.includes(query);
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div style="padding: 16px; text-align: center; font-size: 12.5px; color: var(--text-secondary);">Kein Kunde gefunden.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(c => {
+                const email = (c.email || '').trim();
+                const hasEmail = Boolean(email);
+                const isSelected = hasEmail && selectedNewsletterRecipients.some(r => r.email.toLowerCase() === email.toLowerCase());
+                const safeId = (c.id || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeName = (c.name || 'Unbekannt').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeEmail = email.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safePerson = (c.contactPerson || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                if (!hasEmail) {
+                    return '<div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-radius: 7px; opacity: 0.45; cursor: not-allowed; margin-bottom: 3px;">' +
+                        '<div style="display: flex; align-items: center; gap: 10px; min-width: 0;">' +
+                            '<div style="width: 17px; height: 17px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;"></div>' +
+                            '<div style="min-width: 0;">' +
+                                '<div style="font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + safeName + '</div>' +
+                                '<div style="font-size: 11px; color: var(--text-secondary);">Keine E-Mail-Adresse hinterlegt</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }
+
+                const rowBg = isSelected ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255,255,255,0.02)';
+                const rowBorder = isSelected ? 'rgba(6, 182, 212, 0.35)' : 'rgba(255,255,255,0.04)';
+                const boxBg = isSelected ? 'var(--color-cyan)' : 'transparent';
+                const boxBorder = isSelected ? 'var(--color-cyan)' : 'rgba(255,255,255,0.3)';
+                const checkIcon = isSelected ? '<i class="fa-solid fa-check" style="font-size: 10px; color: #000;"></i>' : '';
+
+                return '<div onclick="toggleNewsletterClient(&quot;' + safeId + '&quot;, event)" style="display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-radius: 7px; background: ' + rowBg + '; border: 1px solid ' + rowBorder + '; cursor: pointer; margin-bottom: 4px; transition: all 0.15s ease;">' +
+                    '<div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex-grow: 1;">' +
+                        '<div style="width: 17px; height: 17px; border-radius: 4px; background: ' + boxBg + '; border: 1.5px solid ' + boxBorder + '; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">' +
+                            checkIcon +
+                        '</div>' +
+                        '<div style="min-width: 0; flex-grow: 1;">' +
+                            '<div style="font-size: 13px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' +
+                                safeName + (safePerson ? ' <span style="font-weight: 400; font-size: 11.5px; color: var(--text-secondary);">(' + safePerson + ')</span>' : '') +
+                            '</div>' +
+                            '<div style="font-size: 11.5px; color: var(--color-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + safeEmail + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function toggleNewsletterClient(clientId, event) {
+            if (event) event.stopPropagation();
+            const client = (Array.isArray(clients) ? clients : []).find(c => c && c.id === clientId);
+            if (!client || !client.email || !client.email.trim()) return;
+            const email = client.email.trim();
+            const idx = selectedNewsletterRecipients.findIndex(r => r.email.toLowerCase() === email.toLowerCase());
+            if (idx !== -1) {
+                selectedNewsletterRecipients.splice(idx, 1);
+            } else {
+                selectedNewsletterRecipients.push({
+                    id: client.id,
+                    name: client.name || email,
+                    email: email
+                });
+            }
+            renderNewsletterClientsDropdown();
+            renderNewsletterRecipientTags();
+        }
+
+        function selectAllNewsletterClients(selectAll) {
+            if (!selectAll) {
+                selectedNewsletterRecipients = [];
+            } else {
+                const allClients = Array.isArray(clients) ? [...clients] : [];
+                allClients.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de'));
+                const next = [];
+                allClients.forEach(c => {
+                    const email = (c && c.email ? c.email : '').trim();
+                    if (email && !next.some(r => r.email.toLowerCase() === email.toLowerCase())) {
+                        next.push({
+                            id: c.id,
+                            name: c.name || email,
+                            email: email
+                        });
+                    }
+                });
+                selectedNewsletterRecipients = next;
+            }
+            renderNewsletterClientsDropdown();
+            renderNewsletterRecipientTags();
+        }
+
+        function removeNewsletterRecipient(idx) {
+            selectedNewsletterRecipients.splice(idx, 1);
+            renderNewsletterClientsDropdown();
+            renderNewsletterRecipientTags();
+        }
+
+        function renderNewsletterRecipientTags() {
+            const container = document.getElementById('newsletter-recipients-tags');
+            if (!container) return;
+            if (selectedNewsletterRecipients.length === 0) {
+                container.innerHTML = '<span style="font-size: 12px; color: var(--text-secondary); padding: 2px 4px;">Noch keine Kunden für den Newsletter ausgewählt. Öffne das Dropdown oder klicke auf „Alle auswählen“.</span>';
+                return;
+            }
+            container.innerHTML = selectedNewsletterRecipients.map((r, idx) => {
+                const safeName = (r.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeEmail = (r.email || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return '<span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.25); color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">' +
+                    safeName + ' <span style="font-size: 11px; opacity: 0.65;">(' + safeEmail + ')</span>' +
+                    '<i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--color-cyan); margin-left: 2px; font-size: 12px;" onclick="removeNewsletterRecipient(' + idx + ')"></i>' +
+                '</span>';
+            }).join('');
+        }
+
+        function toggleNewsletterPreview() {
+            const box = document.getElementById('newsletter-preview-box');
+            const btn = document.getElementById('btn-toggle-newsletter-preview');
+            if (!box) return;
+            const isHidden = box.style.display === 'none';
+            box.style.display = isHidden ? 'block' : 'none';
+            if (btn) {
+                btn.innerHTML = isHidden
+                    ? '<i class="fa-solid fa-eye-slash"></i> <span>HTML-Vorschau ausblenden</span>'
+                    : '<i class="fa-solid fa-eye"></i> <span>HTML-Vorschau einblenden</span>';
+            }
+            if (isHidden) {
+                updateNewsletterPreview();
+            }
+        }
+
+        function updateNewsletterPreview() {
+            const box = document.getElementById('newsletter-preview-box');
+            const iframe = document.getElementById('newsletter-preview-iframe');
+            const textarea = document.getElementById('newsletter-html-body');
+            if (!box || !iframe || !textarea || box.style.display === 'none') return;
+            const html = textarea.value.trim();
+            iframe.srcdoc = html || '<div style="font-family:sans-serif;padding:24px;color:#64748b;">Noch kein HTML-Code eingegeben...</div>';
+        }
+
+        async function sendNewsletter() {
+            if (selectedNewsletterRecipients.length === 0) {
+                alert('Bitte wähle im Dropdown mindestens einen Kunden für den Newsletter aus.');
+                return;
+            }
+
+            const subjectEl = document.getElementById('newsletter-subject');
+            const bodyEl = document.getElementById('newsletter-html-body');
+            const senderEl = document.getElementById('newsletter-sender');
+            const subject = subjectEl ? subjectEl.value.trim() : '';
+            const htmlBody = bodyEl ? bodyEl.value.trim() : '';
+            const sender = senderEl ? senderEl.value : 'info@scholz-friese-webdesign.de';
+
+            if (!subject || !htmlBody) {
+                alert('Bitte fülle Betreff und HTML-Inhalt für den Newsletter aus.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-send-newsletter');
+            const icon = document.getElementById('newsletter-send-icon');
+            const btnText = document.getElementById('newsletter-send-btn-text');
+            const statusMsg = document.getElementById('newsletter-status-message');
+
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            icon.className = 'fa-solid fa-spinner fa-spin';
+            btnText.innerText = 'Newsletter wird gesendet...';
+            statusMsg.innerHTML = '<span style="color: var(--text-secondary);"><i class="fa-solid fa-hourglass-half"></i> Sende Newsletter an ' + selectedNewsletterRecipients.length + ' Kunden via Resend...</span>';
+
+            const recipientEmails = selectedNewsletterRecipients.map(r => r.email);
+
+            try {
+                const res = await fetch('/api/emails/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender: sender,
+                        recipients: recipientEmails,
+                        subject: subject,
+                        body: htmlBody,
+                        signature: 'none',
+                        isNewsletter: true,
+                        rawHtml: true
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok || res.status === 207) {
+                    if (data.success) {
+                        statusMsg.innerHTML = '<span style="color: var(--color-green); font-weight: 600;"><i class="fa-solid fa-circle-check"></i> Newsletter erfolgreich an ' + recipientEmails.length + ' Empfänger gesendet!</span>';
+                        if (subjectEl) subjectEl.value = '';
+                        if (bodyEl) bodyEl.value = '';
+                        selectedNewsletterRecipients = [];
+                        renderNewsletterClientsDropdown();
+                        renderNewsletterRecipientTags();
+                        updateNewsletterPreview();
+                    } else {
+                        statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Teilfehler: ' + (data.message || 'Versand teilweise fehlgeschlagen') + '</span>';
+                    }
+                } else {
+                    statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Serverfehler: ' + (data.error || 'Versand fehlgeschlagen') + '</span>';
+                }
+            } catch (e) {
+                console.error('Newsletter sending error:', e);
+                statusMsg.innerHTML = '<span style="color: var(--color-red); font-weight: 600;"><i class="fa-solid fa-circle-xmark"></i> Netzwerkfehler beim Newsletter-Versand.</span>';
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                icon.className = 'fa-solid fa-paper-plane';
+                btnText.innerText = 'Newsletter absenden';
+            }
+        }
 
         function openMailWithClient() {
             if (!activeClient || !activeClient.email) {

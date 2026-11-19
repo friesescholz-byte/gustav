@@ -1587,7 +1587,7 @@ export default {
       if (url.pathname === '/api/emails/send' && method === 'POST') {
         try {
           const payload = await request.json();
-          const { sender, recipients, subject, body, signature, attachments } = payload;
+          const { sender, recipients, subject, body, signature, attachments, isNewsletter, rawHtml } = payload;
           
           if (!sender || !recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !body) {
             return new Response(JSON.stringify({ error: 'Fehlende Felder: Absender, Empfänger, Betreff und Inhalt sind Pflichtfelder.' }), { status: 400, headers: corsHeaders });
@@ -1598,7 +1598,7 @@ export default {
             return new Response(JSON.stringify({ error: 'Resend API-Schlüssel nicht in den Umgebungsvariablen hinterlegt.' }), { status: 500, headers: corsHeaders });
           }
 
-          // Format the body using a premium HTML design
+          // Format the body using a premium HTML design (unless rawHtml/isNewsletter is requested)
           const getHtmlEmail = (content) => {
             const formatted = content.replace(/\n/g, '<br>');
             const signatureHtml = signature === 'adrian'
@@ -1664,86 +1664,160 @@ export default {
             `;
           };
 
-          const htmlContent = getHtmlEmail(body);
+          const useRawHtml = Boolean(isNewsletter || rawHtml || signature === 'none');
+          const htmlContent = useRawHtml ? body : getHtmlEmail(body);
           const fromName = sender === 'adrianfriese@scholz-friese-webdesign.de'
             ? 'Adrian Friese | Scholz & Friese'
             : (sender === 'bastianscholz@scholz-friese-webdesign.de'
                 ? 'Bastian Scholz | Scholz & Friese'
                 : 'Scholz & Friese Webdesign');
 
-          // Send individual emails to prevent DSGVO leaks and log them in customer histories
-          const sendPromises = recipients.map(async (recipientEmail) => {
-            try {
-              const resendBody = {
-                from: `${fromName} <${sender}>`,
-                to: [recipientEmail],
-                subject: subject,
-                html: htmlContent,
-              };
-              if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-                resendBody.attachments = attachments.map(a => ({
-                  filename: a.filename,
-                  content: a.content
-                }));
-              }
-
-              const response = await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${resendApiKey}`
-                },
-                body: JSON.stringify(resendBody)
-              });
-              
-              const result = await response.json();
-              
-              if (response.ok) {
-                // Find matched customer by email and log the mail
-                const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
-                for (const key of list.keys) {
-                  const raw = await env.KUNDEN_DB.get(key.name);
-                  if (raw) {
-                    const customer = JSON.parse(raw);
-                    if (customer.email && customer.email.toLowerCase().trim() === recipientEmail.toLowerCase().trim()) {
-                      const logKey = `emails:${customer.id}`;
-                      const rawMails = await env.KUNDEN_DB.get(logKey);
-                      const mailLog = rawMails ? JSON.parse(rawMails) : [];
-                      
-                      mailLog.unshift({
-                        id: `msg_sent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                        date: new Date().toISOString(),
-                        direction: 'outgoing',
-                        from: `${fromName} <${sender}>`,
-                        subject: subject,
-                        body: body,
-                        summary: '',
-                        attachments: [],
-                        isResolved: true,
-                      });
-                      
-                      customer.lastInteraction = new Date().toISOString();
-                      customer.lastDirection = 'outgoing';
-                      if (!customer.manualOverride) {
-                        customer.status = 'green';
-                        customer.statusReason = `Beantwortet am ${new Date().toLocaleDateString('de-DE')}`;
-                      }
-                      
-                      await env.KUNDEN_DB.put(logKey, JSON.stringify(mailLog));
-                      await env.KUNDEN_DB.put(`kunde:${customer.id}`, JSON.stringify(customer));
-                      break;
-                    }
-                  }
+          // Preload customers once by email to avoid N*M KV reads
+          const customerByEmail = new Map();
+          try {
+            const list = await env.KUNDEN_DB.list({ prefix: 'kunde:' });
+            for (const key of list.keys) {
+              const raw = await env.KUNDEN_DB.get(key.name);
+              if (raw) {
+                const customer = JSON.parse(raw);
+                if (customer && customer.email && customer.email.trim()) {
+                  customerByEmail.set(customer.email.toLowerCase().trim(), customer);
                 }
               }
-              
-              return { email: recipientEmail, success: response.ok, data: result };
-            } catch (e) {
-              return { email: recipientEmail, success: false, error: e.message };
             }
-          });
+          } catch (kvErr) {
+            console.error('Error preloading customers for email log:', kvErr);
+          }
 
-          const results = await Promise.all(sendPromises);
+          const logCustomerEmail = async (recipientEmail) => {
+            const customer = customerByEmail.get((recipientEmail || '').toLowerCase().trim());
+            if (!customer) return;
+            try {
+              const logKey = `emails:${customer.id}`;
+              const rawMails = await env.KUNDEN_DB.get(logKey);
+              const mailLog = rawMails ? JSON.parse(rawMails) : [];
+              
+              mailLog.unshift({
+                id: `msg_sent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                date: new Date().toISOString(),
+                direction: 'outgoing',
+                from: `${fromName} <${sender}>`,
+                subject: subject,
+                body: isNewsletter ? `[Newsletter HTML] ${subject}` : body,
+                summary: '',
+                attachments: [],
+                isResolved: true,
+              });
+              
+              customer.lastInteraction = new Date().toISOString();
+              customer.lastDirection = 'outgoing';
+              const hasOpenTodos = (customer.todos || []).some(t => !t.done);
+              if (!isNewsletter && !customer.manualOverride && !hasOpenTodos) {
+                customer.status = 'green';
+                customer.statusReason = `Beantwortet am ${new Date().toLocaleDateString('de-DE')}`;
+              }
+              
+              await env.KUNDEN_DB.put(logKey, JSON.stringify(mailLog));
+              await env.KUNDEN_DB.put(`kunde:${customer.id}`, JSON.stringify(customer));
+            } catch (logErr) {
+              console.error('Error logging outgoing email for customer:', customer.id, logErr);
+            }
+          };
+
+          const hasAttachments = Boolean(attachments && Array.isArray(attachments) && attachments.length > 0);
+          let results = [];
+
+          // Use Resend Batch API when sending to multiple recipients without attachments (avoids 2 req/sec rate limit)
+          if (recipients.length > 1 && !hasAttachments) {
+            const batchPayloads = recipients.map(recipientEmail => ({
+              from: `${fromName} <${sender}>`,
+              to: [recipientEmail],
+              subject: subject,
+              html: htmlContent
+            }));
+
+            const batchRes = await fetch('https://api.resend.com/emails/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${resendApiKey}`
+              },
+              body: JSON.stringify(batchPayloads)
+            });
+            const batchData = await batchRes.json();
+
+            if (batchRes.ok) {
+              for (const recipientEmail of recipients) {
+                await logCustomerEmail(recipientEmail);
+                results.push({ email: recipientEmail, success: true, data: batchData });
+              }
+            } else {
+              // Fallback: sequential individual sends with small delay
+              for (const recipientEmail of recipients) {
+                try {
+                  const singleRes = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${resendApiKey}`
+                    },
+                    body: JSON.stringify({
+                      from: `${fromName} <${sender}>`,
+                      to: [recipientEmail],
+                      subject: subject,
+                      html: htmlContent
+                    })
+                  });
+                  const singleData = await singleRes.json();
+                  if (singleRes.ok) {
+                    await logCustomerEmail(recipientEmail);
+                  }
+                  results.push({ email: recipientEmail, success: singleRes.ok, data: singleData });
+                  await new Promise(r => setTimeout(r, 350));
+                } catch (singleErr) {
+                  results.push({ email: recipientEmail, success: false, error: singleErr.message });
+                }
+              }
+            }
+          } else {
+            // Single recipient or email with attachments
+            for (const recipientEmail of recipients) {
+              try {
+                const resendBody = {
+                  from: `${fromName} <${sender}>`,
+                  to: [recipientEmail],
+                  subject: subject,
+                  html: htmlContent,
+                };
+                if (hasAttachments) {
+                  resendBody.attachments = attachments.map(a => ({
+                    filename: a.filename,
+                    content: a.content
+                  }));
+                }
+
+                const response = await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${resendApiKey}`
+                  },
+                  body: JSON.stringify(resendBody)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                  await logCustomerEmail(recipientEmail);
+                }
+                results.push({ email: recipientEmail, success: response.ok, data: result });
+                if (recipients.length > 1) {
+                  await new Promise(r => setTimeout(r, 350));
+                }
+              } catch (e) {
+                results.push({ email: recipientEmail, success: false, error: e.message });
+              }
+            }
+          }
+
           const failed = results.filter(r => !r.success);
           
           if (failed.length > 0) {
