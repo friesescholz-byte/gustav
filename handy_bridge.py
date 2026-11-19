@@ -135,132 +135,47 @@ def send_reply_to_worker(msg_id, response=None, progress=None):
         print(f"[ERROR] Failed to send reply to worker: {e}")
         return False
 
-def load_dev_vars():
-    vars_dict = {}
-    dev_vars_path = os.path.join(os.path.dirname(__file__), ".dev.vars")
-    if os.path.exists(dev_vars_path):
-        with open(dev_vars_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    vars_dict[k.strip()] = v.strip()
-    return vars_dict
-
-def switch_antigravity_to_flash(prompt, env):
+def switch_handy_conversation_to_claude(prompt, env):
     """
-    If the current Antigravity conversation's selected model runs out of tokens,
-    automatically switch inside Antigravity to Gemini 3.8 Flash (--model=flash / --model=flash_lite).
+    Switches the active '📱 Handy' conversation directly inside Antigravity
+    to Claude (MODEL_CLAUDE_4_5_SONNET) via LanguageServerService/SendUserCascadeMessage
+    when Gemini 3.8 Flash is out of usage.
     """
-    global CONVERSATION_ID, TRANSCRIPT_PATH
-    for ag_model in ["flash", "flash_lite"]:
+    ls_addr = env.get("ANTIGRAVITY_LS_ADDRESS", "")
+    csrf_token = env.get("ANTIGRAVITY_CSRF_TOKEN", "")
+    if not ls_addr or not csrf_token:
+        return False
+
+    for claude_model in ["MODEL_CLAUDE_4_5_SONNET", "MODEL_CLAUDE_4_SONNET"]:
         try:
-            print(f"[AUTO-SWITCH] Switching Antigravity conversation to {ag_model} (Gemini 3.8 Flash)...")
-            cmd = [
-                AGENTAPI_PATH,
-                "new-conversation",
-                f"--model={ag_model}",
-                "--title=📱 Handy",
-                prompt
-            ]
-            res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
-            if res.returncode == 0:
-                m = re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", res.stdout)
-                if m:
-                    new_id = m.group(0)
-                    CONVERSATION_ID = new_id
-                    TRANSCRIPT_PATH = f"/home/gustav/.gemini/antigravity/brain/{CONVERSATION_ID}/.system_generated/logs/transcript.jsonl"
-                    print(f"[AUTO-SWITCH SUCCESS] Active Handy Conversation switched to {CONVERSATION_ID} on {ag_model}")
-                    return True
-        except Exception as e:
-            print(f"[WARN] Antigravity switch to {ag_model} failed: {e}")
-    return False
-
-def fallback_gemini_direct(text, user="Adrian", prompt=None, env=None):
-    """
-    1. First tries switching directly inside Antigravity to Gemini 3.8 Flash (--model=flash).
-    2. Emergency backup via Gemini API if Antigravity itself is closed/unreachable.
-    """
-    if prompt and env and switch_antigravity_to_flash(prompt, env):
-        t_switch = time.time()
-        while running and (time.time() - t_switch < 60):
-            time.sleep(0.3)
-            for line_str in get_transcript_lines():
-                try:
-                    entry = json.loads(line_str.strip())
-                    if entry.get("source") == "MODEL" and entry.get("type") == "PLANNER_RESPONSE" and not entry.get("tool_calls"):
-                        c = (entry.get("content") or "").strip()
-                        if c:
-                            return c
-                except Exception:
-                    pass
-
-    dv = load_dev_vars()
-    api_key = os.environ.get("GEMINI_API_KEY") or dv.get("GEMINI_API_KEY")
-    cf_acc = os.environ.get("CLOUDFLARE_ACCOUNT_ID") or dv.get("CLOUDFLARE_ACCOUNT_ID")
-    cf_tok = os.environ.get("CLOUDFLARE_API_TOKEN") or dv.get("CLOUDFLARE_API_TOKEN")
-
-    if not api_key:
-        return None
-
-    tasks_context = ""
-    history_context = ""
-    if cf_acc and cf_tok:
-        cf_headers = {"Authorization": f"Bearer {cf_tok}"}
-        try:
-            r_tasks = requests.get(
-                f"https://api.cloudflare.com/client/v4/accounts/{cf_acc}/storage/kv/namespaces/8d2fe320c4134c368f28c18153d4f82d/values/tasks:custom",
-                headers=cf_headers, timeout=5
-            )
-            if r_tasks.status_code == 200:
-                tasks = r_tasks.json()
-                open_tasks = [t for t in tasks if not t.get("completed")]
-                lines = []
-                for t in open_tasks[:25]:
-                    lines.append(f"- [{t.get('assignee', 'team')}] {t.get('title')} (Kunde: {t.get('clientName') or '-'}, Frist: {t.get('dueDate') or '-'})")
-                tasks_context = "\n".join(lines)
-        except Exception as e:
-            print(f"[WARN] Fallback KV tasks fetch error: {e}")
-
-        try:
-            r_hist = requests.get(
-                f"https://api.cloudflare.com/client/v4/accounts/{cf_acc}/storage/kv/namespaces/8afea7e62a5342208b73a2181cfaa156/values/handy:history",
-                headers=cf_headers, timeout=5
-            )
-            if r_hist.status_code == 200:
-                hist = r_hist.json()[-8:]
-                history_context = "\n".join([f"{h.get('role', 'user')}: {h.get('text', '')}" for h in hist])
-        except Exception:
-            pass
-
-    sys_prompt = (
-        "Du bist Gustav, der Lead-Developer und persönliche KI-Partner der Webdesign-Agentur Scholz & Friese (Adrian & Basti). "
-        "Antworte direkt, sympathisch, präzise und auf Deutsch.\n"
-        f"Aktuell offene Aufgaben im Dashboard:\n{tasks_context or 'Keine offenen Aufgaben geladen.'}\n\n"
-        f"Letzter Gesprächsverlauf:\n{history_context}\n\n"
-        "Wenn eine Aufgabe erstellt, geändert oder abgehakt werden soll, hänge ganz am Ende einen ```action Block an:\n"
-        '{"type":"create_task","title":"...","clientName":"...","assignee":"basti|adrian|team","dueDate":"YYYY-MM-DD"} '
-        'bzw. {"type":"update_task","search":"...","dueDate":"..."} oder {"type":"complete_task","search":"..."}.'
-    )
-
-    for model_name in ["gemini-2.5-flash"]:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-            payload = {
-                "systemInstruction": {"parts": [{"text": sys_prompt}]},
-                "contents": [{"role": "user", "parts": [{"text": f"[{user}]: {text}"}]}],
-                "generationConfig": {"temperature": 0.4}
+            print(f"[AUTO-SWITCH] Gemini 3.8 Flash out of usage -> Switching '📱 Handy' in Antigravity to {claude_model}...")
+            url = f"http://{ls_addr}/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage"
+            headers = {
+                "Content-Type": "application/json",
+                "x-codeium-csrf-token": csrf_token,
+                "Connect-Protocol-Version": "1"
             }
-            res = requests.post(url, json=payload, timeout=15)
+            payload = {
+                "cascadeId": CONVERSATION_ID,
+                "items": [{"text": prompt}],
+                "cascadeConfig": {
+                    "plannerConfig": {
+                        "planModel": claude_model,
+                        "requestedModel": {
+                            "model": claude_model
+                        }
+                    }
+                }
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=15)
             if res.status_code == 200:
-                data = res.json()
-                reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if reply:
-                    return reply
-        except Exception:
-            pass
-
-    return None
+                print(f"[AUTO-SWITCH SUCCESS] Message re-sent in '📱 Handy' using {claude_model}!")
+                return True
+            else:
+                print(f"[WARN] Claude switch ({claude_model}) status {res.status_code}: {res.text[:160]}")
+        except Exception as e:
+            print(f"[WARN] Error switching to {claude_model}: {e}")
+    return False
 
 def process_message(item):
     msg_id = item.get("id")
@@ -299,29 +214,28 @@ def process_message(item):
     try:
         res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
         if res.returncode != 0:
-            print(f"[ERROR] agentapi send-message failed: {res.stderr or res.stdout} -> Triggering Auto-Switch Fallback!")
-            fb = fallback_gemini_direct(text, user, prompt, env)
-            send_reply_to_worker(msg_id, response=fb or "Fehler beim Weiterleiten an den Gustav Server-Kern.")
-            return
+            print(f"[ERROR] agentapi send-message failed: {res.stderr or res.stdout} -> Trying Claude switch in Antigravity...")
+            if not switch_handy_conversation_to_claude(prompt, env):
+                send_reply_to_worker(msg_id, response="Fehler beim Weiterleiten an Antigravity.")
+                return
     except Exception as e:
-        print(f"[ERROR] Failed to execute agentapi: {e} -> Triggering Auto-Switch Fallback!")
-        fb = fallback_gemini_direct(text, user, prompt, env)
-        send_reply_to_worker(msg_id, response=fb or "Interner Serverfehler bei der Nachrichtenverarbeitung.")
+        print(f"[ERROR] Failed to execute agentapi: {e}")
+        send_reply_to_worker(msg_id, response="Interner Serverfehler bei der Nachrichtenverarbeitung.")
         return
 
     # Watch transcript for model response
     timeout_seconds = 120
-    stall_without_model_step_seconds = 25
+    stall_without_model_step_seconds = 20
     poll_interval = 0.3
     notified_progress = False
     saw_model_activity = False
+    switched_to_claude = False
 
     while running and (time.time() - t0 < timeout_seconds):
         time.sleep(poll_interval)
         current_lines = get_transcript_lines()
         
         if len(current_lines) > start_line_count:
-            # Check newly added lines
             for line_str in current_lines[start_line_count:]:
                 line_str = line_str.strip()
                 if not line_str:
@@ -332,14 +246,14 @@ def process_message(item):
                     if entry.get("source") == "MODEL":
                         saw_model_activity = True
 
-                    # Detect model quota/token errors immediately
-                    if entry.get("source") == "MODEL" and entry.get("type") == "PLANNER_RESPONSE" and entry.get("status") == "ERROR":
-                        err_msg = entry.get("error", "Model error / out of tokens")
-                        print(f"[WARN] Antigravity model error detected ({err_msg}) -> Switching to Fallback Model!")
-                        fb = fallback_gemini_direct(text, user, prompt, env)
-                        if fb:
-                            send_reply_to_worker(msg_id, response=fb)
-                            return
+                    # If Gemini 3.8 Flash reports an error / out of usage, switch to Claude in Antigravity
+                    if entry.get("source") == "MODEL" and entry.get("type") == "PLANNER_RESPONSE" and entry.get("status") == "ERROR" and not switched_to_claude:
+                        err_msg = entry.get("error", "out of usage")
+                        print(f"[WARN] Gemini 3.8 Flash error ({err_msg}) -> Switching to Claude inside Antigravity!")
+                        switched_to_claude = True
+                        start_line_count = len(current_lines)
+                        switch_handy_conversation_to_claude(prompt, env)
+                        break
 
                     # Notify progress if model is calling tools
                     if entry.get("source") == "MODEL" and entry.get("tool_calls") and not notified_progress:
@@ -358,19 +272,16 @@ def process_message(item):
                 except json.JSONDecodeError:
                     continue
 
-        # If model has not started a single step after 25s (e.g. out-of-tokens banner in IDE), auto-switch!
-        if not saw_model_activity and (time.time() - t0 >= stall_without_model_step_seconds):
-            print(f"[WARN] No model activity after {stall_without_model_step_seconds}s (possible token limit) -> Triggering Auto-Switch Fallback!")
-            fb = fallback_gemini_direct(text, user, prompt, env)
-            if fb:
-                send_reply_to_worker(msg_id, response=fb)
-                return
-            saw_model_activity = True  # avoid repeating fallback if it also failed
+        # If Gemini 3.8 Flash has not started a single step after 20s (out of usage / quota limit), switch to Claude!
+        if not saw_model_activity and not switched_to_claude and (time.time() - t0 >= stall_without_model_step_seconds):
+            print(f"[WARN] No response from Gemini 3.8 Flash after {stall_without_model_step_seconds}s (out of usage) -> Switching to Claude in Antigravity!")
+            switched_to_claude = True
+            start_line_count = len(current_lines)
+            switch_handy_conversation_to_claude(prompt, env)
 
     if time.time() - t0 >= timeout_seconds:
-        print(f"[TIMEOUT] No response within {timeout_seconds}s for {msg_id} -> Triggering Auto-Switch Fallback!")
-        fb = fallback_gemini_direct(text, user, prompt, env)
-        send_reply_to_worker(msg_id, response=fb or "Die Anfrage hat leider etwas zu lange gedauert.")
+        print(f"[TIMEOUT] No response within {timeout_seconds}s for {msg_id}")
+        send_reply_to_worker(msg_id, response="Die Anfrage in Antigravity hat zu lange gedauert.")
 
 def main():
     print(f"=== Gustav Handy Bridge Daemon Started ===")
