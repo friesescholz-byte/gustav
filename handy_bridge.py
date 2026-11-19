@@ -147,12 +147,54 @@ def load_dev_vars():
                     vars_dict[k.strip()] = v.strip()
     return vars_dict
 
-def fallback_gemini_direct(text, user="Adrian"):
+def switch_antigravity_to_flash(prompt, env):
     """
-    Automatic Multi-Model Failover if the active Antigravity model runs out of tokens/quota
-    or does not respond. Tries gemini-2.5-flash -> gemini-2.5-flash-lite -> gemini-2.0-flash
-    with live Cloudflare KV tasks & conversation context.
+    If the current Antigravity conversation's selected model runs out of tokens,
+    automatically switch inside Antigravity to Gemini 3.8 Flash (--model=flash / --model=flash_lite).
     """
+    global CONVERSATION_ID, TRANSCRIPT_PATH
+    for ag_model in ["flash", "flash_lite"]:
+        try:
+            print(f"[AUTO-SWITCH] Switching Antigravity conversation to {ag_model} (Gemini 3.8 Flash)...")
+            cmd = [
+                AGENTAPI_PATH,
+                "new-conversation",
+                f"--model={ag_model}",
+                "--title=📱 Handy",
+                prompt
+            ]
+            res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
+            if res.returncode == 0:
+                m = re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", res.stdout)
+                if m:
+                    new_id = m.group(0)
+                    CONVERSATION_ID = new_id
+                    TRANSCRIPT_PATH = f"/home/gustav/.gemini/antigravity/brain/{CONVERSATION_ID}/.system_generated/logs/transcript.jsonl"
+                    print(f"[AUTO-SWITCH SUCCESS] Active Handy Conversation switched to {CONVERSATION_ID} on {ag_model}")
+                    return True
+        except Exception as e:
+            print(f"[WARN] Antigravity switch to {ag_model} failed: {e}")
+    return False
+
+def fallback_gemini_direct(text, user="Adrian", prompt=None, env=None):
+    """
+    1. First tries switching directly inside Antigravity to Gemini 3.8 Flash (--model=flash).
+    2. Emergency backup via Gemini API if Antigravity itself is closed/unreachable.
+    """
+    if prompt and env and switch_antigravity_to_flash(prompt, env):
+        t_switch = time.time()
+        while running and (time.time() - t_switch < 60):
+            time.sleep(0.3)
+            for line_str in get_transcript_lines():
+                try:
+                    entry = json.loads(line_str.strip())
+                    if entry.get("source") == "MODEL" and entry.get("type") == "PLANNER_RESPONSE" and not entry.get("tool_calls"):
+                        c = (entry.get("content") or "").strip()
+                        if c:
+                            return c
+                except Exception:
+                    pass
+
     dv = load_dev_vars()
     api_key = os.environ.get("GEMINI_API_KEY") or dv.get("GEMINI_API_KEY")
     cf_acc = os.environ.get("CLOUDFLARE_ACCOUNT_ID") or dv.get("CLOUDFLARE_ACCOUNT_ID")
@@ -161,7 +203,6 @@ def fallback_gemini_direct(text, user="Adrian"):
     if not api_key:
         return None
 
-    # Fetch live tasks & recent history from Cloudflare KV for full context
     tasks_context = ""
     history_context = ""
     if cf_acc and cf_tok:
@@ -202,10 +243,8 @@ def fallback_gemini_direct(text, user="Adrian"):
         'bzw. {"type":"update_task","search":"...","dueDate":"..."} oder {"type":"complete_task","search":"..."}.'
     )
 
-    models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
-    for model_name in models:
+    for model_name in ["gemini-2.5-flash"]:
         try:
-            print(f"[AUTO-SWITCH] Trying fallback model {model_name}...")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
@@ -217,12 +256,9 @@ def fallback_gemini_direct(text, user="Adrian"):
                 data = res.json()
                 reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 if reply:
-                    print(f"[AUTO-SWITCH SUCCESS] {model_name} answered ({len(reply)} chars)")
                     return reply
-            else:
-                print(f"[WARN] Fallback model {model_name} returned {res.status_code}: {res.text[:160]}")
-        except Exception as e:
-            print(f"[WARN] Fallback model {model_name} failed: {e}")
+        except Exception:
+            pass
 
     return None
 
@@ -264,12 +300,12 @@ def process_message(item):
         res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
         if res.returncode != 0:
             print(f"[ERROR] agentapi send-message failed: {res.stderr or res.stdout} -> Triggering Auto-Switch Fallback!")
-            fb = fallback_gemini_direct(text, user)
+            fb = fallback_gemini_direct(text, user, prompt, env)
             send_reply_to_worker(msg_id, response=fb or "Fehler beim Weiterleiten an den Gustav Server-Kern.")
             return
     except Exception as e:
         print(f"[ERROR] Failed to execute agentapi: {e} -> Triggering Auto-Switch Fallback!")
-        fb = fallback_gemini_direct(text, user)
+        fb = fallback_gemini_direct(text, user, prompt, env)
         send_reply_to_worker(msg_id, response=fb or "Interner Serverfehler bei der Nachrichtenverarbeitung.")
         return
 
@@ -300,7 +336,7 @@ def process_message(item):
                     if entry.get("source") == "MODEL" and entry.get("type") == "PLANNER_RESPONSE" and entry.get("status") == "ERROR":
                         err_msg = entry.get("error", "Model error / out of tokens")
                         print(f"[WARN] Antigravity model error detected ({err_msg}) -> Switching to Fallback Model!")
-                        fb = fallback_gemini_direct(text, user)
+                        fb = fallback_gemini_direct(text, user, prompt, env)
                         if fb:
                             send_reply_to_worker(msg_id, response=fb)
                             return
@@ -325,7 +361,7 @@ def process_message(item):
         # If model has not started a single step after 25s (e.g. out-of-tokens banner in IDE), auto-switch!
         if not saw_model_activity and (time.time() - t0 >= stall_without_model_step_seconds):
             print(f"[WARN] No model activity after {stall_without_model_step_seconds}s (possible token limit) -> Triggering Auto-Switch Fallback!")
-            fb = fallback_gemini_direct(text, user)
+            fb = fallback_gemini_direct(text, user, prompt, env)
             if fb:
                 send_reply_to_worker(msg_id, response=fb)
                 return
@@ -333,7 +369,7 @@ def process_message(item):
 
     if time.time() - t0 >= timeout_seconds:
         print(f"[TIMEOUT] No response within {timeout_seconds}s for {msg_id} -> Triggering Auto-Switch Fallback!")
-        fb = fallback_gemini_direct(text, user)
+        fb = fallback_gemini_direct(text, user, prompt, env)
         send_reply_to_worker(msg_id, response=fb or "Die Anfrage hat leider etwas zu lange gedauert.")
 
 def main():
