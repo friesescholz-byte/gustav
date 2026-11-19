@@ -1380,6 +1380,55 @@ export default {
         });
       }
 
+      // 8.045 Server-Side Audio TTS Fallback (Fast MP3 stream for mobile loudspeaker after long async tool calls)
+      if (url.pathname === '/api/tts' && method === 'GET') {
+        const rawText = (url.searchParams.get('text') || '').trim();
+        if (!rawText) {
+          return new Response('Missing text', { status: 400, headers: corsHeaders });
+        }
+        const words = rawText.slice(0, 600).split(/\s+/);
+        const chunks = [];
+        let cur = '';
+        for (const w of words) {
+          if ((cur + ' ' + w).trim().length > 175) {
+            if (cur) chunks.push(cur.trim());
+            cur = w;
+          } else {
+            cur = (cur + ' ' + w).trim();
+          }
+        }
+        if (cur) chunks.push(cur.trim());
+
+        try {
+          const buffers = await Promise.all(chunks.map(async (chunk) => {
+            const ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=de&q=' + encodeURIComponent(chunk);
+            const r = await fetch(ttsUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+            });
+            if (!r.ok) throw new Error('TTS upstream ' + r.status);
+            return new Uint8Array(await r.arrayBuffer());
+          }));
+
+          const totalLen = buffers.reduce((acc, b) => acc + b.byteLength, 0);
+          const combined = new Uint8Array(totalLen);
+          let offset = 0;
+          for (const b of buffers) {
+            combined.set(b, offset);
+            offset += b.byteLength;
+          }
+
+          return new Response(combined.buffer, {
+            headers: {
+              'Content-Type': 'audio/mpeg',
+              'Cache-Control': 'public, max-age=3600',
+              ...corsHeaders
+            }
+          });
+        } catch (err) {
+          return new Response(JSON.stringify({ error: 'TTS failed' }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       // 8.05 Unified Chat Submission (Used by Mobile Voice & Dashboard)
       if (url.pathname === '/api/chat' && method === 'POST') {
         const { message, user, clientId } = await request.json();

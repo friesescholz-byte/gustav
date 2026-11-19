@@ -580,9 +580,64 @@ export default `<!DOCTYPE html>
             };
         }
 
+        const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        const ttsPlayer = new Audio();
+        ttsPlayer.preload = 'auto';
+        let audioUnlocked = false;
+        let speakWatchdog = null;
+        let speakStartTimer = null;
+        window._activeUtterance = null;
+
+        if (synth && typeof synth.onvoiceschanged !== 'undefined') {
+            synth.onvoiceschanged = () => { synth.getVoices(); };
+        }
+
+        function unlockAudio() {
+            if ('speechSynthesis' in window && synth) {
+                try {
+                    if (synth.paused) synth.resume();
+                    const u = new SpeechSynthesisUtterance('');
+                    u.volume = 0;
+                    u.lang = 'de-DE';
+                    synth.speak(u);
+                } catch(e) {}
+            }
+            if (!audioUnlocked && ttsPlayer) {
+                try {
+                    ttsPlayer.src = SILENT_WAV;
+                    ttsPlayer.volume = 0.01;
+                    const p = ttsPlayer.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(() => {
+                            ttsPlayer.pause();
+                            ttsPlayer.currentTime = 0;
+                            ttsPlayer.volume = 1.0;
+                            audioUnlocked = true;
+                        }).catch(() => {});
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function stopAllSpeech() {
+            if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+            if (speakStartTimer) { clearTimeout(speakStartTimer); speakStartTimer = null; }
+            if (synth) {
+                try { synth.cancel(); } catch(e) {}
+            }
+            if (ttsPlayer) {
+                try {
+                    ttsPlayer.pause();
+                    ttsPlayer.currentTime = 0;
+                } catch(e) {}
+            }
+        }
+
         function handleOrbClick() {
+            unlockAudio();
+
             if (state === 'speaking') {
-                if (synth) synth.cancel();
+                stopAllSpeech();
                 setState('idle');
                 statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
                 return;
@@ -616,6 +671,7 @@ export default `<!DOCTYPE html>
             }
 
             // Start manual recording
+            stopAllSpeech();
             isManualRecording = true;
             accumulatedTranscript = '';
             currentSessionTranscript = '';
@@ -646,8 +702,8 @@ export default `<!DOCTYPE html>
                 orbIcon.className = 'fa-solid fa-spinner fa-spin orb-center-icon';
                 statusCaption.textContent = 'Gustav denkt nach...';
             } else if (newState === 'speaking') {
-                orbIcon.className = 'fa-solid fa-waveform orb-center-icon';
-                statusCaption.textContent = 'Gustav spricht...';
+                orbIcon.className = 'fa-solid fa-volume-high orb-center-icon';
+                statusCaption.textContent = 'Gustav spricht... (Tippe zum Stoppen)';
             } else {
                 orbIcon.className = 'fa-solid fa-microphone orb-center-icon';
                 statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
@@ -669,22 +725,22 @@ export default `<!DOCTYPE html>
                 const data = await res.json();
                 let reply = data.response;
 
-                // If response is pending (waiting for server bridge), poll status
+                // If response is pending (waiting for server bridge), poll status up to 110s
                 if (!reply && data.id) {
                     let attempts = 0;
-                    while (attempts < 60) {
+                    while (attempts < 110) {
                         await new Promise(r => setTimeout(r, 1000));
                         attempts++;
                         try {
                             const pollRes = await fetch('/api/chat/status?id=' + encodeURIComponent(data.id));
                             if (pollRes.ok) {
                                 const pollData = await pollRes.json();
-                                if (pollData.progress) {
-                                    statusCaption.textContent = pollData.progress;
-                                }
                                 if (pollData.status === 'completed' && pollData.response) {
                                     reply = pollData.response;
                                     break;
+                                }
+                                if (pollData.progress) {
+                                    statusCaption.textContent = pollData.progress;
                                 }
                             }
                         } catch(e) {}
@@ -695,8 +751,14 @@ export default `<!DOCTYPE html>
                     reply = 'Ich habe deine Nachricht erhalten und verarbeite sie auf dem Server.';
                 }
 
+                // 1. Immediately clear thinking state & spinning wheel BEFORE audio starts
+                setState('idle');
                 appendMsg(reply, 'gustav');
-                speakAnswer(reply);
+
+                // 2. Wait 250ms so smartphone releases microphone session and routes to loudspeaker
+                setTimeout(() => {
+                    speakAnswer(reply, false);
+                }, 250);
             } catch(err) {
                 setState('idle');
                 statusCaption.textContent = 'Verbindungsfehler';
@@ -707,15 +769,15 @@ export default `<!DOCTYPE html>
         function getGermanMaleVoice() {
             if (!synth) return null;
             const voices = synth.getVoices();
-            const deVoices = voices.filter(v => v.lang && v.lang.startsWith('de'));
+            const deVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('de'));
             
             // 1. Explicit male voice names (iOS, Windows, Android)
-            const maleIdentifiers = ['yannick', 'stefan', 'florian', 'markus', 'viktor', 'martin', 'conrad', 'male', 'männlich', 'de-de-x-deg', 'de-de-x-deb'];
+            const maleIdentifiers = ['yannick', 'stefan', 'florian', 'markus', 'viktor', 'martin', 'conrad', 'killian', 'klaus', 'male', 'männlich', 'de-de-x-deg', 'de-de-x-deb'];
             let found = deVoices.find(v => maleIdentifiers.some(m => v.name.toLowerCase().includes(m)));
             if (found) return found;
 
             // 2. Reject explicit female voice names
-            const femaleIdentifiers = ['anna', 'petra', 'katja', 'amira', 'marlene', 'hedda', 'gudrun', 'zira', 'female', 'weiblich'];
+            const femaleIdentifiers = ['anna', 'petra', 'katja', 'amira', 'marlene', 'hedda', 'gudrun', 'zira', 'helena', 'female', 'weiblich'];
             found = deVoices.find(v => !femaleIdentifiers.some(f => v.name.toLowerCase().includes(f)));
             if (found) return found;
 
@@ -723,58 +785,151 @@ export default `<!DOCTYPE html>
             return deVoices[0] || null;
         }
 
-        function speakAnswer(text) {
-            if (!voiceOutput || !('speechSynthesis' in window)) {
-                setState('idle');
-                statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
-                return;
-            }
-
-            synth.cancel();
-
-            const clean = text.split('\x60\x60\x60')[0]
+        function cleanTextForSpeech(text, summarizeLong) {
+            let clean = String(text || '').split('\x60\x60\x60')[0]
                 .replace(/\\*\\*(.*?)\\*\\*/g, '$1')
                 .replace(/\\*(.*?)\\*/g, '$1')
                 .replace(/#{1,6}\\s+/g, '')
-                .replace(/\\[.*?\\]\\(.*?\\)/g, '')
-                .replace(/[-*]\\s+/g, '')
+                .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1')
+                .replace(/\\x60([^\\x60]+)\\x60/g, '$1')
+                .replace(/^\\s*[-*•]\\s+/gm, '')
+                .replace(/---+/g, '')
+                .replace(/[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}]/gu, '')
+                .replace(/\\s+/g, ' ')
                 .trim();
 
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.lang = 'de-DE';
-            
-            // Deep, calm, confident male voice (Jarvis baritone pitch)
-            utterance.pitch = 0.82;
-            utterance.rate = 1.02;
+            if (summarizeLong && clean.length > 360) {
+                let cut = clean.slice(0, 340);
+                const lastDot = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+                if (lastDot > 120) {
+                    cut = cut.slice(0, lastDot + 1);
+                }
+                clean = cut + ' Die vollständige Übersicht findest du im Chat.';
+            }
+            return clean;
+        }
 
-            const maleVoice = getGermanMaleVoice();
-            if (maleVoice) utterance.voice = maleVoice;
-
-            utterance.onstart = () => {
-                setState('speaking');
-            };
-
-            utterance.onend = () => {
+        function playServerTts(cleanText) {
+            if (!voiceOutput || !cleanText) {
                 setState('idle');
-                statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
-            };
-
-            utterance.onerror = () => {
+                return;
+            }
+            try {
+                ttsPlayer.volume = 1.0;
+                ttsPlayer.src = '/api/tts?text=' + encodeURIComponent(cleanText);
+                ttsPlayer.onplay = () => {
+                    setState('speaking');
+                };
+                ttsPlayer.onended = () => {
+                    if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+                    setState('idle');
+                };
+                ttsPlayer.onerror = () => {
+                    if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+                    setState('idle');
+                };
+                const playPromise = ttsPlayer.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {
+                        if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+                        setState('idle');
+                    });
+                }
+            } catch(e) {
                 setState('idle');
-                statusCaption.textContent = 'Tippe auf den Orb, um zu sprechen';
-            };
+            }
+        }
 
-            synth.speak(utterance);
+        function speakAnswer(text, fullLength) {
+            stopAllSpeech();
+
+            if (!voiceOutput) {
+                setState('idle');
+                return;
+            }
+
+            const clean = cleanTextForSpeech(text, !fullLength);
+            if (!clean) {
+                setState('idle');
+                return;
+            }
+
+            // Hard safety watchdog so UI never gets stuck
+            const maxDurationMs = Math.min(45000, Math.max(10000, clean.length * 110));
+            speakWatchdog = setTimeout(() => {
+                stopAllSpeech();
+                setState('idle');
+            }, maxDurationMs);
+
+            if (!('speechSynthesis' in window) || !synth) {
+                playServerTts(clean);
+                return;
+            }
+
+            try {
+                if (synth.paused) synth.resume();
+                const utterance = new SpeechSynthesisUtterance(clean);
+                window._activeUtterance = utterance;
+                utterance.lang = 'de-DE';
+                utterance.pitch = 0.85;
+                utterance.rate = 1.03;
+
+                const maleVoice = getGermanMaleVoice();
+                if (maleVoice) utterance.voice = maleVoice;
+
+                let started = false;
+                let fallbackTriggered = false;
+
+                // If mobile browser blocks speechSynthesis after long async wait (>900ms without onstart),
+                // automatically switch to unlocked HTML5 <audio> stream (/api/tts)
+                speakStartTimer = setTimeout(() => {
+                    if (!started && !fallbackTriggered) {
+                        fallbackTriggered = true;
+                        try { synth.cancel(); } catch(e) {}
+                        playServerTts(clean);
+                    }
+                }, 900);
+
+                utterance.onstart = () => {
+                    started = true;
+                    if (speakStartTimer) { clearTimeout(speakStartTimer); speakStartTimer = null; }
+                    setState('speaking');
+                };
+
+                utterance.onend = () => {
+                    if (fallbackTriggered) return;
+                    if (speakStartTimer) { clearTimeout(speakStartTimer); speakStartTimer = null; }
+                    if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+                    setState('idle');
+                };
+
+                utterance.onerror = () => {
+                    if (fallbackTriggered) return;
+                    if (speakStartTimer) { clearTimeout(speakStartTimer); speakStartTimer = null; }
+                    if (!started) {
+                        fallbackTriggered = true;
+                        playServerTts(clean);
+                    } else {
+                        if (speakWatchdog) { clearTimeout(speakWatchdog); speakWatchdog = null; }
+                        setState('idle');
+                    }
+                };
+
+                synth.speak(utterance);
+            } catch(e) {
+                playServerTts(clean);
+            }
         }
 
         function toggleMute() {
+            unlockAudio();
             voiceOutput = !voiceOutput;
             const icon = document.getElementById('mute-icon');
             if (voiceOutput) {
                 icon.className = 'fa-solid fa-volume-high';
             } else {
                 icon.className = 'fa-solid fa-volume-xmark';
-                if (synth) synth.cancel();
+                stopAllSpeech();
                 if (state === 'speaking') setState('idle');
             }
         }
@@ -800,7 +955,7 @@ export default `<!DOCTYPE html>
             sheetExpanded = !sheetExpanded;
             if (sheetExpanded) {
                 bottomSheet.classList.add('expanded');
-                if (!historyLoaded) loadHistory();
+                loadHistory();
             } else {
                 bottomSheet.classList.remove('expanded');
             }
@@ -809,15 +964,33 @@ export default `<!DOCTYPE html>
         function appendMsg(text, sender) {
             const bubble = document.createElement('div');
             bubble.className = \`msg-bubble msg-\${sender}\`;
-            let formatted = text
+            let formatted = String(text || '')
                 .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
                 .replace(/\\n/g, '<br>');
             bubble.innerHTML = formatted;
+
+            if (sender === 'gustav') {
+                const actionRow = document.createElement('div');
+                actionRow.style.cssText = 'margin-top: 8px; display: flex; justify-content: flex-end;';
+                const speakBtn = document.createElement('button');
+                speakBtn.type = 'button';
+                speakBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Vorlesen';
+                speakBtn.style.cssText = 'background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; font-size: 11px; padding: 3px 9px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;';
+                speakBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    unlockAudio();
+                    speakAnswer(text, true);
+                };
+                actionRow.appendChild(speakBtn);
+                bubble.appendChild(actionRow);
+            }
+
             sheetMessages.appendChild(bubble);
             sheetMessages.scrollTop = sheetMessages.scrollHeight;
         }
 
         function sendKeyboardMessage() {
+            unlockAudio();
             const input = document.getElementById('keyboard-input');
             const val = input.value.trim();
             if (!val) return;
