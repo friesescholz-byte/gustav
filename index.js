@@ -662,7 +662,21 @@ export default {
             
             customer.isDraft = !hasRealDomain;
 
-            if (customer.manualOverride) {
+            const hasOpenAssignedOrDraftOverrideTodo = (customer.todos || []).some(t => !t.done) && (
+              customer.statusReason === 'Entwurf bestätigt' ||
+              (customer.todos || []).some(t => !t.done && t.assignee)
+            );
+
+            if (hasOpenAssignedOrDraftOverrideTodo) {
+              const unres = customer.todos.find(t => !t.done && t.assignee) || customer.todos.find(t => !t.done);
+              const expectedReason = `Offene Aufgabe: ${unres.text}`;
+              if (customer.status !== 'red' || customer.manualOverride || customer.statusReason !== expectedReason) {
+                customer.status = 'red';
+                customer.manualOverride = false;
+                customer.statusReason = expectedReason;
+                await env.KUNDEN_DB.put(key.name, JSON.stringify(customer));
+              }
+            } else if (customer.manualOverride) {
               // Respect manual override in GET
             } else if (customer.isDraft) {
               const ageMs = Date.now() - new Date(customer.createdAt).getTime();
@@ -756,14 +770,15 @@ export default {
         
         // Load existing customer if available to preserve histories/contracts
         const existingRaw = await env.KUNDEN_DB.get(`kunde:${customer.id}`);
+        let existingCustomer = null;
         let finalCustomer = customer;
         if (existingRaw) {
-          const existing = JSON.parse(existingRaw);
+          existingCustomer = JSON.parse(existingRaw);
           finalCustomer = {
-            ...existing,
+            ...existingCustomer,
             ...customer,
-            adminPassword: customer.adminPassword !== undefined ? customer.adminPassword : (existing.adminPassword || ''),
-            contracts: customer.contracts || existing.contracts || [],
+            adminPassword: customer.adminPassword !== undefined ? customer.adminPassword : (existingCustomer.adminPassword || ''),
+            contracts: customer.contracts || existingCustomer.contracts || [],
           };
         } else {
           finalCustomer.contracts = [];
@@ -845,8 +860,14 @@ export default {
         finalCustomer.isDraft = !hasRealDomain;
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
         const hasUnresolvedTodos = (finalCustomer.todos || []).some(t => !t.done);
+        const hadNewTodoAdded = (finalCustomer.todos || []).some(t => !t.done && !(existingCustomer && Array.isArray(existingCustomer.todos) && existingCustomer.todos.some(et => et.id === t.id && !et.done)));
 
-        if (finalCustomer.manualOverride) {
+        if (hadNewTodoAdded || (hasUnresolvedTodos && (finalCustomer.statusReason === 'Entwurf bestätigt' || (finalCustomer.todos || []).some(t => !t.done && t.assignee)))) {
+          finalCustomer.manualOverride = false;
+          finalCustomer.status = 'red';
+          const unresolvedTodo = finalCustomer.todos.find(t => !t.done && t.assignee) || finalCustomer.todos.find(t => !t.done);
+          finalCustomer.statusReason = `Offene Aufgabe: ${unresolvedTodo.text}`;
+        } else if (finalCustomer.manualOverride) {
           // Explicit manual override by user - preserve status & statusReason!
         } else if (hasUnresolvedTodos) {
           finalCustomer.status = 'red';

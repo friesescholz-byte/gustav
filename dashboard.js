@@ -5154,6 +5154,9 @@ export default `<!DOCTYPE html>
                 done: false,
                 createdAt: new Date().toISOString()
             });
+            activeClient.status = 'red';
+            activeClient.statusReason = 'Offene Aufgabe: ' + text;
+            activeClient.manualOverride = false;
 
             if (input) {
                 input.value = '';
@@ -5161,6 +5164,8 @@ export default `<!DOCTYPE html>
             }
             if (assigneeSelect) assigneeSelect.value = '';
             renderTodos(activeClient);
+            updateGlobalStats();
+            renderClientList();
             await saveClientTodos(activeClient);
         }
 
@@ -5189,6 +5194,7 @@ export default `<!DOCTYPE html>
                 } else if (!checked) {
                     targetClient.status = 'red';
                     targetClient.statusReason = 'Offene Aufgabe: ' + todo.text;
+                    targetClient.manualOverride = false;
                 }
 
                 if (activeClient && activeClient.id === clientId) {
@@ -6041,15 +6047,21 @@ export default `<!DOCTYPE html>
             const alertsList = document.getElementById('alerts-center-list');
 
             const openCustomTasks = (Array.isArray(customTasksData) ? customTasksData : []).filter(t => t && !t.completed);
-            const redClients = (Array.isArray(clients) ? clients : []).filter(c => c && c.status === 'red');
-            const totalAlertsCount = redClients.length + openCustomTasks.length;
+            const redClients = (Array.isArray(clients) ? clients : []).filter(c => {
+                if (!c) return false;
+                if (c.status === 'red') return true;
+                const hasAssignedOpenTodo = (c.todos || []).some(td => !td.done && (td.assignee || c.statusReason === 'Entwurf bestätigt' || !c.manualOverride));
+                const hasOpenCustomTask = openCustomTasks.some(t => t.clientId === c.id);
+                return hasAssignedOpenTodo || hasOpenCustomTask;
+            });
+            const generalTasks = openCustomTasks.filter(t => !t.clientId || !redClients.some(rc => rc.id === t.clientId));
+            const totalAlertsCount = redClients.length + generalTasks.length;
 
             // Calculate Task Counts per Filter for Pills (All, Adrian, Basti)
             let countAll = 0;
             let countAdrian = 0;
             let countBasti = 0;
 
-            const generalTasks = openCustomTasks.filter(t => !t.clientId);
             generalTasks.forEach(t => {
                 countAll++;
                 if (taskMatchesFilter(t.title, t.assignee, 'adrian')) countAdrian++;
@@ -6169,7 +6181,7 @@ export default `<!DOCTYPE html>
                         taskItem.style.justifyContent = 'space-between';
                         taskItem.style.marginBottom = '8px';
 
-                        let metaText = 'Allgemeine Aufgabe';
+                        let metaText = t.clientName ? ('Kunde: ' + t.clientName) : 'Allgemeine Aufgabe';
                         if (assigneeText) metaText += ' &bull; Bearbeiter: ' + assigneeText;
                         if (t.dueDate) {
                             const dParts = t.dueDate.split('-');
