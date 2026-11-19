@@ -2395,6 +2395,19 @@ export default `<!DOCTYPE html>
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <!-- SF Sign Sub-Navigation Switcher -->
+                    <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); padding: 4px; border-radius: 10px; display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button class="routing-tab-btn active" id="sfsign-tab-overview" onclick="switchSfSignTab('overview')">
+                            <i class="fa-solid fa-list-check" style="color: #a855f7;"></i> Übersicht
+                        </button>
+                        <button class="routing-tab-btn" id="sfsign-tab-contract" onclick="switchSfSignTab('contract')">
+                            <i class="fa-solid fa-file-contract" style="color: var(--color-cyan);"></i> + Vertrag verschicken
+                        </button>
+                        <button class="routing-tab-btn" id="sfsign-tab-sepa" onclick="switchSfSignTab('sepa')">
+                            <i class="fa-solid fa-building-columns" style="color: #10b981;"></i> + SEPA-Mandat anfordern
+                        </button>
+                    </div>
+
                     <!-- Action Controls -->
                     <button class="btn btn-secondary" onclick="reloadSfSignIframe()" style="padding: 9px 13px; font-size: 13px;" title="SF Sign neu laden">
                         <i class="fa-solid fa-rotate"></i>
@@ -5818,7 +5831,12 @@ export default `<!DOCTYPE html>
 
         // --- MASTER HUB & ROUTEN LOGIC ---
         const MASTERHUB_URL = 'https://dashboard.friese-scholz.workers.dev/';
-        const SFSIGN_URL = 'https://sign.scholz-friese-webdesign.de/admin';
+        let currentSfSignTab = 'overview';
+        const SFSIGN_URLS = {
+            overview: 'https://sign.scholz-friese-webdesign.de/admin',
+            contract: 'https://sign.scholz-friese-webdesign.de/admin/new',
+            sepa: 'https://sign.scholz-friese-webdesign.de/admin/sepa/new'
+        };
 
         function loadRoutingView() {
             const iframeMasterhub = document.getElementById('routing-iframe-masterhub');
@@ -5842,11 +5860,27 @@ export default `<!DOCTYPE html>
         }
 
         // --- SF SIGN LOGIC ---
+        function switchSfSignTab(tabKey) {
+            currentSfSignTab = SFSIGN_URLS[tabKey] ? tabKey : 'overview';
+            ['overview', 'contract', 'sepa'].forEach(k => {
+                const btn = document.getElementById('sfsign-tab-' + k);
+                if (btn) {
+                    if (k === currentSfSignTab) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            const iframe = document.getElementById('sfsign-iframe');
+            if (iframe) {
+                iframe.src = SFSIGN_URLS[currentSfSignTab];
+                iframe.style.display = 'block';
+            }
+        }
+
         function loadSfSignView() {
             const iframe = document.getElementById('sfsign-iframe');
             if (iframe) {
                 if (iframe.src === 'about:blank' || !iframe.src) {
-                    iframe.src = SFSIGN_URL;
+                    switchSfSignTab(currentSfSignTab);
                 }
                 iframe.style.display = 'block';
             }
@@ -5855,12 +5889,12 @@ export default `<!DOCTYPE html>
         function reloadSfSignIframe() {
             const iframe = document.getElementById('sfsign-iframe');
             if (iframe) {
-                iframe.src = SFSIGN_URL;
+                iframe.src = SFSIGN_URLS[currentSfSignTab] || SFSIGN_URLS.overview;
             }
         }
 
         function openSfSignInNewTab() {
-            window.open(SFSIGN_URL, '_blank');
+            window.open(SFSIGN_URLS[currentSfSignTab] || SFSIGN_URLS.overview, '_blank');
         }
 
         // --- CLOUDFLARE DOMAINS FETCH ---
