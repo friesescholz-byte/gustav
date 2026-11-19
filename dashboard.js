@@ -1361,7 +1361,7 @@ export default `<!DOCTYPE html>
             }
 
             /* --- 1. GLOBAL SCREEN WRAPPERS --- */
-            .welcome-screen, #routing-screen, #mail-screen, #client-view {
+            .welcome-screen, #routing-screen, #sfsign-screen, #mail-screen, #client-view {
                 padding: 12px 10px 40px 10px !important;
                 box-sizing: border-box !important;
                 width: 100% !important;
@@ -1369,7 +1369,7 @@ export default `<!DOCTYPE html>
                 overflow-x: hidden !important;
             }
 
-            .welcome-screen h1, #routing-screen h1, #mail-screen h1 {
+            .welcome-screen h1, #routing-screen h1, #sfsign-screen h1, #mail-screen h1 {
                 font-size: 19px !important;
                 line-height: 1.25 !important;
             }
@@ -1385,6 +1385,7 @@ export default `<!DOCTYPE html>
             /* Top Header Bars across all screens */
             .welcome-screen > div:first-child,
             #routing-screen > div:first-child,
+            #sfsign-screen > div:first-child,
             #mail-screen > div:first-child {
                 flex-direction: column !important;
                 align-items: stretch !important;
@@ -1400,6 +1401,7 @@ export default `<!DOCTYPE html>
 
             .welcome-screen > div:first-child > div:last-child,
             #routing-screen > div:first-child > div:last-child,
+            #sfsign-screen > div:first-child > div:last-child,
             #mail-screen > div:first-child > div:last-child {
                 text-align: left !important;
                 display: flex !important;
@@ -1690,13 +1692,16 @@ export default `<!DOCTYPE html>
                 <i class="fa-solid fa-chart-line"></i> Command Center
             </button>
             <button class="nav-item" id="nav-btn-routing" onclick="showView('routing')">
-                <i class="fa-solid fa-route" style="color: var(--color-cyan);"></i> E-Mail Verteiler & Hub
+                <i class="fa-solid fa-route" style="color: var(--color-cyan);"></i> Master Hub & Routen
             </button>
             <button class="nav-item" id="nav-btn-mail" onclick="showView('mail')">
                 <i class="fa-solid fa-paper-plane"></i> E-Mail verfassen
             </button>
             <button class="nav-item" id="nav-btn-security" onclick="showView('security')">
                 <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Security & Berichte
+            </button>
+            <button class="nav-item" id="nav-btn-sfsign" onclick="showView('sfsign')">
+                <i class="fa-solid fa-file-signature" style="color: #a855f7;"></i> SF Sign
             </button>
         </div>
         <div class="search-container">
@@ -1845,30 +1850,20 @@ export default `<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- E-MAIL VERTEILER & MASTER HUB SCREEN -->
+        <!-- MASTER HUB & ROUTEN SCREEN -->
         <div class="welcome-screen" id="routing-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 32px; box-sizing: border-box; width: 100%; height: 100%;">
             <!-- Header-Leiste -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1300px; margin: 0 auto 20px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 18px; box-sizing: border-box; flex-wrap: wrap; gap: 16px;">
                 <div style="text-align: left;">
                     <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--color-cyan); text-shadow: 0 0 10px rgba(6,182,212,0.3); display: block; margin-bottom: 6px;">
-                        <i class="fa-solid fa-route"></i> Scholz & Friese Routing Network
+                        <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Scholz & Friese Routing Network
                     </span>
                     <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 28px; background: linear-gradient(135deg, #fff 30%, var(--color-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        E-Mail Verteiler & Master Hub
+                        Master Hub & Routen
                     </h1>
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <!-- Tab Switcher -->
-                    <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); padding: 4px; border-radius: 10px; display: flex; gap: 4px;">
-                        <button class="routing-tab-btn active" id="tab-btn-verteiler" onclick="switchRoutingTab('verteiler')">
-                            <i class="fa-solid fa-envelope-circle-check" style="color: var(--color-cyan);"></i> E-Mail Verteiler
-                        </button>
-                        <button class="routing-tab-btn" id="tab-btn-masterhub" onclick="switchRoutingTab('masterhub')">
-                            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Master Hub & Routen
-                        </button>
-                    </div>
-
                     <!-- Action Controls -->
                     <button class="btn btn-secondary" onclick="reloadCurrentRoutingIframe()" style="padding: 9px 13px; font-size: 13px;" title="Aktuelle Ansicht neu laden">
                         <i class="fa-solid fa-rotate"></i>
@@ -1882,8 +1877,7 @@ export default `<!DOCTYPE html>
 
             <!-- Iframe Container -->
             <div class="routing-frame-container">
-                <iframe id="routing-iframe-verteiler" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: block;" allow="clipboard-read; clipboard-write"></iframe>
-                <iframe id="routing-iframe-masterhub" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: none;" allow="clipboard-read; clipboard-write"></iframe>
+                <iframe id="routing-iframe-masterhub" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: block;" allow="clipboard-read; clipboard-write"></iframe>
             </div>
         </div>
 
@@ -2387,6 +2381,37 @@ export default `<!DOCTYPE html>
             </div>
         </div>
 
+        <!-- SF SIGN SCREEN -->
+        <div class="welcome-screen" id="sfsign-screen" style="display: none; overflow-y: auto; flex-direction: column; justify-content: flex-start; padding: 32px; box-sizing: border-box; width: 100%; height: 100%;">
+            <!-- Header-Leiste -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 1300px; margin: 0 auto 20px auto; border-bottom: 1px solid var(--border-color); padding-bottom: 18px; box-sizing: border-box; flex-wrap: wrap; gap: 16px;">
+                <div style="text-align: left;">
+                    <span style="font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #a855f7; text-shadow: 0 0 10px rgba(168,85,247,0.3); display: block; margin-bottom: 6px;">
+                        <i class="fa-solid fa-file-signature"></i> Scholz & Friese Digital Signature
+                    </span>
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 28px; background: linear-gradient(135deg, #fff 30%, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        SF Sign – Verträge & SEPA-Mandate
+                    </h1>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <!-- Action Controls -->
+                    <button class="btn btn-secondary" onclick="reloadSfSignIframe()" style="padding: 9px 13px; font-size: 13px;" title="SF Sign neu laden">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button class="btn btn-primary" onclick="openSfSignInNewTab()" style="padding: 9px 14px; font-size: 13px; display: flex; align-items: center; gap: 6px;" title="In neuem Tab öffnen">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <span>Tab öffnen</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Iframe Container -->
+            <div class="routing-frame-container">
+                <iframe id="sfsign-iframe" src="about:blank" style="width: 100%; height: 100%; border: none; background: #080A0F; display: block;" allow="clipboard-read; clipboard-write"></iframe>
+            </div>
+        </div>
+
     </div>
 
     <!-- GUSTAV CHAT PANEL -->
@@ -2776,7 +2801,11 @@ export default `<!DOCTYPE html>
         </button>
         <button class="mobile-nav-item" id="mob-nav-routing" onclick="showView('routing'); updateMobileBottomNav('routing');">
             <i class="fa-solid fa-route"></i>
-            <span>Verteiler</span>
+            <span>Master Hub</span>
+        </button>
+        <button class="mobile-nav-item" id="mob-nav-sfsign" onclick="showView('sfsign'); updateMobileBottomNav('sfsign');">
+            <i class="fa-solid fa-file-signature"></i>
+            <span>SF Sign</span>
         </button>
         <button class="mobile-nav-item" id="mob-nav-chat" onclick="toggleMobileChat();">
             <i class="fa-solid fa-robot"></i>
@@ -4436,6 +4465,8 @@ export default `<!DOCTYPE html>
             document.getElementById('mail-screen').style.display = 'none';
             const secS = document.getElementById('security-screen');
             if (secS) secS.style.display = 'none';
+            const sfsignS = document.getElementById('sfsign-screen');
+            if (sfsignS) sfsignS.style.display = 'none';
 
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
 
@@ -5754,6 +5785,8 @@ export default `<!DOCTYPE html>
             document.getElementById('mail-screen').style.display = 'none';
             const secScreen = document.getElementById('security-screen');
             if (secScreen) secScreen.style.display = 'none';
+            const sfsignScreen = document.getElementById('sfsign-screen');
+            if (sfsignScreen) sfsignScreen.style.display = 'none';
             
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             
@@ -5775,60 +5808,59 @@ export default `<!DOCTYPE html>
                 const secBtn = document.getElementById('nav-btn-security');
                 if (secBtn) secBtn.classList.add('active');
                 loadSecurityGuardianData();
+            } else if (viewName === 'sfsign') {
+                if (sfsignScreen) sfsignScreen.style.display = 'flex';
+                const sfsignBtn = document.getElementById('nav-btn-sfsign');
+                if (sfsignBtn) sfsignBtn.classList.add('active');
+                loadSfSignView();
             }
         }
 
-        // --- E-MAIL VERTEILER & MASTER HUB LOGIC ---
-        let currentRoutingTab = 'verteiler';
-        const ROUTING_URLS = {
-            verteiler: 'https://friesescholzwebdesign.pages.dev/admin',
-            masterhub: 'https://dashboard.friese-scholz.workers.dev/'
-        };
+        // --- MASTER HUB & ROUTEN LOGIC ---
+        const MASTERHUB_URL = 'https://dashboard.friese-scholz.workers.dev/';
+        const SFSIGN_URL = 'https://sign.scholz-friese-webdesign.de/admin';
 
-        function switchRoutingTab(tabName) {
-            currentRoutingTab = tabName;
-            document.querySelectorAll('.routing-tab-btn').forEach(btn => btn.classList.remove('active'));
-            
-            const activeBtn = document.getElementById('tab-btn-' + tabName);
-            if (activeBtn) activeBtn.classList.add('active');
-
-            const iframeVerteiler = document.getElementById('routing-iframe-verteiler');
+        function loadRoutingView() {
             const iframeMasterhub = document.getElementById('routing-iframe-masterhub');
-
-            if (tabName === 'verteiler') {
-                if (iframeVerteiler) {
-                    if (iframeVerteiler.src === 'about:blank' || !iframeVerteiler.src) {
-                        iframeVerteiler.src = ROUTING_URLS.verteiler;
-                    }
-                    iframeVerteiler.style.display = 'block';
+            if (iframeMasterhub) {
+                if (iframeMasterhub.src === 'about:blank' || !iframeMasterhub.src) {
+                    iframeMasterhub.src = MASTERHUB_URL;
                 }
-                if (iframeMasterhub) iframeMasterhub.style.display = 'none';
-            } else if (tabName === 'masterhub') {
-                if (iframeMasterhub) {
-                    if (iframeMasterhub.src === 'about:blank' || !iframeMasterhub.src) {
-                        iframeMasterhub.src = ROUTING_URLS.masterhub;
-                    }
-                    iframeMasterhub.style.display = 'block';
-                }
-                if (iframeVerteiler) iframeVerteiler.style.display = 'none';
+                iframeMasterhub.style.display = 'block';
             }
         }
 
         function reloadCurrentRoutingIframe() {
-            const iframeId = currentRoutingTab === 'verteiler' ? 'routing-iframe-verteiler' : 'routing-iframe-masterhub';
-            const iframe = document.getElementById(iframeId);
+            const iframe = document.getElementById('routing-iframe-masterhub');
             if (iframe) {
-                iframe.src = ROUTING_URLS[currentRoutingTab];
+                iframe.src = MASTERHUB_URL;
             }
         }
 
         function openCurrentRoutingInNewTab() {
-            const targetUrl = ROUTING_URLS[currentRoutingTab] || ROUTING_URLS.verteiler;
-            window.open(targetUrl, '_blank');
+            window.open(MASTERHUB_URL, '_blank');
         }
 
-        function loadRoutingView() {
-            switchRoutingTab(currentRoutingTab);
+        // --- SF SIGN LOGIC ---
+        function loadSfSignView() {
+            const iframe = document.getElementById('sfsign-iframe');
+            if (iframe) {
+                if (iframe.src === 'about:blank' || !iframe.src) {
+                    iframe.src = SFSIGN_URL;
+                }
+                iframe.style.display = 'block';
+            }
+        }
+
+        function reloadSfSignIframe() {
+            const iframe = document.getElementById('sfsign-iframe');
+            if (iframe) {
+                iframe.src = SFSIGN_URL;
+            }
+        }
+
+        function openSfSignInNewTab() {
+            window.open(SFSIGN_URL, '_blank');
         }
 
         // --- CLOUDFLARE DOMAINS FETCH ---
